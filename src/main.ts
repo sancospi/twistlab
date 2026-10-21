@@ -6,10 +6,15 @@ import type { KPattern } from 'cubing/kpuzzle';
 import { Euler, Quaternion, Vector3, type Scene } from 'three';
 import { connectGanCube, type GanCubeConnection, type GanCubeEvent, type MacAddressProvider } from 'gan-web-bluetooth';
 import { faceletsToPattern, patternToFacelets, SOLVED_FACELETS } from './facelets.ts';
+// Emits cubing.js's solver worker as a self-contained bundle where cubing.js looks for it (see vite.config.ts)
+import searchWorkerUrl from '../node_modules/cubing/dist/lib/cubing/chunks/search-worker-entry.js?worker&url';
 import { describe, follow, nextStep, relativePattern, toView, type Guide } from './guide.ts';
 import { average, formatAverage, formatResult, formatTime, HOLD_MS, INSPECTION_MS, inspectionPenalty, recordTime, resultValue, type Penalty, type Result } from './timer.ts';
 
 const $ = (id: string) => document.getElementById(id)!;
+
+// Fetch the solver worker early so the first scramble is quicker (this use also keeps the worker in the build)
+document.head.append(Object.assign(document.createElement('link'), { rel: 'prefetch', href: searchWorkerUrl }));
 const btn = (id: string) => $(id) as HTMLButtonElement;
 
 const player = new TwistyPlayer({
