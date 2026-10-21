@@ -132,6 +132,39 @@ export const turnCount = (moves: string[]): number => compact(moves).length;
 /** Half-turn metric, after merging. */
 export const htm = (moves: string[]): number => merge(moves).length;
 
+/** A run of moves for display: `times` > 1 is a block repeated in a row, shown as (block)×times. */
+export type Run = { tokens: string[]; times: number };
+
+/** Groups blocks (2+ moves) repeated in a row, for display only: R' D' R D R' D' R D U → (R' D' R D)×2 U.
+ *  At each point the repetition covering the most moves wins; on a tie, the shorter block. A block may hold
+ *  repetitions itself: callers apply repeats() to it again. */
+export function repeats(tokens: string[]): Run[] {
+  const out: Run[] = [];
+  const same = (a: number, b: number, len: number) => tokens.slice(a, a + len).join(' ') === tokens.slice(b, b + len).join(' ');
+  for (let i = 0; i < tokens.length;) {
+    let best = { len: 0, times: 1 };
+    for (let len = 2; i + 2 * len <= tokens.length; len++) {
+      let times = 1;
+      while (i + (times + 1) * len <= tokens.length && same(i, i + times * len, len)) times++;
+      if (times > 1 && len * times > best.len * best.times) best = { len, times };
+    }
+    if (best.times > 1) {
+      out.push({ tokens: tokens.slice(i, i + best.len), times: best.times });
+      i += best.len * best.times;
+    } else {
+      const last = out.at(-1);
+      if (last?.times === 1) last.tokens.push(tokens[i]);
+      else out.push({ tokens: [tokens[i]], times: 1 });
+      i++;
+    }
+  }
+  return out;
+}
+
+/** The algorithm as text with its repetitions grouped. */
+export const formatAlg = (tokens: string[]): string =>
+  repeats(tokens).map((r) => (r.times > 1 ? `(${formatAlg(r.tokens)})×${r.times}` : r.tokens.join(' '))).join(' ');
+
 // --- Explaining a move to a person (tooltips) ---
 
 /** Which kind of move a token is, and the face its direction is read from ("as L" for M, "as R" for x…). */

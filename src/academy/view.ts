@@ -5,7 +5,7 @@ import { prose } from '../rich-text-view.ts';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
-import { IDENTITY } from '../notation.ts';
+import { IDENTITY, formatAlg, tokenize } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { explainMove } from '../notation.ts';
 import { algView } from '../notation-view.ts';
@@ -234,7 +234,7 @@ function card(phase: Phase, g: Group, c: Case): HTMLButtonElement {
     const s = statsFor(c.id);
     button.append(
       el('strong', { textContent: c.code }),
-      el('code', { textContent: alg }),
+      el('code', { textContent: formatAlg(tokenize(alg)) }),
       el('span', { className: 'hint', textContent: s ? `${tp('academy.reps', s.reps)}${s.best === null ? '' : ` · ${t('academy.best', { time: formatTime(s.best) })}`}` : t('academy.notPracticed') }),
     );
   };

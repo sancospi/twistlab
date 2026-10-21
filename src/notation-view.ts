@@ -1,7 +1,7 @@
 // Reusable notation: an algorithm as tappable moves. Each move opens a tooltip with a small 3D cube doing that
 // move in a loop (camera on the turning layer) and a short caption: what turns and which way.
 import { TwistyPlayer } from 'cubing/twisty';
-import { explainMove, moveCamera, tokenize } from './notation.ts';
+import { explainMove, moveCamera, repeats, tokenize } from './notation.ts';
 import { showTip } from './tooltip.ts';
 import { t } from './i18n.ts';
 
@@ -13,7 +13,8 @@ export interface AlgViewOptions {
   mark?: (i: number) => string; // a class per move, e.g. 'done' / 'current'
 }
 
-/** The algorithm as a row of move buttons; text that isn't valid notation is shown as is. */
+/** The algorithm as a row of move buttons; text that isn't valid notation is shown as is. Repeated blocks show as
+ *  (block)×n, except with `mark`: following move by move needs every turn. */
 export function algView(alg: string | string[], opts: AlgViewOptions = {}): HTMLElement {
   const out = document.createElement('span');
   out.className = 'alg';
@@ -24,7 +25,7 @@ export function algView(alg: string | string[], opts: AlgViewOptions = {}): HTML
     out.textContent = typeof alg === 'string' ? alg : alg.join(' ');
     return out;
   }
-  tokens.forEach((token, i) => {
+  const button = (token: string, i: number) => {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = ['move', opts.mark?.(i) ?? ''].join(' ').trim();
@@ -36,9 +37,22 @@ export function algView(alg: string | string[], opts: AlgViewOptions = {}): HTML
       e.stopPropagation(); // a move inside a clickable row shouldn't also trigger the row
       showMove(b, token, opts.frame ?? 'yellow-up');
     };
-    out.append(b, ' '); // a real space: readable when copied
-  });
+    return b;
+  };
+  if (opts.mark) tokens.forEach((token, i) => out.append(button(token, i), ' ')); // a real space: readable when copied
+  else out.append(...grouped(tokens, (token) => button(token, 0)));
   return out;
+}
+
+/** Moves with repeated blocks as (block)×n, nested when a block repeats inside: ((R' D' R D)×2 U)×2. */
+function grouped(tokens: string[], button: (token: string) => HTMLElement): (Node | string)[] {
+  return repeats(tokens).flatMap((run, i) => {
+    const sep = i ? [' '] : [];
+    if (run.times === 1) return [...sep, ...run.tokens.flatMap((token, j) => (j ? [' ', button(token)] : [button(token)]))];
+    const group = Object.assign(document.createElement('span'), { className: 'repeat' });
+    group.append('(', ...grouped(run.tokens, button), `)×${run.times}`);
+    return [...sep, group];
+  });
 }
 
 // One looping player and one caption for every tooltip, built once and never re-attached (see tooltip.ts):

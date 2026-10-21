@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { Alg } from 'cubing/alg';
-import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertTokens, mapMove, merge, tokenize, unmapMove, compact, turnCount, explainMove, moveCamera } from './notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertTokens, mapMove, merge, tokenize, unmapMove, compact, turnCount, explainMove, moveCamera, repeats, formatAlg } from './notation.ts';
 
 const ALGS = [
   "r U R' U' r' F R F'", "M2 U M U2 M' U M2", "U M' U' M2 U' M2 U' M' U2 M2", "y' U R U' R' U' R",
@@ -123,4 +123,17 @@ test('moveCamera: the turning layer is in view', () => {
   assert.equal(moveCamera('d').latitude, -30);
   assert.equal(moveCamera('B2').longitude, 150);
   assert.deepEqual(moveCamera('M'), { latitude: 30, longitude: 30 });
+});
+
+test('repeats: blocks repeated in a row are grouped for display, the rest stays as is', () => {
+  const f = (alg: string) => formatAlg(tokenize(alg));
+  assert.equal(f("R' D' R D R' D' R D U R' D' R D R' D' R D U'"), "(R' D' R D)×2 U (R' D' R D)×2 U'");
+  assert.equal(f("U R U' R' U R U' R' U R U' R'"), "(U R U' R')×3");
+  assert.equal(f("R U R' U R U2 R'"), "R U R' U R U2 R'", 'no repetition: unchanged');
+  assert.equal(f("R U R' U' R U R'"), "R U R' U' R U R'", 'a block and a half is not a repetition');
+  assert.equal(f("R U R U R U R U"), '(R U)×4', 'on a tie the shorter block wins');
+  assert.equal(f('U U'), 'U U', 'single moves are never grouped');
+  assert.equal(f("R' D' R D R' D' R D R' D' R D R' D' R D U R' D' R D R' D' R D R' D' R D R' D' R D U"), "((R' D' R D)×4 U)×2", 'nested');
+  assert.deepEqual(repeats([]), []);
+  assert.deepEqual(repeats(tokenize("F R U R' U' R U R' U' F'")).map((r) => r.times), [1, 2, 1]);
 });

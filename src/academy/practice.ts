@@ -9,7 +9,7 @@ import { TwistyPlayer } from 'cubing/twisty';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { describe, nextStep, PathGuide } from '../guide.ts';
-import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertTokens, merge, tokenize, turnCount, unmapMove } from '../notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, expand, formatAlg, htm, invertTokens, merge, tokenize, turnCount, unmapMove } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView } from '../notation-view.ts';
 import { loc, t, tp } from '../i18n.ts';
@@ -280,7 +280,7 @@ function renderInfo() {
         onUpdate(kase);
       };
       return el('label', { className: 'alg-option' }, input,
-        el('code', { textContent: v.alg }),
+        el('code', { textContent: formatAlg(tokenize(v.alg)) }),
         el('span', { className: 'hint', textContent: `${sourceLabel(v)} · ${t('practice.htm', { n: htm(centerMoves(v.alg, IDENTITY)) })}` }),
         ...(v.note ? [el('span', { className: 'hint alg-note', textContent: loc(v.note) })] : []));
     }),
