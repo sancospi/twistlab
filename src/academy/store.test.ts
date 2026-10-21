@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { addRep, average, parsePrefs, parseStats, preferred, type CaseStats } from './store.ts';
+import {
+  KNOWN_DAYS, addRep, average, graded, isDue, learnStatus, parseLearning, parsePrefs, parseStats, preferred, timed,
+  type CaseStats, type Learning,
+} from './store.ts';
 import { findCase } from './methods.ts';
 
 test('addRep aggregates reps, best, last 10, streaks', () => {
@@ -41,4 +44,55 @@ test('parsePrefs keeps string choices; preferred falls back to the main algorith
   assert.deepEqual(parsePrefs([1]), {});
   const c = findCase('cfop-f2l-a1')!;
   assert.equal(preferred(c), c.algs[0]); // nothing stored (no localStorage in node)
+});
+
+const DAY = 86_400_000;
+const at = (day: number, hour = 10) => new Date(2026, 0, day, hour).getTime(); // local time, like the app
+
+test('graded: fail back to today, good doubles, easy triples, early reviews do not grow', () => {
+  let s = graded(undefined, 'good', at(1));
+  assert.deepEqual([s.interval, s.due, s.lapses], [1, at(1) + DAY, 0]);
+  assert.equal(graded(s, 'good', at(1, 18)), s, 'the same case again in the session: no growth');
+  assert.ok(!isDue(s, at(1, 23)) && isDue(s, at(2, 8)), 'due from the start of the next day');
+  s = graded(s, 'good', at(2, 8));
+  assert.equal(s.interval, 2);
+  s = graded(s, 'easy', at(4));
+  assert.equal(s.interval, 6);
+  assert.equal(learnStatus(s), 'known');
+  const failed = graded(s, 'fail', at(5));
+  assert.deepEqual([failed.interval, failed.lapses, failed.due], [0, 1, at(5)]);
+  assert.ok(isDue(failed, at(5, 11)));
+  assert.equal(learnStatus(failed), 'learning');
+  assert.equal(graded(failed, 'good', at(5, 11)).interval, 1, 'relearned later that day');
+  assert.equal(graded(undefined, 'easy', at(1)).interval, 2);
+  assert.equal(graded(undefined, 'fail', at(1)).lapses, 1);
+  let long: Learning = { ...s, interval: 150, due: at(1) };
+  long = graded(long, 'easy', at(1));
+  assert.equal(long.interval, 180, 'capped');
+});
+
+test('learnStatus and isDue: new, learning, known', () => {
+  assert.equal(learnStatus(undefined), 'new');
+  assert.ok(!isDue(undefined, at(1)));
+  const base: Learning = { due: at(3), interval: KNOWN_DAYS - 1, lapses: 0, recognitionMs: null, solveMs: null };
+  assert.equal(learnStatus(base), 'learning');
+  assert.equal(learnStatus({ ...base, interval: KNOWN_DAYS }), 'known');
+  assert.ok(isDue(base, at(3, 0)) && isDue(base, at(9)) && !isDue(base, at(2, 23)));
+});
+
+test('timed: moving average of the times', () => {
+  const s: Learning = { due: 0, interval: 0, lapses: 0, recognitionMs: null, solveMs: null };
+  const once = timed(s, 'solveMs', 2000);
+  assert.equal(once.solveMs, 2000);
+  assert.equal(once.recognitionMs, null);
+  assert.equal(timed(once, 'solveMs', 1000).solveMs, 1700);
+});
+
+test('parseLearning keeps valid entries and drops corrupted ones', () => {
+  const ok: Learning = { due: 5, interval: 2, lapses: 1, recognitionMs: 900, solveMs: null };
+  const parsed = parseLearning({
+    a: ok, b: { ...ok, due: -1 }, c: { ...ok, interval: 9999 }, d: { ...ok, lapses: 1.5 }, e: { ...ok, solveMs: 'x' }, f: null, g: { ...ok, recognitionMs: undefined },
+  });
+  assert.deepEqual(parsed, { a: ok });
+  for (const junk of [null, 42, 'x', [ok]]) assert.deepEqual(parseLearning(junk), {});
 });

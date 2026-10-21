@@ -6,9 +6,11 @@ import { goalReached, makeQuizItems, quizPattern } from './cube.ts';
 import { METHODS, allCases, findCase } from './methods.ts';
 import { cfopReduced } from './cfop.ts';
 import {
-  addSession, aufFor, byCase, efficiency, HISTORY_MAX, lastSession, parseHistory, referenceHtm, review, score, solutionFor, toRetry,
-  type Attempt, type SessionRecord,
+  addSession, aufFor, autoGrade, byCase, efficiency, HISTORY_MAX, lastSession, parseHistory, referenceHtm, review, score, selectCases,
+  solutionFor, spacedTiers, toRetry, weightedOrder, type Attempt, type SelectContext, type SessionRecord,
 } from './score.ts';
+import type { Learning } from './store.ts';
+import type { Case } from './types.ts';
 
 const kpuzzle = await cube3x3x3.kpuzzle();
 
@@ -135,4 +137,60 @@ test('review: clean solves, extra turns, where it went wrong, slices in either o
   assert.equal(review(["L'", 'R', 'U'], ['R', "L'", 'U']).issue, null, 'a slice reported L then R');
   assert.equal(review(['R'], sune, true).issue, 'skipped');
   assert.equal(review(sune, sune, false, true).issue, 'assisted');
+});
+
+test('autoGrade: errors fail, a clean solve is good, easy when faster than its average', () => {
+  assert.equal(autoGrade('skipped', 1000, 5000), 'fail');
+  assert.equal(autoGrade('assisted', 1000, null), 'fail');
+  assert.equal(autoGrade('extra', 1000, 5000), 'fail');
+  assert.equal(autoGrade(null, 1000, null), 'good', 'no average yet');
+  assert.equal(autoGrade(null, 6000, 5000), 'good');
+  assert.equal(autoGrade(null, 4000, 5000), 'easy');
+});
+
+const NOW = new Date(2026, 0, 10, 12).getTime();
+const learn = (interval: number, due: number, solveMs: number | null = null): Learning => ({ due, interval, lapses: 0, recognitionMs: null, solveMs });
+const pool = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id) => ({ id }) as Case);
+const LEARN: Record<string, Learning> = {
+  a: learn(10, NOW + 5 * 86_400_000, 1000), // known, not due
+  b: learn(8, NOW - 1000, 3000), // known, due
+  c: learn(0, NOW, 9000), // failed today: learning, due
+  d: learn(1, NOW + 86_400_000, 5000), // learning, due tomorrow
+  e: learn(2, NOW + 2 * 86_400_000), // learning, no time
+  // f, g: new
+};
+const ctx = (over: Partial<SelectContext> = {}): SelectContext =>
+  ({ one: null, picked: new Set(), learning: (id) => LEARN[id], now: NOW, timeKey: 'solveMs', ...over });
+const ids = (cs: Case[]) => cs.map((c) => c.id);
+
+test('selectCases: one, by hand, by status, slowest, due, all', () => {
+  assert.deepEqual(ids(selectCases('one', pool, ctx({ one: pool[3] }))), ['d']);
+  assert.deepEqual(selectCases('one', pool, ctx()), []);
+  assert.deepEqual(ids(selectCases('pick', pool, ctx({ picked: new Set(['g', 'a', 'zz']) }))), ['a', 'g']);
+  assert.deepEqual(ids(selectCases('known', pool, ctx())), ['a', 'b']);
+  assert.deepEqual(ids(selectCases('learning', pool, ctx())), ['c', 'd', 'e']);
+  assert.deepEqual(ids(selectCases('due', pool, ctx())), ['b', 'c']);
+  assert.deepEqual(ids(selectCases('slow', pool, ctx())), ['c', 'd'], 'slowest third of the 4 with a time');
+  assert.deepEqual(selectCases('slow', pool, ctx({ timeKey: 'recognitionMs' })), []);
+  assert.equal(selectCases('all', pool, ctx()), pool);
+});
+
+test('spacedTiers: due first, then new, then the rest', () => {
+  assert.deepEqual(spacedTiers(pool, (id) => LEARN[id], NOW).map(ids), [['b', 'c'], ['f', 'g'], ['a', 'd', 'e']]);
+  assert.deepEqual(spacedTiers(pool.slice(5), (id) => LEARN[id], NOW).map(ids), [['f', 'g']]);
+});
+
+test('weightedOrder: follows the weights, unknown ones get the mean', () => {
+  let seed = 1;
+  const rng = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+  const drawn = weightedOrder(['x', 'y', 'z'], [0.6, 0.1, null], 6000, rng);
+  assert.equal(drawn.length, 6000);
+  const share = (k: string) => drawn.filter((d) => d === k).length / drawn.length;
+  // z weighs the mean, 0.35: shares 0.6/1.05, 0.1/1.05, 0.35/1.05
+  for (const [k, w] of [['x', 0.6], ['y', 0.1], ['z', 0.35]] as const) assert.ok(Math.abs(share(k) - w / 1.05) < 0.02, `${k}: ${share(k)}`);
+  const two = weightedOrder(['t', 'y'], [0.8, 0.2], 6000, rng); // T-perm / Y-perm among the corner PLLs
+  assert.ok(Math.abs(two.filter((d) => d === 't').length / two.length - 0.8) < 0.02);
+  assert.deepEqual(weightedOrder(['solo'], [0.2], 3, rng), ['solo', 'solo', 'solo']);
+  assert.deepEqual(weightedOrder([], [], 3, rng), []);
+  assert.equal(new Set(weightedOrder(['x', 'y'], [0, 0], 10, rng)).size, 2, 'all zero: uniform');
 });

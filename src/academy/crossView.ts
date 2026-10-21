@@ -13,10 +13,14 @@ export const crossAnchor = (id: string) => `cruz-${id}`;
 export function crossSections(): HTMLElement[] {
   const intro = el('section', { className: 'academy-phase', id: crossAnchor('intro') },
     el('h2', { textContent: loc(crossGuide.name) }),
-    el('div', { className: 'row' }, el('button', { type: 'button', className: 'primary', textContent: t('cross.open'), onclick: () => void openCrossTrainer() })),
+    trainerButton(),
     prose(loc(crossGuide.intro)));
   return [intro, ...crossGuide.lessons.map(lessonView)];
 }
+
+/** Opens the trainer (a modal): in the guide's intro and above its lessons. */
+export const trainerButton = (): HTMLElement =>
+  el('div', { className: 'row' }, el('button', { type: 'button', className: 'primary', textContent: t('cross.open'), onclick: () => void openCrossTrainer() }));
 
 function lessonView(l: CrossLesson): HTMLElement {
   return el('section', { className: 'academy-phase', id: crossAnchor(l.id) },

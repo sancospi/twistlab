@@ -9,7 +9,7 @@ export interface DiagramOpts {
   arrows?: boolean; // top view: PLL arrows (not in recognition questions, where they'd give the answer away)
 }
 
-const COLORS: Record<string, string> = {
+export const COLORS: Record<string, string> = {
   U: '#ffd60a', D: '#f5f5f5', F: '#22c55e', B: '#2563eb', R: '#f97316', L: '#ef4444',
 };
 const GREY = '#9ca3af';
@@ -17,7 +17,7 @@ const PLASTIC = '#111';
 const U_CENTER = 4;
 
 // Kociemba piece facelets, the 8 corners first; f2l greys whole pieces, so it needs to know which stickers travel together.
-const PIECES = [
+export const PIECES = [
   [8, 9, 20], [6, 18, 38], [0, 36, 47], [2, 45, 11], [29, 26, 15], [27, 44, 24], [33, 53, 42], [35, 17, 51],
   [5, 10], [7, 19], [3, 37], [1, 46], [32, 16], [28, 25], [30, 43], [34, 52], [23, 12], [21, 41], [50, 39], [48, 14],
 ];

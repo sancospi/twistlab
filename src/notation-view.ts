@@ -39,7 +39,8 @@ export function algView(alg: string | string[], opts: AlgViewOptions = {}): HTML
     };
     return b;
   };
-  if (opts.mark) tokens.forEach((token, i) => out.append(button(token, i), ' ')); // a real space: readable when copied
+  // real spaces between moves (readable when copied), none at the end: inline in a sentence it would sit before the punctuation
+  if (opts.mark) tokens.forEach((token, i) => out.append(...(i ? [' '] : []), button(token, i)));
   else out.append(...grouped(tokens, (token) => button(token, 0)));
   return out;
 }

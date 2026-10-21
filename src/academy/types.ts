@@ -16,7 +16,7 @@ export type Stage =
   | 'first-layer' | 'second-layer' | 'f2l' | 'oll-cross' | 'oll-corners' | 'pll-corners' | 'pll-edges'
   | 'll-edges' | 'll-corners-placed' | 'll-corners-twist';
 
-export type AlgSource = 'speedcubedb' | 'plan-b' | 'community';
+export type AlgSource = 'speedcubedb' | 'plan-b' | 'community' | 'custom'; // custom: the user's own, kept in store.ts
 
 export interface AlgVariant {
   id: string;

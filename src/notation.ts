@@ -44,10 +44,23 @@ export function tokenize(alg: string): string[] {
   return tokens;
 }
 
+/** The turn the other way: "" <-> "'", halves stay halves. */
+const flip = (suffix: string) => (suffix === '' ? "'" : suffix === "'" ? '' : '2');
+
 export function invertTokens(tokens: string[]): string[] {
   return [...tokens].reverse().map((tok) => {
     const [, base, suffix] = tok.match(TOKEN)!;
-    return base + (suffix === '' ? "'" : suffix === "'" ? '' : '2');
+    return base + flip(suffix);
+  });
+}
+
+/** The algorithm in a mirror between L and R: R <-> L (r <-> l, Rw <-> Lw) and every turn the other way, except M and x,
+ *  which turn about the mirror's own axis and keep their direction. It solves the mirror image of the case. */
+export function mirrorTokens(tokens: string[]): string[] {
+  const SWAP: Record<string, string> = { R: 'L', L: 'R', r: 'l', l: 'r' };
+  return tokens.map((tok) => {
+    const [, base, suffix] = tok.match(TOKEN)!;
+    return base === 'M' || base === 'x' ? tok : (SWAP[base[0]] ?? base[0]) + base.slice(1) + flip(suffix);
   });
 }
 
@@ -196,4 +209,54 @@ export function moveCamera(token: string): { latitude: number; longitude: number
   const { kind, ref } = moveKind(token);
   if (kind === 'slice' || kind === 'rotation') return { latitude: 30, longitude: 30 };
   return { latitude: ref === 'D' ? -30 : 30, longitude: ref === 'L' ? -30 : ref === 'B' ? 150 : 30 };
+}
+
+// --- Reading an algorithm: its well-known triggers and what kind of moves it uses ---
+
+export type Trigger = 'sune' | 'antisune' | 'sexy' | 'sexyInv' | 'sledge' | 'hedge';
+// Longest first, so a Sune isn't read as anything shorter; each also in its left-hand mirror (L' U' L U…).
+const TRIGGERS = ([
+  ['sune', "R U R' U R U2 R'"], ['antisune', "R U2 R' U' R U' R'"],
+  ['sexy', "R U R' U'"], ['sexyInv', "U R U' R'"], ['sledge', "R' F R F'"], ['hedge', "F R' F' R"],
+] as const).flatMap(([name, alg]) => [
+  { name, left: false, tokens: alg.split(' ') },
+  { name, left: true, tokens: mirrorTokens(alg.split(' ')) },
+]);
+
+/** A run of an algorithm: a trigger, or the moves between triggers. */
+export type Segment = { tokens: string[]; trigger?: Trigger; left?: boolean };
+
+/** The algorithm cut into its triggers (left to right, the first one that fits) and the moves in between. */
+export function triggerSegments(tokens: string[]): Segment[] {
+  const same = tokens.map((tok) => tok.replace("2'", '2')); // R2' is R2
+  const out: Segment[] = [];
+  for (let i = 0; i < tokens.length;) {
+    const tr = TRIGGERS.find((x) => x.tokens.every((tok, j) => same[i + j] === tok));
+    if (tr) {
+      out.push({ tokens: tokens.slice(i, i + tr.tokens.length), trigger: tr.name, ...(tr.left ? { left: true } : {}) });
+      i += tr.tokens.length;
+      continue;
+    }
+    const last = out.at(-1);
+    if (last && !last.trigger) last.tokens.push(tokens[i]);
+    else out.push({ tokens: [tokens[i]] });
+    i++;
+  }
+  return out;
+}
+
+export type AlgTag = 'ru' | 'rotation' | 'wide' | 'slice' | 'left';
+
+/** What stands out in how an algorithm is done: only R and U, rotations, wide turns, slices, mostly the left hand. */
+export function algTags(tokens: string[]): AlgTag[] {
+  const bases = tokens.map((tok) => tok.match(TOKEN)?.[1] ?? '');
+  const count = (re: RegExp) => bases.filter((b) => re.test(b)).length;
+  const tags: [AlgTag, boolean][] = [
+    ['ru', bases.length > 0 && count(/^[RU]$/) === bases.length],
+    ['rotation', count(/^[xyz]$/) > 0],
+    ['wide', count(/^([UDRLFB]w|[udrlfb])$/) > 0],
+    ['slice', count(/^[MES]$/) > 0],
+    ['left', count(/^(L|l|Lw)$/) > count(/^(R|r|Rw)$/)],
+  ];
+  return tags.filter(([, on]) => on).map(([tag]) => tag);
 }

@@ -3,6 +3,7 @@
 import type { KPattern } from 'cubing/kpuzzle';
 import { IDENTITY, amount, centerMoves, compact, htm, merge, tokenize } from '../notation.ts';
 import { goalReached, referenceMoves, type Auf } from './cube.ts';
+import { isDue, learnStatus, type Grade, type Learning } from './store.ts';
 import type { AlgVariant, Case } from './types.ts';
 
 export type QuizMode = 'recognition' | 'execution';
@@ -178,4 +179,65 @@ export function parseHistory(raw: unknown): SessionRecord[] {
       Number.isInteger(r.n) && r.n > 0 && isRatio(r.accuracy) && (r.ms === null || isNum(r.ms)) && (r.efficiency === null || isRatio(r.efficiency)))
     .map(({ scope, at, mode, n, accuracy, ms, efficiency }) => ({ scope, at, mode, n, accuracy, ms, efficiency }))
     .slice(-HISTORY_MAX);
+}
+
+// --- Smart trainer: which cases, in which order, and each item's grade for the spaced repetition ---
+
+/** Solve mode grades itself: a clean solve is good, and easy when faster than the case's own average. */
+export const autoGrade = (issue: Issue | null, ms: number, avgMs: number | null): Grade =>
+  issue ? 'fail' : avgMs !== null && ms < avgMs ? 'easy' : 'good';
+
+export type Selection = 'one' | 'pick' | 'known' | 'learning' | 'slow' | 'due' | 'all';
+export type Order = 'uniform' | 'probability' | 'spaced';
+
+export interface SelectContext {
+  one: Case | null; // the case the quiz was opened from
+  picked: ReadonlySet<string>; // ticked by hand
+  learning: (caseId: string) => Learning | undefined;
+  now: number;
+  timeKey: 'recognitionMs' | 'solveMs'; // the mode's time, for "slowest"
+}
+
+/** The cases of `pool` a selection asks; "slow" is the slowest third of those with a time, slowest first. */
+export function selectCases(sel: Selection, pool: Case[], ctx: SelectContext): Case[] {
+  const of = (c: Case) => ctx.learning(c.id);
+  switch (sel) {
+    case 'one': return ctx.one ? [ctx.one] : [];
+    case 'pick': return pool.filter((c) => ctx.picked.has(c.id));
+    case 'known':
+    case 'learning': return pool.filter((c) => learnStatus(of(c)) === sel);
+    case 'due': return pool.filter((c) => isDue(of(c), ctx.now));
+    case 'slow': {
+      const ms = (c: Case) => of(c)?.[ctx.timeKey] ?? null;
+      const timed = pool.filter((c) => ms(c) !== null).sort((a, b) => ms(b)! - ms(a)!);
+      return timed.slice(0, Math.ceil(timed.length / 3));
+    }
+    case 'all': return pool;
+  }
+}
+
+/** `n` independent draws from `xs`, each as likely as its weight (an unknown one: the mean of the known ones). Repeats
+ *  are allowed: "real probability" means a 4/5 case comes up 4 times in 5, even twice in a row. */
+export function weightedOrder<T>(xs: T[], weights: (number | null)[], n: number, rng: () => number): T[] {
+  const known = weights.filter((w): w is number => w !== null);
+  const mean = known.length ? known.reduce((a, b) => a + b, 0) / known.length : 1;
+  let w = xs.map((_, i) => weights[i] ?? mean);
+  if (!w.some((x) => x > 0)) w = xs.map(() => 1); // all zero: uniform
+  const total = w.reduce((a, b) => a + b, 0);
+  const out: T[] = [];
+  for (let k = 0; k < n && xs.length; k++) {
+    let r = rng() * total, i = 0;
+    while (i < xs.length - 1 && (r -= w[i]) >= 0) i++;
+    if (w[i] === 0) i = w.findIndex((x) => x > 0); // rounding at the end of the range
+    out.push(xs[i]);
+  }
+  return out;
+}
+
+/** Spaced review: the cases due today first, then the new ones, then the rest. */
+export function spacedTiers(cases: Case[], learning: (caseId: string) => Learning | undefined, now: number): Case[][] {
+  const due = cases.filter((c) => isDue(learning(c.id), now));
+  const fresh = cases.filter((c) => !learning(c.id));
+  const rest = cases.filter((c) => learning(c.id) && !isDue(learning(c.id), now));
+  return [due, fresh, rest].filter((tier) => tier.length);
 }

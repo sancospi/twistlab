@@ -16,9 +16,7 @@ function inlineNodes(inline: Inline[]): Node[] {
     if (part.kind === 'strong') return Object.assign(document.createElement('strong'), { textContent: part.text });
     if (part.kind === 'alg') {
       if (!isNotation(part.text)) return Object.assign(document.createElement('code'), { textContent: part.text });
-      const v = algView(part.text);
-      v.lastChild?.remove(); // algView's trailing space would sit before the sentence's punctuation
-      return v;
+      return algView(part.text);
     }
     return document.createTextNode(part.text);
   });

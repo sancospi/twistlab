@@ -4,7 +4,9 @@ import { cube3x3x3 } from 'cubing/puzzles';
 import { patternToFacelets } from '../facelets.ts';
 import { KPattern } from 'cubing/kpuzzle';
 import { IDENTITY, YELLOW_UP, centerMoves, invertTokens, mapMove, tokenize } from '../notation.ts';
-import { POOL_STAGES, caseState, goalReached, llFaceOf, makeQuizItems, quizPattern, quizPool, referenceMoves } from './cube.ts';
+import {
+  POOL_STAGES, caseState, goalReached, llFaceOf, makeQuizItems, quizPattern, quizPool, randomStateScramble, referenceMoves, specsFor,
+} from './cube.ts';
 import { METHODS, allCases, findCase } from './methods.ts';
 import type { Case, Stage } from './types.ts';
 
@@ -190,4 +192,36 @@ test('quiz pools: every pooled algorithm keeps its stage goal (goals are groups 
   for (const stage of ['first-layer', 'f2l', 'oll-cross', 'oll-corners', 'pll-corners'] as const) assert.ok(quizPool(stage, kpuzzle).algs.length > 0, stage);
   // what a pool leaves out really would break it: twists undo OLL, an F2L insert undoes the first layer
   assert.ok(!keeps('oll-corners', FIXTURES.at(-1)!.algs[0].alg) && !keeps('first-layer', "U R U' R'"));
+});
+
+test('specsFor: a random state of each case, in the given order, deterministic per seed', () => {
+  const [a, b] = cases.filter((c) => c.stage === 'pll-edges');
+  const specs = specsFor([a, a, b], 3, kpuzzle);
+  assert.deepEqual(specs.map((s) => s.caseId), [a.id, a.id, b.id]);
+  assert.deepEqual(specs, specsFor([a, a, b], 3, kpuzzle));
+  for (const [s, c] of specs.map((s, i) => [s, [a, a, b][i]] as const)) {
+    const p = quizPattern(kpuzzle, s, IDENTITY);
+    assert.ok(!goalReached(c.stage, p, 'U') && goalReached(c.stage, p.applyAlg(centerMoves(`${s.auf} ${c.algs[0].alg}`, IDENTITY).join(' ')), 'U'));
+  }
+});
+
+/** Ends in the case's setup (its algorithm backwards), once the trailing U turns (the AUF) are stripped. */
+const endsInSetup = (moves: string[], setup: string) => {
+  const noAuf = (ms: string[]) => ms.slice(0, ms.findLastIndex((m) => !/^U/.test(m)) + 1);
+  const [end, tail] = [noAuf(moves), noAuf(centerMoves(setup, IDENTITY))];
+  return tail.length <= end.length && end.slice(-tail.length).join(' ') === tail.join(' ');
+};
+
+test('randomStateScramble: leads to the quiz state in face turns, not by the setup backwards', async () => {
+  for (const id of ['cfop-pll-t', 'cfop-oll-sune', 'cfop-f2l-a1']) {
+    const c = findCase(id)!;
+    for (const spec of makeQuizItems([c], 2, 11, kpuzzle)) {
+      const p = quizPattern(kpuzzle, spec, IDENTITY);
+      const scramble = await randomStateScramble(p);
+      assert.ok(solved.applyAlg(scramble.join(' ')).isIdentical(p), id);
+      for (const m of scramble) assert.match(m, /^[UDRLFB](2|')?$/);
+      assert.ok(!endsInSetup(scramble, c.setup), id);
+      assert.ok(endsInSetup(spec.moves, c.setup), `${id}: the old merged scramble gives the case away`); // the check can fail
+    }
+  }
 });

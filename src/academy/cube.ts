@@ -2,6 +2,7 @@
 // Everything works on KPatterns with fixed centers, so wide moves, slices and rotations are just face turns
 // (via notation.ts) and the last layer is simply "the pieces of the face whose center is yellow".
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
+import { experimentalSolve3x3x3IgnoringCenters } from 'cubing/search';
 import { IDENTITY, centerMoves, htm, invertTokens, mapMove, merge, type Face, type Frame } from '../notation.ts';
 import { METHODS, allCases } from './methods.ts';
 import type { AlgVariant, Case, Stage } from './types.ts';
@@ -144,14 +145,28 @@ export function makeQuizItems(cases: Case[], perCase: number, seed: number, kpuz
   for (let round = 0; round < perCase; round++) {
     const order = cases.map((c) => [rng(), c] as const).sort((a, b) => a[0] - b[0]).map(([, c]) => c);
     if (order.length > 1 && order[0].id === items.at(-1)?.caseId) order.push(order.shift()!); // no repeat at the seam
-    for (const c of order) {
-      let spec = quizSpec(rng, c, kpuzzle);
-      // ponytail: a random LL can't undo a setup today; this guard only bounds a future data mistake.
-      for (let i = 0; i < 10 && goalReached(c.stage, quizPattern(kpuzzle, spec, IDENTITY), 'U'); i++) spec = quizSpec(rng, c, kpuzzle);
-      items.push(spec);
-    }
+    for (const c of order) items.push(unsolvedSpec(rng, c, kpuzzle));
   }
   return items;
+}
+
+function unsolvedSpec(rng: Rng, c: Case, kpuzzle: KPuzzle): QuizSpec {
+  let spec = quizSpec(rng, c, kpuzzle);
+  // ponytail: a random LL can't undo a setup today; this guard only bounds a future data mistake.
+  for (let i = 0; i < 10 && goalReached(c.stage, quizPattern(kpuzzle, spec, IDENTITY), 'U'); i++) spec = quizSpec(rng, c, kpuzzle);
+  return spec;
+}
+
+/** A random state of each case of `order`, in that order (deterministic for a seed): for orders made elsewhere. */
+export function specsFor(order: Case[], seed: number, kpuzzle: KPuzzle): QuizSpec[] {
+  const rng = mulberry32(seed);
+  return order.map((c) => unsolvedSpec(rng, c, kpuzzle));
+}
+
+/** A scramble from solved to `p` found by the solver (a random-state scramble): unlike the merged setup it doesn't
+ *  end in the case's algorithm backwards. `p` has its centers home, so the scramble is face turns only. */
+export async function randomStateScramble(p: KPattern): Promise<string[]> {
+  return merge((await experimentalSolve3x3x3IgnoringCenters(p)).invert().toString().split(' ').filter(Boolean)); // merge: "R2'" is "R2"
 }
 
 /** The quiz state on a cube held in `frame` (YELLOW_UP for the GAN cube, IDENTITY for diagrams). */

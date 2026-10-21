@@ -12,12 +12,14 @@ import { describe, nextStep, PathGuide } from '../guide.ts';
 import { IDENTITY, YELLOW_UP, centerMoves, expand, formatAlg, htm, invertTokens, merge, tokenize, turnCount, unmapMove } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView } from '../notation-view.ts';
-import { loc, t, tp } from '../i18n.ts';
+import { loc, t, tp, type MessageKey } from '../i18n.ts';
 import { caseState, goalReached, llFaceOf } from './cube.ts';
 import { StepFollower } from './follow.ts';
 import { cube, type CubeListener } from './link.ts';
-import { average, preferred, recordRep, save, setPreferred, setting, statsFor, STREAK_GOAL, type Rep } from './store.ts';
-import type { AlgVariant, Case, Stage } from './types.ts';
+import { addCustom, average, preferred, recordRep, removeCustom, save, setPreferred, setting, statsFor, STREAK_GOAL, variants, type Rep } from './store.ts';
+import type { AlgSource, AlgVariant, Case, Stage } from './types.ts';
+import { checkCustomAlg } from './customAlg.ts';
+import { caseProbability, formatProbability, phaseOf } from './probability.ts';
 
 const $ = (id: string) => document.getElementById(id)!;
 /** Element with properties and children: enough DOM building for the academy's views. */
@@ -36,7 +38,7 @@ const REDO_MS = 1500; // how long "too many mistakes" stays up after re-planning
 // home (white = last layer), would grey the wrong layer. These masks name the pieces by home slot instead:
 // yellow = cubing's D layer. Order: EDGES UF UR UB UL DF DR DB DL FR FL BR BL, CORNERS UFR URB UBL ULF DRF DFL DLB DBR.
 // D = dim, I = ignored, O = only the yellow sticker, P = only the side colors, - = regular.
-const MASKS: Record<Stage, string> = {
+export const MASKS: Record<Stage, string> = {
   'first-layer': 'EDGES:----IIIIIIII,CORNERS:----IIII,CENTERS:------', // the white pieces only
   'second-layer': 'EDGES:DDDDIIII----,CORNERS:DDDDIIII,CENTERS:------', // the four middle-layer edges in color
   f2l: 'EDGES:DDDDIIIID-DD,CORNERS:DDD-IIII,CENTERS:------', // the green-orange pair stays in color
@@ -59,7 +61,7 @@ function staticPlayer(): TwistyPlayer {
 }
 
 type Mode = 'static' | 'scramble' | 'solve' | 'result';
-type Tab = 'test' | 'case' | 'drill';
+export type Tab = 'test' | 'case' | 'drill';
 const TABS: Tab[] = ['test', 'case', 'drill'];
 let tab = setting<Tab>('practice-tab', 'case', (v) => TABS.includes(v));
 let kpuzzle: KPuzzle;
@@ -84,13 +86,16 @@ const guide = new PathGuide(() => cube.pattern(), () => {
 });
 
 /** Opens the practice dialog for a case; `onChange` runs when its preferred algorithm or stats change,
- *  `quiz` opens a quiz of this case (the caller knows its group, for the answers). */
-export async function openPractice(c: Case, onChange: (c: Case) => void, quiz: () => void): Promise<void> {
+ *  `quiz` opens a quiz of this case (the caller knows its group, for the answers). `startTab`: open on that tab
+ *  (remembered, as if the user had picked it); else on the last one used. */
+export async function openPractice(c: Case, onChange: (c: Case) => void, quiz: () => void, startTab?: Tab): Promise<void> {
   kpuzzle ??= await cube3x3x3.kpuzzle();
+  if (startTab) save('practice-tab', (tab = startTab));
   kase = c;
   onUpdate = onChange;
   onQuiz = quiz;
   lastRep = null;
+  customInput.value = customStatus.textContent = '';
   renderInfo();
   cube.listener = listener;
   dialog.showModal();
@@ -253,15 +258,71 @@ $('practice-quiz').onclick = () => {
   onQuiz();
 };
 
-const sourceLabel = (v: AlgVariant) =>
+const SOURCES: Record<Exclude<AlgSource, 'speedcubedb'>, MessageKey> = { 'plan-b': 'practice.planB', community: 'practice.community', custom: 'custom.source' };
+export const sourceLabel = (v: AlgVariant): string =>
   [
     v.id === 'main' ? t('practice.main') : '',
-    v.source === 'speedcubedb' ? t('practice.scdbRank', { rank: v.rank ?? '–' }) : t(v.source === 'plan-b' ? 'practice.planB' : 'practice.community'),
+    v.source === 'speedcubedb' ? t('practice.scdbRank', { rank: v.rank ?? '–' }) : t(SOURCES[v.source]),
   ].filter(Boolean).join(' · ');
+
+/** Makes `v` the case's algorithm everywhere (cards, practice, quizzes). */
+function prefer(v: AlgVariant) {
+  setPreferred(kase, v.id);
+  choose(v);
+  onUpdate(kase);
+}
+
+// "Añadir mi algoritmo" (folded: rarely used, and it'd push each tab's content down on a phone): checked against the
+// case on submit; added (and chosen) only if it solves it.
+const customInput = el('input', { id: 'practice-custom', type: 'text', required: true, pattern: '.*\\S.*', autocomplete: 'off', autocapitalize: 'off', spellcheck: false, placeholder: t('custom.placeholder'), ariaLabel: t('custom.add') });
+const customStatus = el('p', { className: 'hint', ariaLive: 'polite' });
+const customForm = el('form', { className: 'custom-alg' },
+  el('div', { className: 'row' }, customInput, el('button', { type: 'submit', textContent: t('custom.submit') })),
+  customStatus);
+const customBox = el('details', {}, el('summary', { textContent: t('custom.add') }), customForm);
+const algOptions = el('div', { className: 'algs' }); // rebuilt per case; the form stays put (focus, live status)
+$('practice-algs').replaceChildren(el('legend', { textContent: t('practice.algs') }), algOptions, customBox);
+/** Cleared first, so the same message twice in a row is announced again. */
+function say(msg: string) {
+  customStatus.textContent = '';
+  requestAnimationFrame(() => (customStatus.textContent = msg));
+}
+const caseTitle = (c: Case) => (loc(c.name) === c.code ? c.code : `${c.code} · ${loc(c.name)}`);
+customForm.onsubmit = (e) => {
+  e.preventDefault();
+  const r = checkCustomAlg(kpuzzle, kase, phaseOf(kase.id)?.groups.flatMap((g) => g.cases) ?? [], customInput.value);
+  if (r.kind === 'solves') {
+    const known = variants(kase).find((v) => tokenize(v.alg).join(' ') === r.alg);
+    prefer(known ?? addCustom(kase.id, r.alg));
+    customInput.value = '';
+    renderInfo();
+    say(t(known ? 'custom.exists' : 'custom.added'));
+    customInput.focus(); // prefer() may have moved it to the drill's clock
+    return;
+  }
+  if (r.kind === 'inverse') customInput.value = r.alg;
+  say(r.kind === 'bad-token' ? t('custom.badToken', { token: r.token })
+    : r.kind === 'inverse' ? t('custom.inverse', { alg: r.alg })
+    : r.kind === 'other' ? t('custom.other', { name: caseTitle(r.case) }) : t('custom.none'));
+};
+
+function removeButton(v: AlgVariant) {
+  const b = el('button', { type: 'button', className: 'small', textContent: t('custom.remove'), ariaLabel: t('custom.removeLabel', { alg: v.alg }) });
+  b.onclick = () => {
+    removeCustom(kase.id, v.alg);
+    if (variant.id === v.id) prefer(preferred(kase)); // it was the chosen one: back to the main algorithm
+    renderInfo();
+    customBox.open = true;
+    customInput.value = v.alg; // the undo: Añadir brings it back
+    say(t('custom.removed'));
+    customInput.focus();
+  };
+  return b;
+}
 
 // Case facts and the algorithm choice: they only change when another case opens.
 function renderInfo() {
-  $('practice-title').textContent = loc(kase.name) === kase.code ? kase.code : `${kase.code} · ${loc(kase.name)}`;
+  $('practice-title').textContent = caseTitle(kase);
   $('practice-recognition').textContent = loc(kase.recognition);
   $('practice-note').textContent = kase.note ? loc(kase.note) : '';
   $('practice-note').hidden = !kase.note;
@@ -269,20 +330,19 @@ function renderInfo() {
   link.hidden = !kase.scdb;
   link.href = kase.scdb?.url ?? '';
   $('practice-setup').replaceChildren(algView(kase.setup));
+  const p = caseProbability(kase.id, kpuzzle);
+  $('practice-prob').textContent = p === null ? '' : t('prob.practice', { p: formatProbability(p) });
+  $('practice-prob').hidden = p === null;
   const current = preferred(kase);
-  $('practice-algs').replaceChildren(
-    el('legend', { textContent: t('practice.algs') }),
-    ...kase.algs.map((v) => {
-      const input = el('input', { type: 'radio', name: 'practice-alg', value: v.id, checked: v === current });
-      input.onchange = () => {
-        setPreferred(kase, v.id);
-        choose(v);
-        onUpdate(kase);
-      };
-      return el('label', { className: 'alg-option' }, input,
+  algOptions.replaceChildren(
+    ...variants(kase).flatMap((v) => {
+      const input = el('input', { type: 'radio', name: 'practice-alg', value: v.id, checked: v.id === current.id });
+      input.onchange = () => prefer(v);
+      const option = el('label', { className: 'alg-option' }, input,
         el('code', { textContent: formatAlg(tokenize(v.alg)) }),
         el('span', { className: 'hint', textContent: `${sourceLabel(v)} · ${t('practice.htm', { n: htm(centerMoves(v.alg, IDENTITY)) })}` }),
         ...(v.note ? [el('span', { className: 'hint alg-note', textContent: loc(v.note) })] : []));
+      return v.source === 'custom' ? [option, removeButton(v)] : [option]; // outside the label: not part of the radio's name
     }),
   );
 }

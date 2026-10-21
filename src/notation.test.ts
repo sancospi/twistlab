@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { Alg } from 'cubing/alg';
-import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertTokens, mapMove, merge, tokenize, unmapMove, compact, turnCount, explainMove, moveCamera, repeats, formatAlg } from './notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertTokens, mapMove, merge, tokenize, unmapMove, compact, turnCount, explainMove, moveCamera, repeats, formatAlg, mirrorTokens, triggerSegments, algTags } from './notation.ts';
 
 const ALGS = [
   "r U R' U' r' F R F'", "M2 U M U2 M' U M2", "U M' U' M2 U' M2 U' M' U2 M2", "y' U R U' R' U' R",
@@ -136,4 +136,59 @@ test('repeats: blocks repeated in a row are grouped for display, the rest stays 
   assert.equal(f("R' D' R D R' D' R D R' D' R D R' D' R D U R' D' R D R' D' R D R' D' R D R' D' R D U"), "((R' D' R D)×4 U)×2", 'nested');
   assert.deepEqual(repeats([]), []);
   assert.deepEqual(repeats(tokenize("F R U R' U' R U R' U' F'")).map((r) => r.times), [1, 2, 1]);
+});
+
+test('mirrorTokens: R <-> L, every turn the other way except M and x', () => {
+  const m = (alg: string) => mirrorTokens(tokenize(alg)).join(' ');
+  assert.equal(m("R U R' U R U2 R'"), "L' U' L U' L' U2 L"); // the left-hand Sune
+  assert.equal(m("r U2 R' F Rw x y' z2 M' E S2 b"), "l' U2 L F' Lw' x y z2 M' E' S2 b'");
+  assert.equal(m("R2'"), 'L2');
+  for (const alg of ["R U R' U' M' x y' l F2 Rw'", "E S' d b2 Lw"]) assert.equal(m(m(alg)), alg, 'mirrored twice: the same');
+});
+
+test('mirrorTokens: the mirrored algorithm leaves the mirror image of the state', async () => {
+  const solved = (await cube3x3x3.kpuzzle()).defaultPattern();
+  const state = (alg: string[]) => solved.applyAlg(centerMoves(alg, IDENTITY).join(' ')).patternData;
+  // mirror through the M plane: each slot swaps with its L<->R partner (cubing.js slot order), twists reverse
+  const EDGE = [0, 3, 2, 1, 4, 7, 6, 5, 9, 8, 11, 10];
+  const CORNER = [3, 2, 1, 0, 5, 4, 7, 6];
+  for (let seed = 1; seed <= 20; seed++) {
+    const alg = tokenize(randomAlg(seed, 25));
+    const a = state(alg), b = state(mirrorTokens(alg));
+    EDGE.forEach((j, i) => {
+      assert.equal(b.EDGES.pieces[i], EDGE[a.EDGES.pieces[j]], `${alg} edge ${i}`);
+      assert.equal(b.EDGES.orientation[i], a.EDGES.orientation[j]);
+    });
+    CORNER.forEach((j, i) => {
+      assert.equal(b.CORNERS.pieces[i], CORNER[a.CORNERS.pieces[j]], `${alg} corner ${i}`);
+      assert.equal(b.CORNERS.orientation[i], (3 - a.CORNERS.orientation[j]) % 3);
+    });
+  }
+});
+
+test('triggerSegments: the well-known triggers, in both hands, and the moves in between', () => {
+  const seg = (alg: string) => triggerSegments(tokenize(alg)).map((s) => (s.trigger ? `[${s.trigger}${s.left ? '-L' : ''}: ${s.tokens.join(' ')}]` : s.tokens.join(' ')));
+  assert.deepEqual(seg("F R U R' U' F'"), ['F', "[sexy: R U R' U']", "F'"]);
+  assert.deepEqual(seg("R U R' U R U2 R'"), ["[sune: R U R' U R U2 R']"], 'a Sune, not a shorter trigger inside it');
+  assert.deepEqual(seg("R U2 R' U' R U' R'"), ["[antisune: R U2 R' U' R U' R']"]);
+  assert.deepEqual(seg("R U R' U' R' F R F'"), ["[sexy: R U R' U']", "[sledge: R' F R F']"]);
+  assert.deepEqual(seg("U R U' R' F R' F' R"), ["[sexyInv: U R U' R']", "[hedge: F R' F' R]"]);
+  assert.deepEqual(seg("y' L' U' L U U' L' U L L F' L' F F' L F L'"),
+    ["y'", "[sexy-L: L' U' L U]", "[sexyInv-L: U' L' U L]", "[sledge-L: L F' L' F]", "[hedge-L: F' L F L']"]);
+  assert.deepEqual(seg("L' U' L U' L' U2' L"), ["[sune-L: L' U' L U' L' U2' L]"], "U2' counts as U2");
+  assert.deepEqual(seg("M2 U M U2 M' U M2"), ["M2 U M U2 M' U M2"], 'no trigger: one run');
+  assert.deepEqual(triggerSegments([]), []);
+});
+
+test('algTags: what stands out in an algorithm', () => {
+  const tags = (alg: string) => algTags(tokenize(alg));
+  assert.deepEqual(tags("R U R' U R U2 R'"), ['ru']);
+  assert.deepEqual(tags("y' R' U2 R U R' U' R"), ['rotation']);
+  assert.deepEqual(tags("r U R' U' r' F R F'"), ['wide']);
+  assert.deepEqual(tags("Rw U Rw'"), ['wide']);
+  assert.deepEqual(tags("M2 U M U2 M' U M2"), ['slice']);
+  assert.deepEqual(tags("L' U' L U L F' L' F"), ['left']);
+  assert.deepEqual(tags("x R' U R' D2 R U' R' D2 R2 x'"), ['rotation']);
+  assert.deepEqual(tags("F R U R' U' F'"), []);
+  assert.deepEqual(tags(''), []);
 });

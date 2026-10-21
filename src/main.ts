@@ -1,6 +1,7 @@
 import { TwistyPlayer } from 'cubing/twisty';
 import { experimentalSolve3x3x3IgnoringCenters, random333Pattern } from 'cubing/search';
-import { cube3x3x3 } from 'cubing/puzzles';
+import { randomScrambleForEvent } from 'cubing/scramble';
+import { cube3x3x3, wcaEvents } from 'cubing/puzzles';
 import type { KPattern } from 'cubing/kpuzzle';
 import { Euler, Quaternion, Vector3, type Scene } from 'three';
 import { connectGanCube, type GanCubeConnection, type GanCubeEvent, type MacAddressProvider } from 'gan-web-bluetooth';
@@ -9,12 +10,20 @@ import { faceletsToPattern, patternToFacelets, SOLVED_FACELETS } from './facelet
 import searchWorkerUrl from '../node_modules/cubing/dist/lib/cubing/chunks/search-worker-entry.js?worker&url';
 import { describe, nextStep, PathGuide, toView } from './guide.ts';
 import { trustFirstMove } from './gan-fix.ts';
-import { average, formatAverage, formatResult, formatTime, HOLD_MS, INSPECTION_MS, inspectionPenalty, recordTime, resultValue, type Penalty, type Result } from './timer.ts';
-import { t, type MessageKey } from './i18n.ts';
+import { average, EVENTS, eventField, eventOf, formatAverage, formatResult, formatTime, hasInspection, HOLD_MS, INSPECTION_MS, inspectionCall, inspectionPenalty, is333, isEvent, isMo3, recordTime, resultValue, type EventId, type Penalty, type Result } from './timer.ts';
+import { histogramSvg, rolling, summary, trendSvg } from './stats.ts';
+import { mergeResults, parseImport, parseStored } from './import.ts';
+import { t, tp, type MessageKey } from './i18n.ts';
 import { algView } from './notation-view.ts';
 import { cube as academyCube } from './academy/link.ts';
 import { showAcademy } from './academy/view.ts';
+import { stopCase } from './academy/caseView.ts';
+import { stopLesson } from './academy/lessonView.ts';
+import { el } from './academy/practice.ts';
+import { load, save, setting } from './academy/store.ts';
 import { startRouter, type Route } from './router.ts';
+import { showPaint } from './paint-view.ts';
+import { showProgress } from './progress-view.ts';
 // (static markup is already translated: src/boot.ts does it before loading this module)
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -71,8 +80,8 @@ const DEFAULT_VIEW = new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), 180
 const WCA_VIEW = new Quaternion(); // competition orientation: white up, green front
 
 // Modules: 'solve' = competition attempt (WCA notation, never translated); 'cube' = the cube's options and guided tools, in the viewer's frame;
-// 'academy' = learn a method's algorithms (same frame as the guide)
-type Mod = 'solve' | 'cube' | 'academy';
+// 'academy' = learn a method's algorithms (same frame as the guide); 'progress' = statistics and learning progress (no cube)
+type Mod = 'solve' | 'cube' | 'academy' | 'progress';
 let mod: Mod = 'solve';
 const homeView = () => (mod === 'solve' ? WCA_VIEW : DEFAULT_VIEW);
 const label = (m: string) => (mod === 'solve' ? m : toView(m, view));
@@ -116,8 +125,8 @@ function turnView(dir: string) {
 }
 document.querySelectorAll<HTMLButtonElement>('[data-turn]').forEach((b) => (b.onclick = () => turnView(b.dataset.turn!)));
 addEventListener('keydown', (e) => {
-  // arrows belong to an open dialog or to the focused control (radio groups, selects…)
-  if (document.querySelector('dialog[open]') || (e.target as Element).closest?.('input, select, textarea')) return;
+  // arrows belong to the paint page, an open dialog or to the focused control (radio groups, selects…)
+  if (document.body.dataset.paint || document.querySelector('dialog[open]') || (e.target as Element).closest?.('input, select, textarea')) return;
   const dir = e.key.startsWith('Arrow') && e.key.slice(5).toLowerCase();
   if (dir && !e.altKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); turnView(dir); }
 });
@@ -189,7 +198,7 @@ async function onFacelets(facelets: string) {
   player.alg = alg;
   const firstSync = !pattern;
   pattern = p;
-  if (firstSync && mod === 'solve' && phase === 'ready') void newScramble(); // now it can be guided on the cube
+  if (firstSync && mod === 'solve' && phase === 'ready' && is333(event)) void newScramble(); // now it can be guided on the cube
   if (conn) saveMac(conn.deviceName, conn.deviceMAC); // valid state decoded => the MAC is right
   render();
   void guide.replan(); // state was corrected: the old plan no longer applies
@@ -198,14 +207,14 @@ async function onFacelets(facelets: string) {
 
 function onMove(move: string) {
   lastMoveAt = performance.now();
-  if (mod === 'solve') startSolve(); // first turn after the scramble starts the clock
+  if (mod === 'solve' && is333(event) && hasInspection(event)) startSolve(); // first turn after the scramble starts the clock (blindfolded: Space did, before memorising)
   mixed = false;
   player.experimentalAddMove(move, { cancel: false });
   pattern = pattern?.applyMove(move) ?? null;
   moves.push(move);
   guide.onMove(move);
   if (mod === 'academy') academyCube.listener?.move(move);
-  if (mod === 'solve' && phase === 'solving' && isSolved(pattern)) stopSolve();
+  if (mod === 'solve' && phase === 'solving' && is333(event) && isSolved(pattern)) stopSolve();
   render();
 }
 
@@ -316,56 +325,106 @@ let holdStart = 0; // > 0 while Space / the screen is held during inspection
 let pressPhase: Phase | null = null; // phase the current press began in; its release only acts there
 let penalty: Penalty = 0;
 
-// Times persist in this browser; anything malformed in storage is dropped
+let scrambleText = ''; // the current scramble, kept with the solve
+let called = 0; // inspection call already made: 0, 8 or 12 (s)
+
+// The WCA event being timed (remembered); each keeps its own times, scrambles and puzzle
+const EVENT_KEY = 'cube-event';
+let event = setting<EventId>(EVENT_KEY, '333', isEvent);
+const eventSelect = $('event') as HTMLSelectElement;
+eventSelect.append(
+  ...EVENTS.map((e) => new Option(t(`event.${e}`), e, false, e === event)),
+  Object.assign(new Option(t('event.missing')), { disabled: true }),
+);
+eventSelect.onchange = () => {
+  eventSelect.blur(); // keys must reach the timer, not the picker
+  if (phase === 'inspect' || phase === 'solving') return void (eventSelect.value = event); // not mid-attempt
+  clearTimeout(resetTimer); // a pending 'Borrar todos' confirmation was for the old event
+  resetTimer = 0;
+  resetLabel();
+  event = eventSelect.value as EventId;
+  save(EVENT_KEY, event);
+  net.experimentalSetupAlg = ''; // the old scramble may not be valid on the new puzzle
+  net.puzzle = wcaEvents[event].puzzleID;
+  render3d();
+  renderResults();
+  void newScramble();
+};
+/** The big 3D model is a 3x3: in the Resolver it (and its view arrows) only shows for 3x3 events. */
+const render3d = () => document.body.classList.toggle('other-puzzle', mod === 'solve' && !is333(event));
+
+// Times persist in this browser (newest first, every event in one list); anything malformed in storage is dropped
 const RESULTS_KEY = 'cube-results';
-const results: Result[] = (() => {
-  try {
-    const raw = JSON.parse(localStorage.getItem(RESULTS_KEY) ?? '[]');
-    return Array.isArray(raw) ? raw.filter((r) => Number.isFinite(r?.ms) && [0, 2000, 'DNF'].includes(r?.penalty)) : [];
-  } catch {
-    return [];
-  }
-})();
+let all: Result[] = parseStored(load(RESULTS_KEY));
+let results: Result[] = []; // the event's (the same objects as in `all`), set by renderResults()
+/** false when the browser refused (private mode, quota). */
 const saveResults = () => {
   try {
-    localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
-  } catch {}
+    localStorage.setItem(RESULTS_KEY, JSON.stringify(all));
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 // 2D net of the scrambled state (WCA scramble-sheet style: white up, green front)
-const net = new TwistyPlayer({ puzzle: '3x3x3', visualization: '2D', background: 'none', controlPanel: 'none', experimentalDragInput: 'none', hintFacelets: 'none' });
+const net = new TwistyPlayer({ puzzle: wcaEvents[event].puzzleID, visualization: '2D', background: 'none', controlPanel: 'none', experimentalDragInput: 'none', hintFacelets: 'none' });
 $('net').append(net);
 let scrambleId = 0;
 
 async function newScramble() {
   const id = ++scrambleId;
+  scrambleText = '';
   guide.stop();
-  phase = conn && pattern ? 'scramble' : 'ready'; // without a cube it's a plain timer: ready right away
+  stopInspection(); // e.g. N during inspection: no call may still be spoken
+  const cube = !!conn && is333(event); // the smart cube only plays 3x3 events
+  phase = cube && pattern ? 'scramble' : 'ready'; // without a cube it's a plain timer: ready right away
   $('scramble-text').textContent = t('solve.generating');
+  $('scramble-text').classList.remove('long');
   net.experimentalSetupAlg = '';
   render();
-  // Like WCA scrambles: a uniformly random state, written as a sequence from solved
-  const target = await random333Pattern();
-  const scramble = (await experimentalSolve3x3x3IgnoringCenters(target)).invert().toString().replace(/2'/g, '2'); // half turns have no direction in WCA notation
+  // WCA scrambles (cubing.js, per event). With the cube, a 3x3 one is made from its target state, which the guide needs:
+  // a uniformly random state written as a sequence from solved, like cubing's own "333" (blindfolded: without the
+  // random orientation at the end, which the cube couldn't follow).
+  const target = cube ? await random333Pattern() : null;
+  const alg = target ? (await experimentalSolve3x3x3IgnoringCenters(target)).invert() : await randomScrambleForEvent(event);
+  const scramble = alg.toString().replace(/2'/g, '2'); // half turns have no direction in WCA notation
   if (id !== scrambleId) return; // superseded by a newer scramble
-  $('scramble-text').replaceChildren(algView(scramble, { frame: 'white-up' })); // WCA scrambles: white up, green front
+  scrambleText = scramble;
+  // 3x3: tappable moves (white up, green front, as WCA scrambles); other puzzles: text. Big ones (6x6, 7x7, Megaminx…)
+  // get smaller, scrollable text, keeping Megaminx's lines.
+  $('scramble-text').replaceChildren(is333(event) ? algView(scramble, { frame: 'white-up' }) : scramble);
+  $('scramble-text').classList.toggle('long', scramble.length > 80);
   net.experimentalSetupAlg = scramble;
-  if (!conn) player.alg = scramble; // no cube: the 3D model shows the scrambled state too
+  if (!conn && is333(event)) player.alg = scramble; // no cube: the 3D model shows the scrambled state too
   else if (phase === 'scramble') await startGuide(target); // walk the real cube there from wherever it is
   render();
 }
 
 function startInspection() {
-  if (phase !== 'ready') return;
+  if (phase !== 'ready' || !scrambleText) return; // still generating
   phase = 'inspect';
   inspectStart = performance.now();
+  called = 0;
+  $('stage-call').textContent = '';
+  if (callsVoice) speechSynthesis.speak(new SpeechSynthesisUtterance('')); // iOS only lets a page speak once it did so in a gesture
+  renderTimer();
+}
+
+/** Leaves inspection without solving (Esc, N, another screen); its calls stop too. */
+function stopInspection() {
+  if (phase !== 'inspect') return;
+  phase = 'ready';
+  holdStart = 0;
+  if (canSpeak) speechSynthesis.cancel();
   renderTimer();
 }
 
 function startSolve() {
   if (phase !== 'ready' && phase !== 'inspect') return;
-  penalty = phase === 'inspect' ? inspectionPenalty(performance.now() - inspectStart) : 0;
+  penalty = phase === 'inspect' && hasInspection(event) ? inspectionPenalty(performance.now() - inspectStart) : 0;
   holdStart = 0;
+  if (canSpeak) speechSynthesis.cancel(); // a late call mustn't talk over the solve
   phase = 'solving';
   solveStart = performance.now();
   renderTimer();
@@ -373,8 +432,9 @@ function startSolve() {
 
 function stopSolve() {
   if (phase !== 'solving') return;
-  results.unshift({ ms: recordTime(performance.now() - solveStart), penalty });
+  all.unshift({ ms: recordTime(performance.now() - solveStart), penalty, at: Date.now(), ...(scrambleText && { scramble: scrambleText }), ...eventField(event) });
   phase = 'done';
+  renderResults(); // first: the timer shows the event's newest result
   renderTimer();
 }
 
@@ -401,9 +461,9 @@ function release() {
 function stageHint() {
   if (phase === 'inspect') {
     if (holdStart) return t(armed() ? 'timer.release' : 'timer.hold');
-    return t(conn ? 'timer.inspectCube' : 'timer.inspect');
+    return t(!hasInspection(event) ? 'event.bldHold' : conn && is333(event) ? 'timer.inspectCube' : 'timer.inspect');
   }
-  if (phase === 'solving') return t(conn ? 'timer.solvingCube' : 'timer.solving');
+  if (phase === 'solving') return t(conn && is333(event) ? 'timer.solvingCube' : 'timer.solving');
   return t('timer.done');
 }
 
@@ -412,8 +472,9 @@ function renderTimer() {
   $('stage').hidden = !staged;
   $('stage-hint').textContent = stageHint();
   $('penalties').hidden = phase !== 'done';
-  $('timer-hint').textContent = t(phase === 'scramble' ? 'solve.applyScramble' : 'solve.spaceToInspect');
-  btn('start').disabled = phase !== 'ready';
+  $('stage-call').hidden = phase !== 'inspect';
+  $('timer-hint').textContent = t(phase === 'scramble' ? 'solve.applyScramble' : hasInspection(event) ? 'solve.spaceToInspect' : 'event.spaceToStart');
+  btn('start').disabled = phase !== 'ready' || !scrambleText;
   $('scramble-text').hidden = !!guide.guide; // with a cube the guide shows the moves to do
   if (phase === 'solving') $('big').className = 'big';
   if (phase === 'done') {
@@ -421,23 +482,63 @@ function renderTimer() {
     $('big').className = 'big';
     document.querySelectorAll<HTMLButtonElement>('[data-pen]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pen === String(results[0].penalty))));
   }
+}
+
+/** The times list and the line of stats; called whenever `results` changes (not on every move: it can be thousands). */
+function renderResults() {
+  results = all.filter((r) => eventOf(r) === event);
   const best = results.reduce<Result | null>((b, r) => (!b || resultValue(r) < resultValue(b) ? r : b), null);
   $('stats').textContent = best
-    ? t('timer.stats', { best: formatResult(best), ao5: formatAverage(average(results, 5)), ao12: formatAverage(average(results, 12)) })
+    ? isMo3(event)
+      ? t('event.statsMo3', { best: formatResult(best), mo3: formatAverage(average(results, 3, 0)) })
+      : t('timer.stats', { best: formatResult(best), ao5: formatAverage(average(results, 5)), ao12: formatAverage(average(results, 12)) })
     : '';
-  saveResults(); // every change to `results` is followed by a render
+  saveResults();
   $('reset-results').hidden = !results.length;
-  $('results').replaceChildren(...results.map((r, i) => {
+  // ponytail: only the latest 100 (an import can bring thousands of focusable ×); the stats dialog covers the rest
+  ($('results') as HTMLOListElement).start = results.length; // the list is reversed: numbered from the newest
+  $('results').replaceChildren(...results.slice(0, 100).map((r) => {
     const del = Object.assign(document.createElement('button'), { className: 'del', textContent: '×', title: t('results.delete') });
     del.setAttribute('aria-label', t('results.deleteOne', { time: formatResult(r) }));
     del.onclick = () => {
-      results.splice(i, 1);
-      renderTimer();
+      all.splice(all.indexOf(r), 1);
+      renderResults();
     };
     const li = document.createElement('li');
     li.append(formatResult(r), del);
     return li;
   }));
+}
+renderResults();
+
+// The judge's 8 s / 12 s calls: shown big for a moment (optional) and spoken (optional, where the browser can)
+const CALL_MS = 900;
+const CALLS_KEY = 'cube-calls';
+const VOICE_KEY = 'cube-calls-voice';
+const canSpeak = typeof speechSynthesis !== 'undefined';
+let callsVisual = setting<boolean>(CALLS_KEY, true);
+let callsVoice = canSpeak && setting<boolean>(VOICE_KEY, false);
+const callsBox = $('calls-visual') as HTMLInputElement;
+const voiceBox = $('calls-voice') as HTMLInputElement;
+callsBox.checked = callsVisual;
+voiceBox.checked = callsVoice;
+voiceBox.closest('label')!.hidden = !canSpeak;
+const renderCalls = () => ($('stage-call').className = callsVisual ? 'stage-hint' : 'sr-only'); // screen readers hear it either way
+renderCalls();
+callsBox.onchange = () => (save(CALLS_KEY, (callsVisual = callsBox.checked)), renderCalls());
+voiceBox.onchange = () => save(VOICE_KEY, (callsVoice = voiceBox.checked));
+// After a click the box keeps focus and the next Space would toggle it instead of starting the timer
+// (detail is 0 for a keyboard toggle, which keeps its focus).
+callsBox.onclick = voiceBox.onclick = (e) => e.detail && (e.currentTarget as HTMLElement).blur();
+
+function announce(call: number) {
+  const words = t(call === 8 ? 'timer.call8' : 'timer.call12');
+  $('stage-call').textContent = words; // under the countdown (or only for screen readers)
+  if (!callsVoice) return;
+  const u = new SpeechSynthesisUtterance(words);
+  u.lang = document.documentElement.lang;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
 }
 
 function tick() {
@@ -445,9 +546,13 @@ function tick() {
   if (phase === 'inspect') {
     const elapsed = now - inspectStart;
     const left = INSPECTION_MS - elapsed;
-    $('big').textContent = left > 0 ? String(Math.ceil(left / 1000)) : inspectionPenalty(elapsed) === 'DNF' ? 'DNF' : '+2';
+    const timed = hasInspection(event); // blindfolded: no countdown, just the hold to start
+    const call = timed ? inspectionCall(elapsed) : 0;
+    if (call > called) announce((called = call));
+    const flash = callsVisual && call && elapsed - call * 1000 < CALL_MS;
+    $('big').textContent = !timed ? formatTime(0) : left > 0 ? String(Math.ceil(left / 1000)) : inspectionPenalty(elapsed) === 'DNF' ? 'DNF' : '+2';
     // hold: red -> green; otherwise the judge's 8 s / 12 s calls
-    $('big').className = `big ${holdStart ? (armed() ? 'go' : 'hold') : elapsed >= 12000 ? 'late' : elapsed >= 8000 ? 'warn' : ''}`;
+    $('big').className = `big ${holdStart ? (armed() ? 'go' : 'hold') : call === 12 ? 'late' : call === 8 ? 'warn' : ''}${flash ? ' call' : ''}`;
     if (holdStart) $('stage-hint').textContent = stageHint();
   } else if (phase === 'solving') {
     $('big').textContent = formatTime(now - solveStart);
@@ -459,11 +564,15 @@ requestAnimationFrame(tick);
 $('start').onclick = startInspection;
 $('new-scramble').onclick = () => void newScramble();
 document.querySelectorAll<HTMLButtonElement>('[data-pen]').forEach((b) => (b.onclick = () => {
+  if (!results[0]) return;
   results[0].penalty = b.dataset.pen === 'DNF' ? 'DNF' : (Number(b.dataset.pen) as Penalty);
   renderTimer();
+  renderResults();
 }));
 $('delete-last').onclick = () => {
-  results.shift(); // e.g. a false start: drop the attempt and move on
+  if (!results[0]) return;
+  all.splice(all.indexOf(results[0]), 1); // e.g. a false start: drop the attempt and move on
+  renderResults();
   void newScramble();
 };
 
@@ -479,8 +588,61 @@ $('reset-results').onclick = () => {
   clearTimeout(resetTimer);
   resetTimer = 0;
   resetLabel();
-  results.length = 0;
-  renderTimer();
+  all = all.filter((r) => eventOf(r) !== event); // the event's times; the others stay
+  renderResults();
+};
+
+// Statistics: every average's current and best, a histogram and the trend; also where times are imported
+const statsDialog = $('stats-dialog') as HTMLDialogElement;
+function renderStats() {
+  if (!results.length) return $('stats-body').replaceChildren(el('p', { className: 'hint', textContent: t('stats.empty') }));
+  const s = summary(results);
+  const cell = (tag: 'th' | 'td', textContent: string) => el(tag, { textContent });
+  const table = el('table', { className: 'quiz-table' },
+    el('thead', {}, el('tr', {}, cell('th', ''), cell('th', t('stats.current')), cell('th', t('stats.best')))),
+    el('tbody', {}, ...s.rows.filter((r) => r.best !== null).map((r) =>
+      el('tr', {}, el('th', { scope: 'row', textContent: r.label === 'single' ? t('stats.single') : r.label }), cell('td', formatAverage(r.current)), cell('td', formatAverage(r.best))))));
+  const values = results.map(resultValue).reverse(); // oldest first
+  const figure = (title: string, svg: string, ...legend: Node[]) => {
+    const f = el('figure', { className: 'chart' }, el('figcaption', { textContent: title }));
+    f.insertAdjacentHTML('beforeend', svg);
+    if (legend.length) f.append(el('p', { className: 'chart-legend hint' }, ...legend));
+    return f;
+  };
+  const key = (cls: string, text: string) => el('span', { className: cls, textContent: text });
+  const done = values.filter(Number.isFinite);
+  $('stats-body').replaceChildren(
+    table,
+    el('p', { className: 'hint', textContent: tp('stats.count', s.count, { dnf: s.dnf, mean: formatAverage(s.mean) }) }),
+    el('p', { className: 'hint', textContent: t('stats.caption') }),
+    ...(done.length ? [figure(t('stats.histogram'), histogramSvg(values, t('stats.histogramAlt', { from: formatTime(done.reduce((a, b) => Math.min(a, b))) })))] : []),
+    ...(values.length > 1 ? [figure(t('stats.trend'),
+      trendSvg(values, [{ cls: 'ao5', avgs: rolling(values, 5) }, { cls: 'ao12', avgs: rolling(values, 12) }], t('stats.trendAlt', { n: values.length })),
+      key('pt', t('stats.legendSolve')), key('ao5', 'ao5'), key('ao12', 'ao12'))] : []),
+  );
+}
+$('stats-open').onclick = () => {
+  $('stats-title').textContent = t('event.statsTitle', { event: t(`event.${event}`) });
+  $('import-status').textContent = '';
+  renderStats();
+  statsDialog.showModal();
+};
+$('import-choose').onclick = () => $('import-file').click();
+$('import-file').onchange = async () => {
+  const input = $('import-file') as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = ''; // the same file can be chosen again
+  if (!file) return;
+  const parsed = parseImport(await file.text(), event);
+  if (!parsed.results.length) return void ($('import-status').textContent = t('import.none'));
+  const before = all;
+  const merged = mergeResults(all, parsed.results);
+  all = merged.results;
+  // Too big for the browser's storage: keep what was there, or every later solve would fail to save too
+  if (!saveResults()) return void ((all = before), ($('import-status').textContent = t('import.saveFailed')));
+  renderResults();
+  renderStats();
+  $('import-status').textContent = t('import.done', { format: parsed.format, added: merged.added, dup: parsed.results.length - merged.added, skipped: parsed.skipped });
 };
 
 $('stage').addEventListener('pointerdown', (e) => {
@@ -490,23 +652,23 @@ $('stage').addEventListener('pointerdown', (e) => {
 });
 $('stage').addEventListener('pointerup', (e) => !(e.target as Element).closest('button') && release());
 
+// Not while a dialog is open, nor from a checkbox (Space toggles it)
+const timerKeys = (e: KeyboardEvent) => mod === 'solve' && !document.querySelector('dialog[open]') && !(e.target as Element).closest?.('input, select');
 addEventListener('keydown', (e) => {
-  if (mod !== 'solve' || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (!timerKeys(e) || e.altKey || e.ctrlKey || e.metaKey) return;
   if (e.code === 'Space') {
     e.preventDefault(); // also keeps Space from clicking a focused button
     if (!e.repeat) press();
   } else if (e.repeat) {
     return;
-  } else if (e.key === 'Escape' && phase === 'inspect') {
-    phase = 'ready';
-    holdStart = 0;
-    renderTimer();
+  } else if (e.key === 'Escape') {
+    stopInspection();
   } else if (e.key.toLowerCase() === 'n' && phase !== 'solving') {
     void newScramble();
   }
 });
 addEventListener('keyup', (e) => {
-  if (mod !== 'solve' || e.code !== 'Space') return;
+  if (!timerKeys(e) || e.code !== 'Space') return;
   e.preventDefault();
   release();
 });
@@ -521,15 +683,16 @@ function setModule(m: Mod) {
   if (m === mod && document.body.dataset.module === m) return; // e.g. between Academia pages: nothing to reset
   mod = m;
   guide.stop();
+  stopInspection(); // e.g. Back during inspection: no calls on another screen
   mixed = false;
   view.copy(homeView());
   updateTarget();
-  document.querySelectorAll<HTMLElement>('[data-mod]').forEach((a) => (a.dataset.mod === m ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
   document.body.dataset.module = m; // the academy widens the panel
-  $('header-module').textContent = t(`menu.${m}` as MessageKey); // shown next to ☰ on phones
+  render3d();
   $('mod-solve').hidden = m !== 'solve';
   $('mod-cube').hidden = m !== 'cube';
   $('mod-academy').hidden = m !== 'academy';
+  $('mod-progress').hidden = m !== 'progress';
   if (!conn) player.alg = ''; // the solve module's text scramble only applies there
   render();
   if (m === 'solve') void newScramble();
@@ -543,8 +706,22 @@ async function onRoute(r: Route) {
   const menu = $('header-menu');
   if (menu.matches(':popover-open')) menu.hidePopover(); // phones: following a link closes the menu
   setModule(r.mod);
+  // the menu entry: the algorithm library is drawn by the academy but has its own entry
+  const entry = r.mod === 'academy' && r.page.kind === 'library' ? 'library' : r.mod;
+  document.querySelectorAll<HTMLElement>('[data-mod]').forEach((a) => (a.dataset.mod === entry ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
+  $('header-module').textContent = t(entry === 'progress' ? 'nav.progress' : (`menu.${entry}` as MessageKey)); // shown next to ☰ on phones
+  // "Pinta tu cubo" (/cubo/pintar): a page of the Cubo screen, full width like the Academia
+  const painting = r.mod === 'cube' && r.page === 'paint';
+  document.body.toggleAttribute('data-paint', painting);
+  $('mod-paint').hidden = !painting;
+  if (r.mod === 'cube') $('mod-cube').hidden = painting;
+  if (painting) showPaint();
+  if (r.mod === 'progress') showProgress($('mod-progress')); // read again on every visit: the other screens may have saved
+  if (painting || r.mod === 'progress') document.querySelector('.panel')!.scrollTop = 0;
   if (r.mod !== 'academy') {
-    document.title = r.mod === 'solve' ? t('app.title') : pageTitle(t('menu.cube'));
+    stopCase();
+    stopLesson(); // a lesson left for another module lets go of the cube and its 3D player
+    document.title = r.mod === 'solve' ? t('app.title') : pageTitle(t(painting ? 'paint.title' : r.mod === 'progress' ? 'nav.progress' : 'menu.cube'));
     return;
   }
   const title = await showAcademy($('mod-academy'), r.page);

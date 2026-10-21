@@ -1,6 +1,7 @@
 // Academia: a home of tiles (the white cross first, one per method, plus Notación), then each on its own route.
-// A method page shows its phases and groups, each case as a card that opens its practice, with quiz buttons
-// per group and phase, plus the plan's own quizzes.
+// A method page starts with the trainer of the whole method (and how many cases are due today), then shows its phases
+// and groups, each case as a card that opens its page (caseView.ts), with quiz buttons per group and phase, plus the
+// plan's own quizzes.
 import { prose } from '../rich-text-view.ts';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPuzzle } from 'cubing/kpuzzle';
@@ -11,15 +12,19 @@ import { explainMove } from '../notation.ts';
 import { algView } from '../notation-view.ts';
 import type { MessageKey } from '../i18n.ts';
 import { loc, t, tp } from '../i18n.ts';
-import { routePath, type AcademyPage } from '../router.ts';
+import { guidePage, guideSegment, routePath, type AcademyPage, type GuidePage } from '../router.ts';
 import { caseState } from './cube.ts';
 import { crossGuide } from './crossGuide.ts';
-import { crossSections } from './crossView.ts';
-import { isoSVG, maskFor, topSVG } from './diagram.ts';
+import { crossSections, trainerButton } from './crossView.ts';
+import { courseFor, MOVE_GROUPS, type Course } from './lessons.ts';
+import { lessonList, playLesson, stopLesson } from './lessonView.ts';
+import { libraryView, showCase, stopCase } from './caseView.ts';
+import { isoSVG, maskFor, netSVG, topSVG } from './diagram.ts';
 import { METHODS, allCases } from './methods.ts';
-import { el, openPractice } from './practice.ts';
+import { el } from './practice.ts';
 import { caseLabel, lastResult, openQuiz, percent, scopeId, type QuizScope } from './quiz.ts';
-import { preferred, statsFor } from './store.ts';
+import { caseProbability, formatProbability } from './probability.ts';
+import { isDue, learningFor, preferred, save, setting, statsFor } from './store.ts';
 import type { Case, Group, Method, Phase } from './types.ts';
 
 let kpuzzle: KPuzzle;
@@ -29,19 +34,35 @@ const academyLink = (page: AcademyPage) => routePath({ mod: 'academy', page });
 /** Renders one Academia page; returns its title (for the document title), e.g. "CFOP reducido · Academia". */
 export async function showAcademy(root: HTMLElement, page: AcademyPage): Promise<string> {
   kpuzzle ??= await cube3x3x3.kpuzzle();
+  if (page.kind !== 'case') stopCase();
+  if (page.kind === 'lesson') return lessonPage(root, page.course, page.id);
+  stopLesson();
+  if (page.kind === 'case') return casePage(root, page.method, page.id);
+  if (page.kind === 'library') {
+    root.replaceChildren(libraryView(kpuzzle)); // a menu entry of its own: no Academia crumbs
+    return t('library.title');
+  }
   if (page.kind === 'home') {
     root.replaceChildren(homeView());
     return t('menu.academy');
   }
+  // A guide with lessons can be read either way: "Ver como: Guía · Lecciones"
+  const course = courseFor(guideSegment(page), (c) => preferred(c).alg);
+  const asLessons = !!course && guideView() === 'lessons';
+  const head = (title: string) => [crumbs(title), ...(course ? [viewSwitch(() => showAcademy(root, page))] : [])];
   if (page.kind === 'notation') {
-    root.replaceChildren(crumbs(t('glossary.title')), notationView());
+    root.replaceChildren(...head(t('glossary.title')), asLessons ? lessonList(course) : notationView());
     return inAcademy(t('glossary.title'));
   }
   if (page.kind === 'cross') {
+    if (asLessons) {
+      root.replaceChildren(...head(t('cross.title')), trainerButton(), lessonList(course));
+      return inAcademy(t('cross.title'));
+    }
     const sections = crossSections();
     const nav = el('nav', { className: 'academy-nav', ariaLabel: t('cross.nav') },
       ...sections.map((s) => el('a', { href: `#${s.id}`, textContent: s.querySelector('h2')!.textContent! })));
-    root.replaceChildren(crumbs(t('cross.title')),
+    root.replaceChildren(...head(t('cross.title')),
       el('div', { className: 'academy-layout' }, nav, el('div', { className: 'academy-body' }, ...sections)));
     followPhase(root, nav);
     return inAcademy(t('cross.title'));
@@ -51,11 +72,63 @@ export async function showAcademy(root: HTMLElement, page: AcademyPage): Promise
     root.replaceChildren(crumbs(t('academy.notFound')), text(t('academy.notFoundHint'), 'hint'));
     return inAcademy(t('academy.notFound'));
   }
+  if (asLessons) {
+    root.replaceChildren(...head(loc(m.name)), ...methodTop(m), lessonList(course));
+    return inAcademy(loc(m.name));
+  }
   const nav = el('nav', { className: 'academy-nav', ariaLabel: t('academy.nav') }, ...navView(m));
-  root.replaceChildren(crumbs(loc(m.name)),
+  root.replaceChildren(...head(loc(m.name)),
     el('div', { className: 'academy-layout' }, nav, el('div', { className: 'academy-body' }, ...methodView(m))));
   followPhase(root, nav);
   return inAcademy(loc(m.name));
+}
+
+// --- Lessons: the switch on a guide page, and a lesson's own page (the player is lessonView.ts) ---
+
+type GuideView = 'guide' | 'lessons';
+const VIEW_KEY = 'academy-view'; // one choice for every guide: the way this person likes to learn
+const guideView = () => setting<GuideView>(VIEW_KEY, 'guide', (v) => v === 'guide' || v === 'lessons');
+
+function viewSwitch(redraw: () => Promise<unknown>): HTMLElement {
+  const current = guideView();
+  const option = (v: GuideView, label: string) => el('button', {
+    type: 'button', textContent: label, ariaPressed: String(v === current),
+    onclick: () => {
+      if (v === current) return;
+      save(VIEW_KEY, v);
+      void redraw().then(() => document.querySelector<HTMLElement>('.view-switch [aria-pressed="true"]')?.focus());
+    },
+  });
+  return el('div', { className: 'row view-switch', role: 'group', ariaLabel: t('lesson.viewAs') },
+    el('span', { className: 'hint', ariaHidden: 'true', textContent: t('lesson.viewAs') }),
+    option('guide', t('lesson.guide')), option('lessons', t('lesson.lessons')));
+}
+
+function lessonPage(root: HTMLElement, courseId: string, id: string): string {
+  const course: Course | null = courseFor(courseId, (c) => preferred(c).alg);
+  const lesson = course?.lessons.find((l) => l.id === id);
+  if (!course || !lesson) {
+    stopLesson();
+    root.replaceChildren(crumbs(t('lesson.notFound')), text(t('lesson.notFoundHint'), 'hint'));
+    return inAcademy(t('lesson.notFound'));
+  }
+  root.replaceChildren(crumbs(lesson.title, guidePage(courseId), course.title));
+  playLesson(course, lesson, kpuzzle);
+  return inAcademy(lesson.title);
+}
+
+/** A case's page (caseView.ts), under its method. */
+function casePage(root: HTMLElement, methodId: string, id: string): string {
+  const m = METHODS.find((x) => x.id === methodId);
+  const c = m && allCases(m).find((x) => x.id === id);
+  if (!m || !c) {
+    stopCase();
+    root.replaceChildren(crumbs(t('case.notFound')), text(t('case.notFoundHint'), 'hint'),
+      el('p', {}, el('a', { href: academyLink({ kind: 'library' }), textContent: t('library.title') })));
+    return inAcademy(t('case.notFound'));
+  }
+  root.replaceChildren(crumbs(caseLabel(c), { kind: 'method', id: m.id }, loc(m.name)), showCase(m, c, kpuzzle));
+  return inAcademy(caseLabel(c));
 }
 
 const inAcademy = (page: string) => t('app.pageTitle', { page, app: t('menu.academy') }); // "CFOP reducido · Academia"
@@ -77,10 +150,11 @@ function followPhase(root: HTMLElement, nav: HTMLElement) {
   root.querySelectorAll('.academy-phase').forEach((s) => phaseObserver!.observe(s));
 }
 
-/** Academia › current page, with the way back. */
-const crumbs = (current: string) =>
+/** Academia › (parent ›) current page, with the way back. */
+const crumbs = (current: string, parent?: GuidePage, parentName = '') =>
   el('nav', { className: 'crumbs', ariaLabel: t('academy.crumbs') },
     el('a', { href: academyLink({ kind: 'home' }), textContent: t('menu.academy') }), ' › ',
+    ...(parent ? [el('a', { href: academyLink(parent), textContent: parentName }), ' › '] : []),
     el('span', { ariaCurrent: 'page', textContent: current }));
 
 // --- Home: one tile per method (what it covers, how far along you are), and the notation ---
@@ -101,13 +175,20 @@ function homeView(): HTMLElement {
       strip,
       el('strong', { textContent: loc(m.name) }),
       text(loc(m.summary ?? m.description), 'hint'),
-      el('span', { className: 'tile-meta', textContent: [tp('academy.tilePhases', m.phases.length), tp('academy.tileCases', cases.length), tp('academy.tilePracticed', practiced)].join(' · ') }));
+      el('span', { className: 'tile-meta', textContent: [tp('academy.tilePhases', m.phases.length), tp('academy.tileCases', cases.length), tp('academy.tilePracticed', practiced)].join(' · ') }),
+      ...(dueCount(cases) ? [el('span', { className: 'tile-meta tile-due', textContent: tp('srs.due', dueCount(cases)) })] : []));
   });
   const notation = el('a', { className: 'tile tile-notation', href: academyLink({ kind: 'notation' }) },
     el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: "R U R′ U′" }),
     el('strong', { textContent: t('glossary.title') }),
     text(t('glossary.tileSummary'), 'hint'),
     el('span', { className: 'tile-meta', textContent: t('glossary.tileMeta') }));
+  // no smart cube: paint yours and get its solution (a page of the Cubo screen)
+  const paint = el('a', { className: 'tile', href: routePath({ mod: 'cube', page: 'paint' }) },
+    el('div', { className: 'tile-strip tile-net', ariaHidden: 'true', innerHTML: netSVG(patternToFacelets(kpuzzle.defaultPattern().applyAlg("R U F' L2"))) }),
+    el('strong', { textContent: t('paint.title') }),
+    text(t('paint.summary'), 'hint'),
+    el('span', { className: 'tile-meta', textContent: t('paint.tileMeta') }));
   // the cross comes first: it is the first step of CFOP and of most methods
   const cross = el('a', { className: 'tile', href: academyLink({ kind: 'cross' }) },
     el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: "R′ F R" }),
@@ -118,7 +199,7 @@ function homeView(): HTMLElement {
   return el('section', { className: 'academy-home' },
     el('h2', { textContent: t('menu.academy') }),
     text(t('academy.homeIntro'), 'prose hint'),
-    el('div', { className: 'tiles' }, cross, ...tiles, notation));
+    el('div', { className: 'tiles' }, cross, ...tiles, notation, paint));
 }
 
 // Section anchors for the side navigation (phase and group ids are unique across methods)
@@ -135,12 +216,6 @@ function navView(m: Method): Node[] {
 
 // --- Notation glossary: every kind of move (tappable, animated in a tooltip) and the plan's terms ---
 
-const MOVE_GROUPS: { key: string; bases: string[] }[] = [
-  { key: 'faces', bases: ['U', 'D', 'R', 'L', 'F', 'B'] },
-  { key: 'wide', bases: ['r', 'l', 'u', 'd', 'f', 'b'] },
-  { key: 'slices', bases: ['M', 'E', 'S'] },
-  { key: 'rotations', bases: ['x', 'y', 'z'] },
-];
 const TERMS: { key: string; example?: string }[] = [
   { key: 'auf', example: "U U' U2" }, { key: 'trigger', example: "R U R' U'" }, { key: 'setup' }, { key: 'planB' },
   { key: 'htm' }, { key: 'cross' }, { key: 'slot' }, { key: 'f2l' }, { key: 'oll' }, { key: 'pll' }, { key: 'headlights' }, { key: 'inspection' },
@@ -169,6 +244,19 @@ function notationView(): HTMLElement {
 
 const text = (s: string, className = '') => el('p', { textContent: s, className });
 
+const dueCount = (cases: Case[]) => cases.filter((c) => isDue(learningFor(c.id), Date.now())).length;
+
+/** The trainer of the whole method, and how many of its cases are due today (refreshed when it closes). */
+function trainView(m: Method): HTMLElement {
+  const cases = allCases(m);
+  const due = el('span', { className: 'tile-due' });
+  const fill = () => (due.textContent = dueCount(cases) ? tp('srs.due', dueCount(cases)) : '');
+  fill();
+  const train = el('button', { type: 'button', className: 'primary', textContent: t('srs.train') });
+  train.onclick = () => void openQuiz({ kind: 'cases', id: m.id, cases, title: loc(m.name) }, fill);
+  return el('div', { className: 'academy-train' }, el('div', { className: 'row' }, train, due), text(t('srs.trainHint'), 'hint'));
+}
+
 /** Opens the quiz; shows the scope's last accuracy, refreshed when the quiz closes. */
 function quizButton(label: string, scope: QuizScope, ariaLabel?: string) {
   const b = el('button', { type: 'button', className: 'small' });
@@ -191,9 +279,14 @@ function methodView(m: Method): Node[] {
     prose(loc(m.orientation)),
     ...(m.notation ? [el('h3', { textContent: t('academy.notation') }), prose(loc(m.notation))] : []),
     ...(m.schedule ? [el('h3', { textContent: t('academy.schedule') }), prose(loc(m.schedule))] : []));
-  const before = el('p', { className: 'hint' }, el('a', { href: academyLink({ kind: 'cross' }), textContent: t('cross.before') }));
-  return [before, about, ...m.phases.map(phaseView)];
+  return [...methodTop(m), about, ...m.phases.map(phaseView)];
 }
+
+/** The method's trainer and the link to the cross that comes before it: on top of the guide and of its lessons. */
+const methodTop = (m: Method): HTMLElement[] => [
+  ...(allCases(m).length ? [trainView(m)] : []),
+  el('p', { className: 'hint' }, el('a', { href: academyLink({ kind: 'cross' }), textContent: t('cross.before') })),
+];
 
 function phaseView(phase: Phase): HTMLElement {
   const cases = phase.groups.flatMap((g) => g.cases);
@@ -220,27 +313,25 @@ function groupView(phase: Phase, g: Group): HTMLElement {
   return el('section', { className: 'academy-group', id: anchor(g.id) },
     head,
     ...(g.description ? [prose(loc(g.description), 'prose hint')] : []),
-    el('div', { className: 'cards' }, ...g.cases.map((c) => card(phase, g, c))));
+    el('div', { className: 'cards' }, ...g.cases.map((c) => card(phase, c))));
 }
 
-function card(phase: Phase, g: Group, c: Case): HTMLButtonElement {
-  const button = el('button', { type: 'button', className: 'card' });
-  const fill = () => {
-    const alg = preferred(c).alg;
-    const facelets = patternToFacelets(caseState(kpuzzle, alg, IDENTITY));
-    const draw = phase.diagram === 'iso' ? isoSVG : topSVG;
-    const mask = maskFor(c.stage);
-    button.innerHTML = draw(facelets, mask, { size: 84, title: t('academy.diagram', { code: c.code }), arrows: mask === 'pll' });
-    const s = statsFor(c.id);
-    button.append(
-      el('strong', { textContent: c.code }),
-      el('code', { textContent: formatAlg(tokenize(alg)) }),
-      el('span', { className: 'hint', textContent: s ? `${tp('academy.reps', s.reps)}${s.best === null ? '' : ` · ${t('academy.best', { time: formatTime(s.best) })}`}` : t('academy.notPracticed') }),
-    );
-  };
-  fill();
-  // Quiz of this one case: many random states of it, answered among its group's cases.
-  const quiz = () => void openQuiz({ kind: 'cases', id: c.id, cases: [c], answers: g.cases, title: caseLabel(c) }, fill);
-  button.onclick = () => void openPractice(c, fill, quiz);
-  return button;
+/** A case's card: opens its page, where it's practised. */
+function card(phase: Phase, c: Case): HTMLAnchorElement {
+  const m = METHODS.find((x) => x.phases.includes(phase))!;
+  const link = el('a', { className: 'card', href: academyLink({ kind: 'case', method: m.id, id: c.id }) });
+  const p = caseProbability(c.id, kpuzzle);
+  const alg = preferred(c).alg;
+  const facelets = patternToFacelets(caseState(kpuzzle, alg, IDENTITY));
+  const draw = phase.diagram === 'iso' ? isoSVG : topSVG;
+  const mask = maskFor(c.stage);
+  link.innerHTML = draw(facelets, mask, { size: 84, title: t('academy.diagram', { code: c.code }), arrows: mask === 'pll' });
+  const s = statsFor(c.id);
+  link.append(
+    el('strong', { textContent: c.code }),
+    el('code', { textContent: formatAlg(tokenize(alg)) }),
+    ...(p === null ? [] : [el('span', { className: 'hint', textContent: t('prob.card', { p: formatProbability(p) }) })]),
+    el('span', { className: 'hint', textContent: s ? `${tp('academy.reps', s.reps)}${s.best === null ? '' : ` · ${t('academy.best', { time: formatTime(s.best) })}`}` : t('academy.notPracticed') }),
+  );
+  return link;
 }
