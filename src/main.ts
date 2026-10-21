@@ -12,6 +12,7 @@ import { describe, nextStep, PathGuide, toView } from './guide.ts';
 import { trustFirstMove } from './gan-fix.ts';
 import { average, EVENTS, eventField, eventOf, formatAverage, formatResult, formatTime, hasInspection, HOLD_MS, INSPECTION_MS, inspectionCall, inspectionPenalty, is333, isEvent, isMo3, recordTime, resultValue, type EventId, type Penalty, type Result } from './timer.ts';
 import { histogramSvg, rolling, summary, trendSvg } from './stats.ts';
+import { ATTEMPTS, attemptValue, parseRounds, roundFormat, roundResult, storedResult, type RoundOpts, type StoredRound } from './round.ts';
 import { mergeResults, parseImport, parseStored } from './import.ts';
 import { t, tp, type MessageKey } from './i18n.ts';
 import { algView } from './notation-view.ts';
@@ -367,12 +368,93 @@ const saveResults = () => {
   }
 };
 
+// WCA round simulator: the format's attempts in a row (Regulations 9f/9g); the solves also count as normal results.
+const ROUNDS_KEY = 'cube-rounds';
+let rounds = parseRounds(load(ROUNDS_KEY));
+let round: { format: ReturnType<typeof roundFormat>; opts: RoundOpts; solves: Result[]; pb: number | null; pbSingle: number | null } | null = null;
+const roundValues = () => round!.solves.map((r) => attemptValue(r, round!.opts.limit));
+const seconds = (id: string) => {
+  const v = parseFloat(($(id) as HTMLInputElement).value);
+  return v > 0 ? Math.round(v * 1000) : undefined;
+};
+const finite = (v: number | null | undefined) => (v != null && Number.isFinite(v) ? v : null);
+const min = (a: number | null, b: number | null) => (a === null ? b : b === null ? a : Math.min(a, b));
+
+function renderRound() {
+  const format = roundFormat(event);
+  const n = ATTEMPTS[format];
+  const k = format === 'ao5' ? 2 : 1;
+  $('round-hint').textContent = tp('round.hint', k, { format: t(`round.${format}`) });
+  btn('round-start').hidden = !!round;
+  btn('round-stop').hidden = !round;
+  btn('round-start').disabled = phase === 'inspect' || phase === 'solving';
+  if (round) round.solves = round.solves.filter((r) => all.includes(r)); // deleted from the history = not in the round
+  eventSelect.disabled = !!round; // the event can't change mid-round
+  eventSelect.title = round ? t('round.eventLocked') : '';
+  for (const id of ['round-cutoff', 'round-limit']) ($(id) as HTMLInputElement).disabled = !!round; // read once, at start
+  let text = '';
+  if (round) {
+    const res = roundResult(roundValues(), round.format, round.opts);
+    const last = round.solves[round.solves.length - 1];
+    text = res.done && phase === 'done' ? t(res.cutoffFailed ? 'round.overCutoff' : 'round.over')
+      : t('round.attempt', { n: Math.min(round.solves.length + (phase === 'done' ? 0 : 1), n), total: n });
+    if (phase === 'done' && last && round.opts.limit !== undefined && resultValue(last) > round.opts.limit) text += ' · ' + t('round.overLimit');
+  }
+  if ($('round-status').textContent !== text) $('round-status').textContent = text;
+  $('stage-round').textContent = text;
+  $('round-list').setAttribute('aria-label', t('round.recent'));
+  const date = (at: number) => new Date(at).toLocaleDateString(document.documentElement.lang, { day: 'numeric', month: 'short' });
+  $('round-list').replaceChildren(...rounds.filter((r) => r.event === event).slice(0, 5).map((r) => {
+    const res = storedResult(r);
+    const params = { format: t(`round.${format}`), best: formatAverage(res.best), date: date(r.at), value: formatAverage(res.final) };
+    return el('li', { textContent: t(res.final === null ? 'round.itemFailed' : 'round.item', params) });
+  }));
+}
+
+function startRound() {
+  if (round || phase === 'inspect' || phase === 'solving') return;
+  const format = roundFormat(event);
+  const rows = summary(results).rows;
+  const best = (label: string) => finite(rows.find((r) => r.label === label)?.best);
+  const earlier = rounds.filter((r) => r.event === event).map((r) => finite(storedResult(r).final));
+  round = {
+    format, opts: { cutoff: seconds('round-cutoff'), limit: seconds('round-limit') }, solves: [],
+    pb: earlier.reduce(min, best(format === 'bo3' ? 'single' : format)),
+    pbSingle: best('single'),
+  };
+  void newScramble(); // a fresh scramble for attempt 1 (renders)
+}
+
+function finishRound() {
+  const r = round!;
+  const values = roundValues();
+  const res = roundResult(values, r.format, r.opts);
+  round = null;
+  rounds = [{ event, at: Date.now(), values: values.map(finite), ...(r.opts.cutoff && { cutoff: r.opts.cutoff }), ...(r.opts.limit && { limit: r.opts.limit }) } satisfies StoredRound, ...rounds].slice(0, 200);
+  save(ROUNDS_KEY, rounds);
+  const versus = (value: number, pb: number | null) =>
+    !Number.isFinite(value) ? '' : ' · ' + (pb === null ? t('round.firstPb') : value < pb ? t('round.newPb') : t('round.vsPb', { pb: formatTime(pb), diff: formatTime(value - pb) }));
+  const p = (textContent: string) => el('p', { textContent });
+  const format = t(`round.${r.format}`);
+  $('round-title').textContent = t('round.dialogTitle', { event: t(`event.${event}`) });
+  $('round-body').replaceChildren(
+    p(values.map(formatAverage).join(' · ')),
+    p(res.cutoffFailed ? t('round.cutoffFailed', { cutoff: formatTime(r.opts.cutoff!), format }) : t('round.result', { format, value: formatAverage(res.final) }) + versus(res.final!, r.pb)),
+    ...(r.format === 'bo3' && !res.cutoffFailed ? [] : [p(t('round.best', { value: formatAverage(res.best) }) + versus(res.best, r.pbSingle))]),
+  );
+  ($('round-dialog') as HTMLDialogElement).showModal();
+  renderResults();
+}
+btn('round-start').onclick = startRound;
+btn('round-stop').onclick = () => ((round = null), renderResults(), renderTimer());
+
 // 2D net of the scrambled state (WCA scramble-sheet style: white up, green front)
 const net = new TwistyPlayer({ puzzle: wcaEvents[event].puzzleID, visualization: '2D', background: 'none', controlPanel: 'none', experimentalDragInput: 'none', hintFacelets: 'none' });
 $('net').append(net);
 let scrambleId = 0;
 
 async function newScramble() {
+  if (round && roundResult(roundValues(), round.format, round.opts).done) finishRound(); // the last attempt was already timed
   const id = ++scrambleId;
   scrambleText = '';
   guide.stop();
@@ -432,7 +514,10 @@ function startSolve() {
 
 function stopSolve() {
   if (phase !== 'solving') return;
-  all.unshift({ ms: recordTime(performance.now() - solveStart), penalty, at: Date.now(), ...(scrambleText && { scramble: scrambleText }), ...eventField(event) });
+  const solve: Result = { ms: recordTime(performance.now() - solveStart), penalty, at: Date.now(), ...(scrambleText && { scramble: scrambleText }), ...eventField(event) };
+  if (round && attemptValue(solve, round.opts.limit) === Infinity) solve.penalty = 'DNF'; // over the time limit
+  all.unshift(solve);
+  round?.solves.push(solve);
   phase = 'done';
   renderResults(); // first: the timer shows the event's newest result
   renderTimer();
@@ -472,6 +557,7 @@ function renderTimer() {
   $('stage').hidden = !staged;
   $('stage-hint').textContent = stageHint();
   $('penalties').hidden = phase !== 'done';
+  renderRound();
   $('stage-call').hidden = phase !== 'inspect';
   $('timer-hint').textContent = t(phase === 'scramble' ? 'solve.applyScramble' : hasInspection(event) ? 'solve.spaceToInspect' : 'event.spaceToStart');
   btn('start').disabled = phase !== 'ready' || !scrambleText;
@@ -571,6 +657,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-pen]').forEach((b) => (b.onc
 }));
 $('delete-last').onclick = () => {
   if (!results[0]) return;
+  if (round) round.solves = round.solves.filter((r) => r !== results[0]); // the attempt is made again
   all.splice(all.indexOf(results[0]), 1); // e.g. a false start: drop the attempt and move on
   renderResults();
   void newScramble();

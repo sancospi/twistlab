@@ -15,7 +15,7 @@ import { caseState } from './cube.ts';
 import { isoSVG, maskFor, topSVG } from './diagram.ts';
 import { inverseCase, matches, mirrorCase, SETS, STATUSES, type CaseStatus, type LibraryFilter } from './library.ts';
 import { METHODS } from './methods.ts';
-import { el, MASKS, openPractice, sourceLabel, type Tab } from './practice.ts';
+import { el, fingersView, MASKS, openPractice, sourceLabel, type Tab } from './practice.ts';
 import { caseProbability, formatProbability } from './probability.ts';
 import { caseLabel, openQuiz } from './quiz.ts';
 import { average, isDue, learnStatus, learningFor, preferred, setPreferred, statsFor, variants } from './store.ts';
@@ -116,6 +116,7 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
     const tags = algTags(tokens);
     const box = el('div', { className: chosen ? 'case-alg chosen' : 'case-alg', tabIndex: -1, ...(chosen ? { ariaLabel: t('case.chosen') } : {}) },
       movesView(tokens),
+      fingersView(tokens),
       text([sourceLabel(v), t('practice.htm', { n: htm(centerMoves(tokens, IDENTITY)) })].join(' · '), 'hint'),
       ...(tags.length ? [el('ul', { className: 'chips', ariaLabel: t('case.tags') }, ...tags.map((tag) => el('li', { className: 'chip', textContent: t(`case.tag.${tag}`) })))] : []),
       ...(v.note ? [text(loc(v.note), 'hint')] : []));

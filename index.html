@@ -60,6 +60,10 @@
     /* Resolver: inspection-call options, stats dialog (table, histogram, trend) */
     #mod-solve .stats-row { flex-wrap: wrap; }
     .timer-opts { gap: 4px 16px; font-size: 13px; color: var(--muted); }
+    .round { display: flex; flex-direction: column; gap: 6px; }
+    .round input { width: 5em; font-size: 16px; } /* no zoom on focus in iOS */
+    .round-list { margin: 0; padding-left: 1.2em; font-size: 12px; color: var(--muted); }
+    .round-list:empty { display: none; }
     .timer-opts label { display: flex; align-items: center; gap: 6px; min-height: 32px; cursor: pointer; }
     @media (prefers-reduced-motion: no-preference) { .big.call { animation: call-flash .3s ease-in-out 3 alternate; } }
     @keyframes call-flash { to { opacity: .35; } }
@@ -141,6 +145,14 @@
     #paint-player twisty-player { width: 100%; height: min(280px, 40dvh); }
     #paint-move { font: 700 32px/1 ui-monospace, monospace; color: var(--accent); margin-right: 8px; }
     #paint-steps { word-break: break-word; }
+    .paint-modes button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+    .bsolve-stage h4 { margin: 8px 0 4px; font-size: 14px; }
+    .bsolve-stage h4 .hint { font-weight: 400; }
+    .bsolve-stage ol { display: grid; gap: 6px; margin: 0; padding-left: 1.6em; }
+    .bsolve-stage li[aria-current] { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+    .bsolve-stage li.done { opacity: .75; }
+    .bsolve-stage li p { margin: 0 0 2px; }
+    .alg .move.setup { color: var(--muted); font-style: italic; }
     .tile-strip.tile-net svg { flex: 0 1 120px; } /* the Academia tile: one net, not a strip */
     @media (max-width: 600px) { #mod-paint { padding: 16px; } }
     @media (max-width: 759px) {
@@ -381,6 +393,12 @@
     .trigger { display: inline-grid; justify-items: center; vertical-align: top; line-height: 1.5; }
     .trigger > .alg { padding: 0 2px; border-bottom: 2px solid var(--accent); }
     .trigger-name { font-size: 11px; color: var(--accent); white-space: nowrap; }
+    .fingers-box { display: grid; gap: 6px; }
+    .fingers { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    .fingers li { display: grid; justify-items: center; align-content: start; gap: 2px; min-width: 64px; max-width: 96px; padding: 4px 6px; border-radius: 8px; background: #0b0d12aa; text-align: center; }
+    .fingers .alg { font-size: 18px; }
+    .fingers small { font-size: 11px; color: var(--muted); }
+    .fingers .finger-mark { color: #facc15; }
     .case-data { grid-template-columns: max-content 1fr; gap: 4px 14px; }
     .mini-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
     .mini-case { display: grid; justify-items: center; align-content: start; gap: 2px; padding: 8px 4px; border-radius: 8px; background: #0b0d12aa; color: var(--fg); text-align: center; text-decoration: none; font-size: 13px; }
@@ -513,6 +531,19 @@
         <label><input type="checkbox" id="calls-visual" /> <span data-i18n="timer.callsVisual"></span></label>
         <label><input type="checkbox" id="calls-voice" /> <span data-i18n="timer.callsVoice"></span></label>
       </div>
+      <div class="round" role="group" data-i18n-aria-label="round.title">
+        <div class="row timer-opts">
+          <label><span data-i18n="round.cutoff"></span> <input id="round-cutoff" type="number" min="0" step="any" inputmode="decimal" /></label>
+          <label><span data-i18n="round.limit"></span> <input id="round-limit" type="number" min="0" step="any" inputmode="decimal" /></label>
+        </div>
+        <p id="round-hint" class="hint"></p>
+        <div class="row">
+          <button id="round-start" class="small" data-i18n="round.start"></button>
+          <button id="round-stop" class="small" hidden data-i18n="round.stop"></button>
+          <span id="round-status" class="hint" role="status"></span>
+        </div>
+        <ul id="round-list" class="round-list"></ul>
+      </div>
       <div class="stats-row">
         <p id="stats" class="hint"></p>
         <span class="row">
@@ -569,7 +600,11 @@
       <div id="paint-status" role="status"></div>
       <section id="paint-solution" class="cube-block" aria-labelledby="paint-solution-title" hidden>
         <h3 id="paint-solution-title" tabindex="-1" data-i18n="paint.solution"></h3>
-        <p class="hint"><span id="paint-note"></span> <a href="/academia" data-i18n="paint.learn"></a></p>
+        <div class="row paint-modes" role="group" data-i18n-aria-label="paint.modes">
+          <button id="paint-mode-short" type="button" aria-pressed="true" data-i18n="paint.shortest"></button>
+          <button id="paint-mode-guided" type="button" aria-pressed="false" data-i18n="paint.guided"></button>
+        </div>
+        <p class="hint"><span id="paint-note"></span> <a id="paint-learn" href="/academia" data-i18n="paint.learn"></a></p>
         <div id="paint-player"></div>
         <div id="paint-live" aria-live="polite">
           <p id="paint-progress" class="hint"></p>
@@ -615,6 +650,7 @@
   <div id="stage" class="stage" hidden>
     <div id="big" class="big" role="timer">15</div>
     <p id="stage-hint" class="stage-hint"></p>
+    <p id="stage-round" class="stage-hint"></p>
     <p id="stage-call" class="sr-only" role="status"></p>
     <div id="penalties" class="row" role="group" data-i18n-aria-label="penalty.label" hidden>
       <button data-pen="0" data-i18n="penalty.ok"></button>
@@ -630,6 +666,13 @@
     <button data-turn="right" data-i18n-aria-label="view.right" data-i18n-title="view.rightTitle">→</button>
     <button data-turn="down" data-i18n-aria-label="view.down" data-i18n-title="view.downTitle">↓</button>
   </div>
+  <dialog id="round-dialog" class="sheet" aria-labelledby="round-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="round-title"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div id="round-body" class="stats-body"></div>
+  </dialog>
   <dialog id="stats-dialog" class="sheet" aria-labelledby="stats-title">
     <form method="dialog" class="sheet-head">
       <h2 id="stats-title" data-i18n="stats.title"></h2>

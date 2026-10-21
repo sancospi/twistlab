@@ -19,6 +19,7 @@ import { cube, type CubeListener } from './link.ts';
 import { addCustom, average, preferred, recordRep, removeCustom, save, setPreferred, setting, statsFor, STREAK_GOAL, variants, type Rep } from './store.ts';
 import type { AlgSource, AlgVariant, Case, Stage } from './types.ts';
 import { checkCustomAlg } from './customAlg.ts';
+import { fingertricks, type FingerHint } from '../fingertricks.ts';
 import { caseProbability, formatProbability, phaseOf } from './probability.ts';
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -121,6 +122,10 @@ for (const b of tabButtons) b.onclick = () => {
 function choose(v: AlgVariant) {
   variant = v;
   tokens = tokenize(v.alg);
+  hints = fingertricks(tokens);
+  const wasOpen = drillFingers.querySelector('details')?.open ?? false;
+  drillFingers.replaceChildren(fingersView(tokens));
+  drillFingers.querySelector('details')!.open = wasOpen;
   lastRep = null;
   loadPlayer(); // static it's the content; guided it's behind "Ver el caso"
   start();
@@ -216,6 +221,24 @@ const listener: CubeListener = {
     render();
   },
 };
+
+// Memoria muscular: the suggested fingers, for the current move while following, all of them under the clock.
+let hints: FingerHint[] = [];
+const fingerNow = el('p', { className: 'hint', role: 'status' });
+$('practice-next').after(fingerNow);
+const drillFingers = el('div');
+$('practice-timer').append(drillFingers);
+const markText = (h: FingerHint) => (h.regrip ? t('fingers.regrip') : h.home ? t('fingers.home') : '');
+
+/** The algorithm move by move with its suggested fingers, folded under "Ver dedos"; every move stays tappable. */
+export function fingersView(tokens: string[]): HTMLDetailsElement {
+  const item = (h: FingerHint) => el('li', {}, algView([h.token]),
+    el('small', {}, ...(markText(h) ? [el('span', { className: 'finger-mark', textContent: `${markText(h)} · ` })] : []), h.label));
+  return el('details', { className: 'fingers-box' },
+    el('summary', { textContent: t('fingers.title'), ariaLabel: t('fingers.titleFor', { alg: tokens.join(' ') }) }),
+    el('p', { className: 'hint', textContent: t('fingers.hint') }),
+    el('ol', { className: 'fingers', ariaLabel: t('fingers.list') }, ...fingertricks(tokens).map(item)));
+}
 
 $('practice-again').onclick = () => (tab === 'drill' ? start() : startScramble());
 
@@ -374,6 +397,7 @@ function render() {
   $('practice-guided').hidden = !guided;
   $('practice-steps').hidden = tab === 'drill'; // nothing to set up
   $('practice-alg').replaceChildren(algView(tokens));
+  fingerNow.hidden = true; // renderSolve shows it
   renderStats();
   if (!guided) return;
   const solving = mode !== 'scramble';
@@ -417,6 +441,10 @@ function renderSolve() {
     : partial ? t('practice.left', { moves: left.map(name).join(' ') }) : '';
   $('practice-hint').textContent = t(tab === 'drill' ? 'practice.drillHint' : 'practice.solveHint');
   if (tab === 'drill' && !undo.length && performance.now() < redoUntil) $('practice-desc').textContent = t('practice.restartDrill');
+  if (tab === 'drill' && !undo.length && hints[i]) {
+    fingerNow.hidden = false;
+    fingerNow.textContent = t('fingers.now', { hint: [markText(hints[i]), hints[i].label].filter(Boolean).join(' · ') });
+  }
   $('practice-list').replaceChildren(algView(tokens, { mark: (j) => (j < i ? 'done' : j === i ? 'current' : '') }));
 }
 

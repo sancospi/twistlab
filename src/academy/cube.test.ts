@@ -5,7 +5,7 @@ import { patternToFacelets } from '../facelets.ts';
 import { KPattern } from 'cubing/kpuzzle';
 import { IDENTITY, YELLOW_UP, centerMoves, invertTokens, mapMove, tokenize } from '../notation.ts';
 import {
-  POOL_STAGES, caseState, goalReached, llFaceOf, makeQuizItems, quizPattern, quizPool, randomStateScramble, referenceMoves, specsFor,
+  HOLDS, POOL_STAGES, caseState, goalReached, holdIn, llFaceOf, makeQuizItems, quizPattern, quizPool, randomStateScramble, referenceMoves, specsFor,
 } from './cube.ts';
 import { METHODS, allCases, findCase } from './methods.ts';
 import type { Case, Stage } from './types.ts';
@@ -224,4 +224,49 @@ test('randomStateScramble: leads to the quiz state in face turns, not by the set
       assert.ok(endsInSetup(spec.moves, c.setup), `${id}: the old merged scramble gives the case away`); // the check can fail
     }
   }
+});
+
+test('color neutral: HOLDS are the 24 ways to hold the cube; holding it the usual way changes nothing', () => {
+  assert.equal(new Set(HOLDS.map((h) => JSON.stringify(h))).size, 24);
+  assert.equal(new Set(HOLDS.map((h) => h.U)).size, 6);
+  for (const h of HOLDS) assert.equal(new Set(Object.values(h)).size, 6);
+  assert.deepEqual(HOLDS[0], IDENTITY);
+  assert.deepEqual(holdIn(IDENTITY, YELLOW_UP), YELLOW_UP);
+  const x = HOLDS[4]; // x: green on top, white in front
+  assert.deepEqual([x.U, x.F], ['F', 'D']);
+  assert.deepEqual([holdIn(x, YELLOW_UP).U, holdIn(x, YELLOW_UP).F], ['F', 'U']); // the GAN cube's green and white centers
+});
+
+test('goalReached on a side face: a turn of that face is only an AUF away, of the opposite one breaks the first layer', () => {
+  const OPP = { F: 'B', B: 'F', R: 'L', L: 'R' } as const;
+  for (const f of ['F', 'B', 'R', 'L'] as const) {
+    for (const stage of ALL_STAGES) assert.ok(goalReached(stage, solved.applyMove(`${f}'`), f), `${stage} ${f}`);
+    assert.ok(!goalReached('first-layer', solved.applyMove(OPP[f]), f), f);
+    assert.ok(!goalReached('f2l', solved.applyMove(f), 'U'), f);
+  }
+});
+
+test('color neutral: a case held any of the 24 ways is still that case, and its algorithm in that grip solves it', () => {
+  const failures: string[] = [];
+  for (const c of cases) {
+    const [spec] = makeQuizItems([c], 1, 5, kpuzzle);
+    const solution = centerMoves(`${spec.auf} ${c.algs[0].alg}`, IDENTITY);
+    const user = quizPattern(kpuzzle, spec, IDENTITY);
+    // the goal along the way, as the user frame sees it: every grip must agree on each step
+    const expected = solution.map((_, i) => goalReached(c.stage, user.applyAlg(solution.slice(0, i).join(' ')), 'U'));
+    for (const hold of HOLDS) {
+      for (const frame of [IDENTITY, YELLOW_UP]) {
+        const f = holdIn(hold, frame);
+        const p = quizPattern(kpuzzle, spec, f);
+        const moves = centerMoves(`${spec.auf} ${c.algs[0].alg}`, f); // the algorithm conjugated by the grip
+        if (moves.join(' ') !== solution.map((m) => mapMove(m, f)).join(' ')) failures.push(`${c.id}: moves`);
+        if (!goalReached(c.stage, p.applyAlg(moves.join(' ')), llFaceOf(f))) failures.push(`${c.id} ${f.U}${f.F}: not solved`);
+        if (frame !== YELLOW_UP) continue; // the smart cube's frame, step by step
+        moves.forEach((_, i) => {
+          if (goalReached(c.stage, p.applyAlg(moves.slice(0, i).join(' ')), llFaceOf(f)) !== expected[i]) failures.push(`${c.id} ${f.U}${f.F}: step ${i}`);
+        });
+      }
+    }
+  }
+  assert.deepEqual([...new Set(failures)], []);
 });

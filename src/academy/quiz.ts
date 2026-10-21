@@ -9,12 +9,14 @@ import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { describe, nextStep, PathGuide } from '../guide.ts';
 import { patternToFacelets } from '../facelets.ts';
-import { IDENTITY, YELLOW_UP, centerMoves, turnCount } from '../notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, turnCount, unmapMove, type Frame } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView } from '../notation-view.ts';
 import { lang, loc, t, tp, type MessageKey } from '../i18n.ts';
-import { caseState, goalReached, llFaceOf, makeQuizItems, quizPattern, randomStateScramble, specsFor, type QuizSpec } from './cube.ts';
-import { isoSVG, maskFor, netSVG, topSVG } from './diagram.ts';
+import {
+  HOLDS, caseState, goalReached, holdIn, llFaceOf, makeQuizItems, quizPattern, randomStateScramble, specsFor, type QuizSpec,
+} from './cube.ts';
+import { heldColors, isoSVG, maskFor, netSVG, topSVG } from './diagram.ts';
 import { cube, type CubeListener } from './link.ts';
 import { METHODS, findCase } from './methods.ts';
 import { el, openPractice } from './practice.ts';
@@ -80,7 +82,11 @@ interface Item {
   user: KPattern; // the state in the user frame: diagram, AUF and reference length
   scramble?: string | null; // recognition, generated: the random-state scramble (null while the solver works)
   random?: boolean; // ...found by the solver (else, too slow: the merged setup)
+  hold: Frame; // color neutral: how the cube is held (place -> color), IDENTITY = yellow up, green front
 }
+
+/** The item's frame on the GAN cube: its moves, goal and solution are those of the grip it's held in. */
+const onCube = (item: Item): Frame => holdIn(item.hold, YELLOW_UP);
 
 /** What the user is told about an item once it's done. */
 interface Feedback {
@@ -108,6 +114,7 @@ let done: string[] = []; // quarter turns while solving the current item
 let assisted = false;
 let wantExecution = setting('quiz-on-cube', true); // with a cube: solve on the cube (default) or name the case
 let showNet = setting('quiz-net', false); // the scramble's 2D net, to check the cube by eye (kept across items)
+let neutral = setting('quiz-neutral', false); // color neutral: each item held a random way (another color on top)
 let selection: Selection = 'all'; // which cases (setup), see openQuiz
 let order = setting<Order>('quiz-order', 'uniform', (v) => ORDERS.includes(v));
 let picked = new Set<string>(); // "Elegir a mano"
@@ -189,7 +196,11 @@ function makeSpecs(): QuizSpec[] {
 
 function start() {
   mode = executionNext() ? 'execution' : 'recognition';
-  items = makeSpecs().map((spec) => ({ spec, c: findCase(spec.caseId)!, user: quizPattern(kpuzzle, spec, IDENTITY) }));
+  // the state stays the same in the grip (diagram, scramble, AUF, answers): only the colors and the cube's frame change
+  items = makeSpecs().map((spec) => ({
+    spec, c: findCase(spec.caseId)!, user: quizPattern(kpuzzle, spec, IDENTITY),
+    hold: neutral ? HOLDS[Math.floor(Math.random() * HOLDS.length)] : IDENTITY,
+  }));
   index = 0;
   attempts = [];
   logs = [];
@@ -232,7 +243,7 @@ function startItem() {
   prefetch(index + 1);
   if (mode === 'execution') {
     screen = 'scramble';
-    void guide.start(quizPattern(kpuzzle, items[index].spec, YELLOW_UP)); // cube frame: yellow is the cube's D
+    void guide.start(quizPattern(kpuzzle, items[index].spec, onCube(items[index]))); // cube frame: yellow is the cube's D
   } else {
     screen = 'ask';
     shownAt = performance.now();
@@ -276,9 +287,9 @@ function reviewNow(c: Case) {
 function solved() {
   const now = performance.now();
   const item = items[index];
-  const { issue, extra } = review(done, centerMoves(solution(item), YELLOW_UP), false, assisted);
-  const g = autoGrade(issue, now - shownAt, learningFor(item.c.id)?.solveMs ?? null);
-  gradeItem(item, g, issue ? undefined : { key: 'solveMs', ms: now - shownAt });
+  const { issue, extra } = review(done, centerMoves(solution(item), onCube(item)), false, assisted);
+  const g = autoGrade(issue, now - shownAt, item.hold !== IDENTITY ? null : learningFor(item.c.id)?.solveMs ?? null);
+  gradeItem(item, g, issue || item.hold !== IDENTITY ? undefined : { key: 'solveMs', ms: now - shownAt }); // regripping is in the clock when neutral
   feedback = { item, grade: g, issue, extra };
   attempts.push({
     caseId: item.c.id,
@@ -330,7 +341,7 @@ const listener: CubeListener = {
     } else if (screen === 'solve') {
       firstMoveAt ||= performance.now();
       done.push(move);
-      if (goalReached(items[index].c.stage, cube.pattern()!, llFaceOf(YELLOW_UP))) return solved();
+      if (goalReached(items[index].c.stage, cube.pattern()!, llFaceOf(onCube(items[index])))) return solved();
     } else return;
     render();
   },
@@ -340,7 +351,7 @@ const listener: CubeListener = {
     else if (screen === 'scramble') void guide.replan();
     else if (screen === 'solve' && reset) startItem(); // the item's state is gone: set it up again
     // the cube lost the last turn and the corrected state is at the goal (any other drift: the next turn is judged right)
-    else if (screen === 'solve' && goalReached(items[index].c.stage, cube.pattern()!, llFaceOf(YELLOW_UP))) solved();
+    else if (screen === 'solve' && goalReached(items[index].c.stage, cube.pattern()!, llFaceOf(onCube(items[index])))) solved();
   },
 };
 
@@ -401,10 +412,10 @@ function render() {
 function statusText(): string {
   const where = items.length ? t('quiz.progress', { n: index + 1, total: items.length }) : '';
   switch (screen) {
-    case 'ask': return `${where}. ${t('quiz.question')}`;
+    case 'ask': return `${where}. ${neutral ? `${holdText(items[index])} ` : ''}${t('quiz.question')}`;
     // the last item's grade once, while the next one is being planned; then the moves
-    case 'scramble': return [feedback && !guide.total ? feedbackText(feedback) : '', nextMove() ?? '', scrambleDesc()].join(' ').trim();
-    case 'solve': return `${where}. ${t('quiz.solveHint')}`; // not the clock: it would talk every frame
+    case 'scramble': return [feedback && !guide.total ? feedbackText(feedback) : '', nextMove() ?? '', scrambleDesc(), neutral && items[index] ? holdText(items[index], 'neutral.holdAfter') : ''].join(' ').trim();
+    case 'solve': return `${where}. ${t('quiz.solveHint')}${neutral ? ` ${holdText(items[index], 'neutral.holdSolve')}` : ''}`; // not the clock: it would talk every frame
     case 'reveal': return [...verdict(items[index]).map((node) => node.textContent), grade === null ? t('quiz.gradeAsk') : ''].join(' ').trim();
     case 'results': return t('quiz.results');
     default: return '';
@@ -476,6 +487,11 @@ function renderSetup(): Node[] {
   } else {
     out.push(p(t('quiz.modeRecognition')));
   }
+  const box = el('input', { type: 'checkbox', checked: neutral });
+  box.dataset.action = 'neutral';
+  box.onchange = () => save('quiz-neutral', (neutral = box.checked));
+  out.push(el('label', { className: 'quiz-mode' }, box,
+    el('span', {}, el('strong', { textContent: t('neutral.option') }), el('br'), el('small', { textContent: t('neutral.optionHint') }))));
   const last = lastResult(scopeId(scope));
   if (last) out.push(p(t('quiz.last', { result: summaryLine(last) }), 'hint'));
   const go = button(t('quiz.start'), start, 'primary');
@@ -529,10 +545,15 @@ function pickView(): HTMLElement {
 }
 
 /** The case as the academy's cards draw it. */
-function caseSVG(c: Case, size: number, user = caseState(kpuzzle, preferred(c).alg, IDENTITY)): string {
+function caseSVG(c: Case, size: number, user = caseState(kpuzzle, preferred(c).alg, IDENTITY), hold = IDENTITY): string {
   const draw = phaseOf(c)?.diagram === 'iso' ? isoSVG : topSVG;
-  return draw(patternToFacelets(user), maskFor(c.stage), { size });
+  return draw(patternToFacelets(user), maskFor(c.stage), { size, colors: heldColors(hold) });
 }
+
+const color = (face: string) => t(`paint.color.${face}` as MessageKey);
+/** Color neutral: which colors go up and in front for this item. */
+const holdText = (item: Item, key: MessageKey = 'neutral.hold') => t(key, { up: color(item.hold.U), front: color(item.hold.F) });
+const holdHint = (item: Item, key?: MessageKey): Node[] => (neutral ? [el('p', {}, el('strong', { textContent: holdText(item, key) }))] : []);
 
 const summaryLine = (r: SessionRecord) =>
   [percent(r.accuracy), timeOr(r.ms), ...(r.efficiency === null ? [] : [t('quiz.effShort', { pct: percent(r.efficiency) })])].join(' · ');
@@ -542,14 +563,14 @@ const progress = () => p(t('quiz.progress', { n: index + 1, total: items.length 
 function diagram(item: Item): HTMLElement {
   const draw = phaseOf(item.c)?.diagram === 'iso' ? isoSVG : topSVG;
   const box = el('div', { className: 'quiz-diagram' });
-  box.innerHTML = draw(patternToFacelets(item.user), maskFor(item.c.stage), { size: 180, title: t('quiz.question') });
+  box.innerHTML = draw(patternToFacelets(item.user), maskFor(item.c.stage), { size: 180, title: t('quiz.question'), colors: heldColors(item.hold) });
   return box;
 }
 
 /** Recognition question and its verdict. */
 function renderItem(): Node[] {
   const item = items[index];
-  const out: Node[] = [progress()];
+  const out: Node[] = [progress(), ...holdHint(item)];
   out.push(diagram(item));
   if (screen === 'ask') {
     out.push(...itemScramble(), el('p', {}, el('strong', { textContent: t('quiz.question') })),
@@ -600,8 +621,9 @@ function scrambleToggle(content: (Node | string)[]): Node[] {
   b.append(...content);
   if (!showNet) return [b];
   const net = el('figure', { className: 'quiz-net' });
-  net.innerHTML = netSVG(patternToFacelets(items[index].user), { size: 260, title: t('quiz.netTitle') });
-  net.append(el('figcaption', { className: 'hint', textContent: t('quiz.netCaption') }));
+  const item = items[index];
+  net.innerHTML = netSVG(patternToFacelets(item.user), { size: 260, title: t('quiz.netTitle'), colors: heldColors(item.hold) });
+  net.append(el('figcaption', { className: 'hint', textContent: neutral ? holdText(item, 'neutral.netCaption') : t('quiz.netCaption') }));
   return [b, net];
 }
 
@@ -620,7 +642,7 @@ function verdict(item: Item): Node[] {
 /** A wrong answer: the right case's diagram beside its name and algorithm. */
 function wrongCase(item: Item): HTMLElement {
   const pic = el('div', { ariaHidden: 'true' }); // the case's name is next to it
-  pic.innerHTML = caseSVG(item.c, 72);
+  pic.innerHTML = caseSVG(item.c, 72, undefined, item.hold);
   return el('div', { className: 'quiz-verdict-case' }, pic, el('div', {}, ...howTo(item)));
 }
 
@@ -644,7 +666,7 @@ function feedbackText(f: Feedback): string {
 
 function feedbackView(f: Feedback): HTMLElement {
   const pic = el('div', { className: 'quiz-feedback-diagram', ariaHidden: 'true' }); // the case's name is next to it
-  pic.innerHTML = caseSVG(f.item.c, 72, f.item.user);
+  pic.innerHTML = caseSVG(f.item.c, 72, f.item.user, f.item.hold);
   return el('div', { className: 'quiz-feedback' }, pic, el('div', {},
     p(feedbackText(f), f.grade === 'fail' ? 'bad' : 'ok'),
     ...howTo(f.item),
@@ -670,6 +692,7 @@ function renderScramble(): Node[] {
       el('li', { textContent: t('quiz.stepSolve') })),
     el('div', { className: 'next', textContent: nextMove() ?? '…' }),
     el('div', { textContent: scrambleDesc() }),
+    ...holdHint(items[index], 'neutral.holdAfter'),
     ...scrambleToggle([el('span', { className: 'tokens' }, ...(g?.steps ?? []).flatMap((m, i) => [el('span', { textContent: cube.label(m), className: i === 0 ? 'current' : '' }), ' ']))]),
     p(t('practice.scrambleHint'), 'hint'),
     el('div', { className: 'row' }, action('skip', t('quiz.skip'), skip)),
@@ -686,6 +709,7 @@ function renderSolve(): Node[] {
       el('li', { ariaCurrent: 'step', textContent: t('quiz.stepSolve') })),
     el('div', { id: 'quiz-clock', className: 'next', role: 'timer', textContent: formatTime(performance.now() - shownAt) }),
     p(t('quiz.solveHint'), 'hint'),
+    ...holdHint(item, 'neutral.holdSolve'),
     ...(assisted ? [el('p', {}, el('strong', { textContent: caseLabel(item.c) }), ' · ', algView(solution(item)))] : []),
     p(tp('quiz.turns', turnCount(done)), 'hint'), // as the review counts them
     el('div', { className: 'row' },
@@ -734,20 +758,20 @@ function renderResults(): Node[] {
 
 /** Solve mode: every item with an error, with its review. */
 const reviewed = () => logs
-  .map((l) => ({ l, r: review(l.done, centerMoves(solution(l.item), YELLOW_UP), l.skipped, l.assisted) }))
+  .map((l) => ({ l, r: review(l.done, centerMoves(solution(l.item), onCube(l.item)), l.skipped, l.assisted) }))
   .filter(({ r }) => r.issue);
 
 /** What was done on each item with an error, next to what the chosen algorithm does. */
 function reviewSection(issues: ReturnType<typeof reviewed>): Node[] {
   const title = el('h3', { textContent: t('quiz.review') });
   if (!issues.length) return [title, p(t('quiz.reviewClean'), 'ok')];
-  const turns = (moves: string[], mark: (i: number) => boolean, cls: string) => algView(moves.map(cube.label), { mark: (i) => (mark(i) ? cls : '') });
+  const turns = (item: Item, moves: string[], mark: (i: number) => boolean, cls: string) => algView(moves.map((m) => item.hold === IDENTITY ? cube.label(m) : unmapMove(m, onCube(item))), { mark: (i) => (mark(i) ? cls : '') });
   return [title, p(tp('quiz.reviewCount', issues.length, { total: logs.length }), 'hint'), ...issues.map(({ l, r }) =>
     el('div', { className: 'review' },
       el('p', {}, el('strong', { textContent: `${l.n}. ${caseLabel(l.item.c)}` }), ' · ',
         el('span', { className: 'bad', textContent: r.issue === 'extra' ? tp('quiz.reviewExtra', r.extra) : t(r.issue === 'skipped' ? 'quiz.reviewSkipped' : 'quiz.reviewAssisted') })),
       el('p', {}, `${t('quiz.reviewAlg')}: `, algView(solution(l.item))),
       // where it went off course: the user's turns from there in red, the expected turn at that point underlined
-      ...(l.skipped && !r.mine.length ? [] : [el('p', {}, `${t('quiz.reviewMine')}: `, turns(r.mine, (i) => i >= r.divergeAt, 'bad'))]),
-      el('p', {}, `${t('quiz.reviewExpected')}: `, turns(r.expected, (i) => !l.skipped && i === r.divergeAt && r.divergeAt < r.mine.length, 'current'))))];
+      ...(l.skipped && !r.mine.length ? [] : [el('p', {}, `${t('quiz.reviewMine')}: `, turns(l.item, r.mine, (i) => i >= r.divergeAt, 'bad'))]),
+      el('p', {}, `${t('quiz.reviewExpected')}: `, turns(l.item, r.expected, (i) => !l.skipped && i === r.divergeAt && r.divergeAt < r.mine.length, 'current'))))];
 }

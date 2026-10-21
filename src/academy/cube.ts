@@ -1,9 +1,9 @@
 // Cube states for the academy: where a case starts, whether a stage's goal is met, and random quiz states.
 // Everything works on KPatterns with fixed centers, so wide moves, slices and rotations are just face turns
 // (via notation.ts) and the last layer is simply "the pieces of the face whose center is yellow".
-import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
+import { KPattern, type KPuzzle } from 'cubing/kpuzzle';
 import { experimentalSolve3x3x3IgnoringCenters } from 'cubing/search';
-import { IDENTITY, centerMoves, htm, invertTokens, mapMove, merge, type Face, type Frame } from '../notation.ts';
+import { IDENTITY, centerMoves, expand, htm, invertTokens, mapMove, merge, type Face, type Frame } from '../notation.ts';
 import { METHODS, allCases } from './methods.ts';
 import type { AlgVariant, Case, Stage } from './types.ts';
 
@@ -36,8 +36,20 @@ const llTurns = (p: KPattern, llFace: Face) => AUFS.map((a) => (a ? p.applyMove(
 
 const OPPOSITE: Record<Face, Face> = { U: 'D', D: 'U', R: 'L', L: 'R', F: 'B', B: 'F' };
 
-/** Whether a case of `stage` is done; llFace = 'U' in the user frame, YELLOW_UP.U on the cube. */
+// The whole-cube turn that brings a side face to U: orientation 0 is about U/D stickers, so a goal on a side face
+// is checked on the state as seen from there.
+const TO_U: Partial<Record<Face, string>> = { F: 'x', B: "x'", R: "z'", L: 'z' };
+
+/** `p` seen after the whole-cube turn `rot`, centers home again (rot⁻¹ · p · rot). */
+function seenAfter(p: KPattern, rot: string): KPattern {
+  const r = p.kpuzzle.algToTransformation(rot);
+  return KPattern.fromTransformation(r.invert().applyTransformation(p.experimentalToTransformation()!).applyTransformation(r));
+}
+
+/** Whether a case of `stage` is done; llFace = 'U' in the user frame, YELLOW_UP.U on the cube, any face color neutral. */
 export function goalReached(stage: Stage, p: KPattern, llFace: Face): boolean {
+  const rot = TO_U[llFace];
+  if (rot) return goalReached(stage, seenAfter(p, rot), 'U');
   if (stage === 'first-layer') return pieces(p, OPPOSITE[llFace], true).every((x) => x.home && x.oriented);
   const f2l = pieces(p, llFace, false).every((x) => x.home && x.oriented);
   const ll = pieces(p, llFace, true);
@@ -181,3 +193,10 @@ export function referenceMoves(_c: Case, variant: AlgVariant, auf: Auf): number 
 
 /** Face whose center is the last layer's color when the cube is held in `frame`. */
 export const llFaceOf = (frame: Frame): Face => frame.U;
+
+/** The 24 ways to hold the cube (which color up × a y turn), as frames of the user frame: place -> color (user face). */
+export const HOLDS: Frame[] = ['', 'x', 'x2', "x'", 'z', "z'"].flatMap((r) => ['', 'y', 'y2', "y'"].map((y) => expand(`${r} ${y}`, IDENTITY).frame));
+
+/** A cube in `frame` (user face -> center) held as `hold`: place -> center, e.g. holdIn(hold, YELLOW_UP) on the GAN cube. */
+export const holdIn = (hold: Frame, frame: Frame): Frame =>
+  Object.fromEntries((Object.keys(hold) as Face[]).map((f) => [f, frame[hold[f]]])) as Record<Face, Face>;

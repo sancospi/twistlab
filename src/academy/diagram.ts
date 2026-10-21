@@ -7,11 +7,15 @@ export interface DiagramOpts {
   size?: number; // rendered width in px
   title?: string; // accessible name; callers pass an already translated string
   arrows?: boolean; // top view: PLL arrows (not in recognition questions, where they'd give the answer away)
+  colors?: Record<string, string>; // sticker color per face letter, default COLORS (heldColors: the cube held another way)
 }
 
 export const COLORS: Record<string, string> = {
   U: '#ffd60a', D: '#f5f5f5', F: '#22c55e', B: '#2563eb', R: '#f97316', L: '#ef4444',
 };
+/** Sticker colors of a cube held as `hold` (place -> user face, cube.ts HOLDS): what each place really shows. */
+export const heldColors = (hold: Record<string, string>): Record<string, string> =>
+  Object.fromEntries(Object.entries(hold).map(([place, face]) => [place, COLORS[face]]));
 const GREY = '#9ca3af';
 const PLASTIC = '#111';
 const U_CENTER = 4;
@@ -77,7 +81,7 @@ export function isoSVG(facelets: string, mask: Mask, opts: DiagramOpts = {}): st
     for (let k = 0; k < 9; k++) {
       const i = Math.floor(k / 3), j = k % 3, idx = first + k;
       const pts = [at(o, c, r, i, j), at(o, c, r, i, j + 1), at(o, c, r, i + 1, j + 1), at(o, c, r, i + 1, j)];
-      const fill = grey.has(idx) ? GREY : COLORS[facelets[idx]];
+      const fill = grey.has(idx) ? GREY : (opts.colors ?? COLORS)[facelets[idx]];
       body += `<polygon data-facelet="${idx}" points="${pts.map(project).join(' ')}" fill="${fill}"/>`;
     }
   }
@@ -97,7 +101,7 @@ const TOP_BARS: [number, number, number, boolean][] = [
 
 export function topSVG(facelets: string, mask: Mask, opts: DiagramOpts = {}): string {
   const grey = maskedSet(facelets, mask);
-  const fill = (idx: number) => (grey.has(idx) ? GREY : COLORS[facelets[idx]]);
+  const fill = (idx: number) => (grey.has(idx) ? GREY : (opts.colors ?? COLORS)[facelets[idx]]);
   const s = 10, pad = 0.12 * s, inset = 0.08 * s;
   let body = `<rect x="${-pad}" y="${-pad}" width="${3 * s + 2 * pad}" height="${3 * s + 2 * pad}" rx="2" fill="${PLASTIC}"/>`;
   for (let k = 0; k < 9; k++) {
@@ -166,7 +170,7 @@ export function netSVG(facelets: string, opts: DiagramOpts = {}): string {
     body += `<rect x="${ox}" y="${oy}" width="${3 * s}" height="${3 * s}" rx="1.5" fill="${PLASTIC}"/>`;
     for (let k = 0; k < 9; k++) {
       const idx = first + k;
-      body += `<rect data-facelet="${idx}" x="${r2(ox + (k % 3) * s + inset)}" y="${r2(oy + Math.floor(k / 3) * s + inset)}" width="${s - 2 * inset}" height="${s - 2 * inset}" rx="1" fill="${COLORS[facelets[idx]]}"/>`;
+      body += `<rect data-facelet="${idx}" x="${r2(ox + (k % 3) * s + inset)}" y="${r2(oy + Math.floor(k / 3) * s + inset)}" width="${s - 2 * inset}" height="${s - 2 * inset}" rx="1" fill="${(opts.colors ?? COLORS)[facelets[idx]]}"/>`;
     }
   }
   return svg([0, 0, 4 * 3 * s + 3 * gap, 3 * 3 * s + 2 * gap], opts, body);
