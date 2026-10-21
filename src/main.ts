@@ -1,6 +1,5 @@
 import { TwistyPlayer } from 'cubing/twisty';
 import { experimentalSolve3x3x3IgnoringCenters, random333Pattern } from 'cubing/search';
-import { randomScrambleForEvent } from 'cubing/scramble';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern } from 'cubing/kpuzzle';
 import { Euler, Quaternion, Vector3, type Scene } from 'three';
@@ -8,8 +7,15 @@ import { connectGanCube, type GanCubeConnection, type GanCubeEvent, type MacAddr
 import { faceletsToPattern, patternToFacelets, SOLVED_FACELETS } from './facelets.ts';
 // Emits cubing.js's solver worker as a self-contained bundle where cubing.js looks for it (see vite.config.ts)
 import searchWorkerUrl from '../node_modules/cubing/dist/lib/cubing/chunks/search-worker-entry.js?worker&url';
-import { describe, follow, nextStep, relativePattern, toView, type Guide } from './guide.ts';
+import { describe, nextStep, PathGuide, toView } from './guide.ts';
+import { trustFirstMove } from './gan-fix.ts';
 import { average, formatAverage, formatResult, formatTime, HOLD_MS, INSPECTION_MS, inspectionPenalty, recordTime, resultValue, type Penalty, type Result } from './timer.ts';
+import { t, type MessageKey } from './i18n.ts';
+import { algView } from './notation-view.ts';
+import { cube as academyCube } from './academy/link.ts';
+import { showAcademy } from './academy/view.ts';
+import { startRouter, type Route } from './router.ts';
+// (static markup is already translated: src/boot.ts does it before loading this module)
 
 const $ = (id: string) => document.getElementById(id)!;
 
@@ -64,8 +70,9 @@ const TILT = new Quaternion().setFromEuler(new Euler(30 * deg, -30 * deg, 0)); /
 const DEFAULT_VIEW = new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), 180 * deg); // z2: yellow up, green front, orange right
 const WCA_VIEW = new Quaternion(); // competition orientation: white up, green front
 
-// Modules: 'solve' = competition attempt (WCA notation, never translated); 'guide' = guided tools in the viewer's frame
-type Mod = 'solve' | 'guide';
+// Modules: 'solve' = competition attempt (WCA notation, never translated); 'cube' = the cube's options and guided tools, in the viewer's frame;
+// 'academy' = learn a method's algorithms (same frame as the guide)
+type Mod = 'solve' | 'cube' | 'academy';
 let mod: Mod = 'solve';
 const homeView = () => (mod === 'solve' ? WCA_VIEW : DEFAULT_VIEW);
 const label = (m: string) => (mod === 'solve' ? m : toView(m, view));
@@ -109,6 +116,8 @@ function turnView(dir: string) {
 }
 document.querySelectorAll<HTMLButtonElement>('[data-turn]').forEach((b) => (b.onclick = () => turnView(b.dataset.turn!)));
 addEventListener('keydown', (e) => {
+  // arrows belong to an open dialog or to the focused control (radio groups, selects…)
+  if (document.querySelector('dialog[open]') || (e.target as Element).closest?.('input, select, textarea')) return;
   const dir = e.key.startsWith('Arrow') && e.key.slice(5).toLowerCase();
   if (dir && !e.altKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); turnView(dir); }
 });
@@ -121,69 +130,48 @@ const isSolved = (p: KPattern | null) => !!p?.experimentalIsSolved({ ignorePuzzl
 
 function render() {
   const solved = isSolved(pattern);
-  if (guide && pattern && (goal ? pattern.isIdentical(goal) : solved)) {
-    mixed = !!goal; // reached the guide's target
-    guide = null;
+  if (guide.reached()) {
+    mixed = !!guide.goal; // reached the guide's target
+    guide.stop();
     if (mixed && mod === 'solve' && phase === 'scramble') phase = 'ready';
   }
-  $('status').textContent = solved ? '¡Resuelto!' : mixed ? 'Mezclado: ¡a resolver!' : conn ? 'Conectado' : 'Sin cubo';
+  $('status').textContent = t(solved ? 'cube.solved' : mixed ? 'cube.mixed' : conn ? 'cube.connected' : 'cube.noCube');
   $('status').classList.toggle('solved', solved || mixed);
   $('moves').textContent = moves.slice(-40).map(label).join(' ');
   renderGuide();
   renderTimer();
 }
 
-// --- Guide: walk the cube to a target state (solved, or a random scramble), step by step.
-// Plans from the current state, advances on each matching move, re-plans when off plan.
-let guide: Guide | null = null;
-let goal: KPattern | null = null; // null = solved
-let guideTotal = 0;
-let planId = 0;
+// --- Guide: walk the cube to a target state (solved, or a random scramble), step by step (see PathGuide).
+const guide = new PathGuide(() => pattern, () => render());
 let mixed = false;
 
-async function planGuide() {
-  const p = pattern;
-  const id = ++planId;
-  if (!guide || !p) return;
-  const steps = (await experimentalSolve3x3x3IgnoringCenters(goal ? relativePattern(p, goal) : p)).toString().split(' ').filter(Boolean);
-  if (!guide || pattern !== p || id !== planId) return; // cancelled, or superseded by a newer plan / move
-  guide = { steps, half: null };
-  guideTotal = steps.length;
-  render(); // an empty plan means the target is already reached
-}
-
-async function startGuide(target: () => Promise<KPattern | null>) {
-  guide = { steps: [], half: null };
+function startGuide(target: KPattern | null | Promise<KPattern | null>) {
   mixed = false;
-  renderGuide();
-  goal = await target();
-  await planGuide();
+  return guide.start(target);
 }
 
 function renderGuide() {
-  $('guide').hidden = !guide;
-  $('guide-actions').hidden = !!guide;
+  const g = guide.guide;
+  $('guide').hidden = !g;
+  $('guide-actions').hidden = !!g;
   btn('guide-start').disabled = !conn || !pattern || isSolved(pattern);
   btn('scramble-start').disabled = !conn || !pattern;
-  if (!guide) return;
-  const next = nextStep(guide);
+  if (!g) return;
+  const next = nextStep(g);
   const shown = next && label(next);
-  $('guide-title').textContent = goal ? 'Mezcla' : 'Resolver';
-  $('guide-progress').textContent = next ? `Paso ${guideTotal - guide.steps.length + 1} de ${guideTotal}` : '';
+  $('guide-title').textContent = t(guide.goal ? 'guide.titleScramble' : 'guide.titleSolve');
+  $('guide-progress').textContent = next ? t('guide.progress', { n: guide.total - g.steps.length + 1, total: guide.total }) : '';
   $('guide-next').textContent = shown ?? '…';
-  $('guide-desc').textContent = shown ? describe(shown) + (guide.half ? ' (segunda mitad)' : '') : 'Calculando los pasos…';
-  $('guide-steps').replaceChildren(...guide.steps.map((m, i) => {
-    const el = document.createElement('span');
-    el.textContent = label(m);
-    el.className = i === 0 ? 'current' : '';
-    return el;
-  }));
+  const desc = shown && describe(shown);
+  $('guide-desc').textContent = !desc ? t('guide.planning') : g.half ? t('guide.secondHalf', { desc }) : desc;
+  $('guide-steps').replaceChildren(algView(g.steps.map(label), { frame: mod === 'solve' ? 'white-up' : 'yellow-up', mark: (i) => (i === 0 ? 'current' : '') }));
 }
 
-$('guide-start').onclick = () => void startGuide(async () => null);
-$('scramble-start').onclick = () => void startGuide(random333Pattern); // random state, like WCA scrambles
+$('guide-start').onclick = () => void startGuide(null);
+$('scramble-start').onclick = () => void startGuide(random333Pattern()); // random state, like WCA scrambles
 $('guide-stop').onclick = () => {
-  guide = null;
+  guide.stop();
   if (mod === 'solve' && phase === 'scramble') phase = 'ready'; // scrambling by hand instead
   render();
 };
@@ -204,7 +192,8 @@ async function onFacelets(facelets: string) {
   if (firstSync && mod === 'solve' && phase === 'ready') void newScramble(); // now it can be guided on the cube
   if (conn) saveMac(conn.deviceName, conn.deviceMAC); // valid state decoded => the MAC is right
   render();
-  void planGuide(); // state was corrected: the old plan no longer applies
+  void guide.replan(); // state was corrected: the old plan no longer applies
+  if (mod === 'academy') academyCube.listener?.sync();
 }
 
 function onMove(move: string) {
@@ -214,14 +203,14 @@ function onMove(move: string) {
   player.experimentalAddMove(move, { cancel: false });
   pattern = pattern?.applyMove(move) ?? null;
   moves.push(move);
-  if (guide) {
-    const advanced = follow(guide, move);
-    guide = advanced ?? { steps: [], half: null }; // off plan: drop the stale steps so they can't be followed
-    if (!advanced) void planGuide();
-  }
+  guide.onMove(move);
+  if (mod === 'academy') academyCube.listener?.move(move);
   if (mod === 'solve' && phase === 'solving' && isSolved(pattern)) stopSolve();
   render();
 }
+
+academyCube.pattern = () => (conn ? pattern : null); // only a connected cube can be practised on
+academyCube.label = label;
 
 // --- Connection ---
 let conn: GanCubeConnection | null = null;
@@ -240,12 +229,12 @@ const macProvider: MacAddressProvider = async (device, isFallback) => {
   // GAN names end with the MAC's last two bytes, e.g. GANic4_8CA7 -> ..:8C:A7
   const tail = device.name?.match(/_([0-9A-F]{2})([0-9A-F]{2})$/i);
   const input = prompt(
-    `Escribe la MAC de ${device.name} (solo se pide una vez).` + (tail ? `\nTermina en ${tail[1]}:${tail[2]}.` : ''),
+    t('cube.macPrompt', { name: device.name ?? '' }) + (tail ? '\n' + t('cube.macTail', { tail: `${tail[1]}:${tail[2]}` }) : ''),
     tail ? `XX:XX:XX:XX:${tail[1]}:${tail[2]}`.toUpperCase() : '',
   );
   if (input === null) return null;
   const mac = input.trim().toUpperCase().replace(/-/g, ':');
-  if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(mac)) throw new Error('MAC inválida, usa el formato AA:BB:CC:DD:EE:FF');
+  if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(mac)) throw new Error(t('cube.macInvalid'));
   return mac;
 };
 
@@ -270,14 +259,15 @@ function disconnected() {
   conn = null;
   pattern = null;
   moves = [];
-  guide = null;
+  guide.stop();
   mixed = false;
   liveMoveSeen = false;
+  academyCube.listener?.sync(); // an open practice falls back to its static view
   player.alg = '';
-  $('status').textContent = 'Desconectado';
+  $('status').textContent = t('cube.disconnected');
   $('status').classList.remove('solved');
   $('moves').textContent = '';
-  $('connect').textContent = 'Conectar cubo GAN';
+  $('connect').textContent = t('cube.connect');
   btn('reset-gyro').disabled = btn('reset-state').disabled = true;
   if (mod === 'solve' && phase === 'scramble') void newScramble();
 }
@@ -285,17 +275,18 @@ function disconnected() {
 $('connect').onclick = async () => {
   if (conn) return conn.disconnect();
   if (!navigator.bluetooth) {
-    $('status').textContent = 'Este navegador no soporta Web Bluetooth (usa Chrome/Edge en escritorio o Android).';
+    $('status').textContent = t('cube.noBluetooth');
     return;
   }
   try {
-    $('status').textContent = 'Conectando…';
+    $('status').textContent = t('cube.connecting');
     const c = (conn = await connectGanCube(macProvider));
+    trustFirstMove((c as unknown as { driver: unknown }).driver);
     c.events$.subscribe(handle);
     $('device').textContent = `${c.deviceName} (${c.deviceMAC})`;
-    $('connect').textContent = 'Desconectar';
+    $('connect').textContent = t('cube.disconnect');
     btn('reset-gyro').disabled = btn('reset-state').disabled = false;
-    $('status').textContent = 'Conectado';
+    $('status').textContent = t('cube.connected');
     for (const type of ['REQUEST_HARDWARE', 'REQUEST_FACELETS', 'REQUEST_BATTERY'] as const) {
       await c.sendCubeCommand({ type });
     }
@@ -304,11 +295,11 @@ $('connect').onclick = async () => {
       if (conn !== c || pattern) return;
       forgetMac(c.deviceName);
       await c.disconnect();
-      $('status').textContent = 'No llegan datos válidos: la MAC es incorrecta. Conecta de nuevo y revísala.';
+      $('status').textContent = t('cube.badMac');
     }, 5000);
   } catch (err) {
     conn = null;
-    $('status').textContent = `Error: ${(err as Error).message}`;
+    $('status').textContent = t('cube.error', { message: (err as Error).message });
   }
 };
 
@@ -348,19 +339,19 @@ let scrambleId = 0;
 
 async function newScramble() {
   const id = ++scrambleId;
-  guide = null;
+  guide.stop();
   phase = conn && pattern ? 'scramble' : 'ready'; // without a cube it's a plain timer: ready right away
-  $('scramble-text').textContent = 'Generando mezcla…';
+  $('scramble-text').textContent = t('solve.generating');
   net.experimentalSetupAlg = '';
   render();
   // Like WCA scrambles: a uniformly random state, written as a sequence from solved
   const target = await random333Pattern();
   const scramble = (await experimentalSolve3x3x3IgnoringCenters(target)).invert().toString().replace(/2'/g, '2'); // half turns have no direction in WCA notation
   if (id !== scrambleId) return; // superseded by a newer scramble
-  $('scramble-text').textContent = scramble;
+  $('scramble-text').replaceChildren(algView(scramble, { frame: 'white-up' })); // WCA scrambles: white up, green front
   net.experimentalSetupAlg = scramble;
   if (!conn) player.alg = scramble; // no cube: the 3D model shows the scrambled state too
-  else if (phase === 'scramble') await startGuide(async () => target); // walk the real cube there from wherever it is
+  else if (phase === 'scramble') await startGuide(target); // walk the real cube there from wherever it is
   render();
 }
 
@@ -409,11 +400,11 @@ function release() {
 
 function stageHint() {
   if (phase === 'inspect') {
-    if (holdStart) return armed() ? 'Suelta para empezar' : 'Mantén…';
-    return `Inspección · mantén Espacio (o el dedo) hasta que esté verde y suelta${conn ? ', o gira el cubo' : ''} · Esc cancela`;
+    if (holdStart) return t(armed() ? 'timer.release' : 'timer.hold');
+    return t(conn ? 'timer.inspectCube' : 'timer.inspect');
   }
-  if (phase === 'solving') return conn ? 'Se detiene al resolver el cubo · Espacio para detener' : 'Espacio para detener';
-  return 'Penalización del juez si aplica · Espacio: siguiente mezcla';
+  if (phase === 'solving') return t(conn ? 'timer.solvingCube' : 'timer.solving');
+  return t('timer.done');
 }
 
 function renderTimer() {
@@ -421,9 +412,9 @@ function renderTimer() {
   $('stage').hidden = !staged;
   $('stage-hint').textContent = stageHint();
   $('penalties').hidden = phase !== 'done';
-  $('timer-hint').textContent = phase === 'scramble' ? 'Aplica la mezcla con blanco arriba y verde al frente.' : 'Espacio: empezar la inspección';
+  $('timer-hint').textContent = t(phase === 'scramble' ? 'solve.applyScramble' : 'solve.spaceToInspect');
   btn('start').disabled = phase !== 'ready';
-  $('scramble-text').hidden = !!guide; // with a cube the guide shows the moves to do
+  $('scramble-text').hidden = !!guide.guide; // with a cube the guide shows the moves to do
   if (phase === 'solving') $('big').className = 'big';
   if (phase === 'done') {
     $('big').textContent = formatResult(results[0]);
@@ -432,13 +423,13 @@ function renderTimer() {
   }
   const best = results.reduce<Result | null>((b, r) => (!b || resultValue(r) < resultValue(b) ? r : b), null);
   $('stats').textContent = best
-    ? `Mejor: ${formatResult(best)} · ao5: ${formatAverage(average(results, 5))} · ao12: ${formatAverage(average(results, 12))}`
+    ? t('timer.stats', { best: formatResult(best), ao5: formatAverage(average(results, 5)), ao12: formatAverage(average(results, 12)) })
     : '';
   saveResults(); // every change to `results` is followed by a render
   $('reset-results').hidden = !results.length;
   $('results').replaceChildren(...results.map((r, i) => {
-    const del = Object.assign(document.createElement('button'), { className: 'del', textContent: '×', title: 'Eliminar' });
-    del.setAttribute('aria-label', `Eliminar ${formatResult(r)}`);
+    const del = Object.assign(document.createElement('button'), { className: 'del', textContent: '×', title: t('results.delete') });
+    del.setAttribute('aria-label', t('results.deleteOne', { time: formatResult(r) }));
     del.onclick = () => {
       results.splice(i, 1);
       renderTimer();
@@ -478,10 +469,10 @@ $('delete-last').onclick = () => {
 
 // Clearing every time takes a second press within 3 s
 let resetTimer = 0;
-const resetLabel = () => ($('reset-results').textContent = 'Borrar todos');
+const resetLabel = () => ($('reset-results').textContent = t('results.deleteAll'));
 $('reset-results').onclick = () => {
   if (!resetTimer) {
-    $('reset-results').textContent = '¿Seguro? Pulsa otra vez';
+    $('reset-results').textContent = t('results.confirmReset');
     resetTimer = setTimeout(() => ((resetTimer = 0), resetLabel()), 3000);
     return;
   }
@@ -521,52 +512,49 @@ addEventListener('keyup', (e) => {
 });
 
 // --- Menu ---
+// Everything below the bar is placed from its real height (it wraps on medium widths, shrinks on phones).
+new ResizeObserver(([entry]) =>
+  document.documentElement.style.setProperty('--header-h', `${(entry.target as HTMLElement).offsetHeight}px`),
+).observe(document.querySelector('.app-header')!);
+
 function setModule(m: Mod) {
+  if (m === mod && document.body.dataset.module === m) return; // e.g. between Academia pages: nothing to reset
   mod = m;
-  guide = null;
+  guide.stop();
   mixed = false;
   view.copy(homeView());
   updateTarget();
-  document.querySelectorAll<HTMLButtonElement>('[data-mod]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mod === m)));
+  document.querySelectorAll<HTMLElement>('[data-mod]').forEach((a) => (a.dataset.mod === m ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
+  document.body.dataset.module = m; // the academy widens the panel
+  $('header-module').textContent = t(`menu.${m}` as MessageKey); // shown next to ☰ on phones
   $('mod-solve').hidden = m !== 'solve';
-  $('mod-guide').hidden = m !== 'guide';
+  $('mod-cube').hidden = m !== 'cube';
+  $('mod-academy').hidden = m !== 'academy';
   if (!conn) player.alg = ''; // the solve module's text scramble only applies there
   render();
   if (m === 'solve') void newScramble();
 }
-document.querySelectorAll<HTMLButtonElement>('[data-mod]').forEach((b) => (b.onclick = () => setModule(b.dataset.mod as Mod)));
-setModule('solve');
-
-// --- Demo: fake the cube's GYRO/MOVE events so the app can be tried without hardware ---
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-$('demo').onclick = async () => {
-  btn('demo').disabled = btn('connect').disabled = true;
-  player.alg = '';
-  pattern = (await cube3x3x3.kpuzzle()).defaultPattern();
-  moves = [];
-  basis = null;
-  let running = true;
-  const t0 = performance.now();
-  const wobble = () => {
-    if (!running) return;
-    const a = 0.5 * Math.sin((performance.now() - t0) / 1500); // spin around the white (GAN +Z) axis
-    onGyro({ x: 0, y: 0, z: Math.sin(a / 2), w: Math.cos(a / 2) });
-    requestAnimationFrame(wobble);
-  };
-  wobble();
-
-  const scramble = (await randomScrambleForEvent('333')).toString().split(' ');
-  for (const m of scramble) { onMove(m); await sleep(150); }
-  await sleep(1000);
-  const solution = (await experimentalSolve3x3x3IgnoringCenters(pattern!)).toString().split(' ');
-  for (const m of solution) { onMove(m); await sleep(400); }
-
-  running = false;
-  gyro.identity();
-  updateTarget();
-  btn('demo').disabled = btn('connect').disabled = false;
-};
+// Each screen has its URL (router.ts): the menu and the Academia tiles are plain links.
+const pageTitle = (page: string) => t('app.pageTitle', { page, app: t('app.title') });
+let routeId = 0;
+async function onRoute(r: Route) {
+  const id = ++routeId;
+  document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => d.close()); // back/forward leaves any modal
+  const menu = $('header-menu');
+  if (menu.matches(':popover-open')) menu.hidePopover(); // phones: following a link closes the menu
+  setModule(r.mod);
+  if (r.mod !== 'academy') {
+    document.title = r.mod === 'solve' ? t('app.title') : pageTitle(t('menu.cube'));
+    return;
+  }
+  const title = await showAcademy($('mod-academy'), r.page);
+  if (id !== routeId) return; // a newer route won while the puzzle was loading
+  document.title = pageTitle(title);
+  const target = location.hash && document.getElementById(location.hash.slice(1));
+  if (target) target.scrollIntoView();
+  else document.querySelector('.panel')!.scrollTop = 0; // a new page starts at the top
+}
+startRouter((r) => void onRoute(r));
 
 $('reset-state').onclick = async () => {
   await conn?.sendCubeCommand({ type: 'REQUEST_RESET' });
@@ -574,4 +562,6 @@ $('reset-state').onclick = async () => {
   pattern = (await cube3x3x3.kpuzzle()).defaultPattern();
   moves = [];
   render();
+  void guide.replan(); // the state changed: the old plan no longer applies
+  academyCube.listener?.sync(true);
 };

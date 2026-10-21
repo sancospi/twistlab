@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cube</title>
+  <title data-i18n="app.title">Cube</title>
   <style>
-    :root { color-scheme: dark; --bg: #0b0d12; --fg: #e6e8ee; --muted: #8a90a0; --accent: #4ade80; --panel: #151924cc; }
+    :root { color-scheme: dark; --bg: #0b0d12; --fg: #e6e8ee; --muted: #8a90a0; --accent: #4ade80; --panel: #151924cc; --header-h: 56px; /* updated live by main.ts */ }
     * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
     body { margin: 0; height: 100dvh; background: radial-gradient(circle at 50% 40%, #1b2030, var(--bg)); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; overflow: hidden; }
-    #cube { position: fixed; inset: 0; }
+    #cube { position: fixed; inset: var(--header-h) 0 0 0; }
     #cube twisty-player { width: 100%; height: 100%; }
-    .panel { position: fixed; top: 16px; left: 16px; right: 16px; max-width: 400px; max-height: calc(100dvh - 32px); overflow-y: auto; padding: 16px; border-radius: 12px; background: var(--panel); backdrop-filter: blur(8px); display: grid; gap: 10px; }
+    .panel { position: fixed; top: calc(var(--header-h) + 16px); left: 16px; right: 16px; max-width: 400px; max-height: calc(100dvh - var(--header-h) - 32px); overflow-y: auto; padding: 16px; border-radius: 12px; background: var(--panel); backdrop-filter: blur(8px); display: grid; gap: 10px; }
     h1 { margin: 0; font-size: 18px; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; }
     button { font: inherit; padding: 8px 12px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); cursor: pointer; }
@@ -25,8 +26,9 @@
     .guide-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); }
     #guide-actions[hidden], section[hidden] { display: none; }
     .menu { display: flex; gap: 4px; padding: 4px; border-radius: 10px; background: #0b0d12aa; }
-    .menu button { flex: 1; background: none; color: var(--muted); }
-    .menu button[aria-pressed="true"] { background: #2a3142; color: var(--fg); font-weight: 600; }
+    .menu a { flex: 1; padding: 8px 12px; border-radius: 8px; text-align: center; text-decoration: none; color: var(--muted); }
+    .menu a:hover, .menu a:focus-visible { color: var(--fg); }
+    .menu a[aria-current="page"] { background: #2a3142; color: var(--fg); font-weight: 600; }
     #mod-solve { display: grid; gap: 8px; }
     .scramble-box { display: grid; gap: 8px; }
     .scramble-box[hidden], .scramble[hidden] { display: none; }
@@ -59,75 +61,351 @@
     .view button { padding: 0; font-size: 18px; background: var(--panel); backdrop-filter: blur(8px); }
     .view [data-turn="up"] { grid-area: 1 / 2; } .view [data-turn="left"] { grid-area: 2 / 1; } .view [data-turn="reset"] { grid-area: 2 / 2; font-size: 15px; }
     .view [data-turn="right"] { grid-area: 2 / 3; } .view [data-turn="down"] { grid-area: 3 / 2; }
+    /* Academia: the panel widens to fit the case cards */
+    /* room below the last cards for the view's arrow pad, which paints over the panel */
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    select { font: inherit; padding: 6px 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); }
+    summary { cursor: pointer; font-weight: 600; }
+    /* Guide text (rich-text.ts): short paragraphs, lists, subheadings; moves inline are tappable notation */
+    .prose { margin: 6px 0; line-height: 1.55; }
+    .prose p { margin: 0 0 .6em; }
+    .prose p:last-child, .prose ul:last-child, .prose ol:last-child { margin-bottom: 0; }
+    .prose ul, .prose ol { margin: 0 0 .7em; padding-left: 1.3em; display: grid; gap: .3em; }
+    .prose h4 { margin: .9em 0 .35em; font-size: 13px; color: var(--fg); letter-spacing: .02em; }
+    .prose strong { color: var(--fg); }
+    .prose .alg { white-space: nowrap; }
+    /* Permanent top bar: title, modules, cube connection and status; collapses into ☰ on phones */
+    .app-header { position: fixed; top: 0; left: 0; right: 0; z-index: 6; display: flex; align-items: center; gap: 8px 20px; padding: 10px 24px;
+      background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid #2a3142; }
+    .app-header h1 { white-space: nowrap; }
+    .header-module { display: none; color: var(--muted); }
+    .menu-toggle { display: none; margin-left: auto; font-size: 20px; padding: 4px 12px; }
+    .header-menu { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; flex: 1;
+      position: static; inset: auto; margin: 0; padding: 0; border: 0; background: none; color: inherit; overflow: visible; width: auto; height: auto; }
+    .header-menu .menu { flex: 0 1 280px; }
+    .header-menu .menu-cube { flex: none; margin-left: auto; } /* the cube's screen sits on the right, by its status */
+    .header-status { display: flex; flex-wrap: wrap; gap: 0 6px; margin: 0; }
+    .header-status dt { color: var(--muted); }
+    .header-status dd { margin: 0 10px 0 0; }
+    .cube-screen { display: grid; gap: 12px; }
+    .cube-screen h2 { margin: 0; font-size: 18px; }
+    .cube-block { display: grid; gap: 8px; padding: 12px; border-radius: 10px; background: #0b0d12aa; }
+    .cube-block h3 { margin: 0; font-size: 14px; }
+    .cube-block dl, .cube-block .hint { margin: 0; }
+    @media (max-width: 759px) {
+      .app-header { padding: 8px 16px; }
+      .header-module, .menu-toggle { display: inline-block; }
+      .menu-toggle { margin-left: 0; order: 3; } /* ☰ at the right edge, after the status */
+      .header-status { margin-left: auto; }
+      body[data-module="cube"] .view { display: none; } /* the panel covers the 3D cube here: its arrows would only cover text */
+      .header-status dt, .header-status dd:not(#status) { display: none; } /* phones: just the status */
+      .header-menu .menu-cube { margin-left: 0; }
+      .header-menu:not(:popover-open) { display: none; }
+      .header-menu:popover-open { position: fixed; inset: var(--header-h) 0 auto 0; display: grid; gap: 12px; padding: 16px;
+        background: #151924; border-bottom: 1px solid #2a3142; box-shadow: 0 12px 24px #0008; }
+      .header-menu .menu { flex: none; }
+    }
+    /* Academia is its own full page under the bar: no 3D cube behind it, the width for the content */
+    body[data-module="academy"] #cube, body[data-module="academy"] .view, body[data-module="academy"] #moves { display: none; }
+    body[data-module="academy"] .panel { inset: var(--header-h) 0 0 0; max-width: none; max-height: none; border-radius: 0; padding: 0; gap: 0; background: var(--bg); backdrop-filter: none; align-content: start; }
+    #mod-academy { padding: 20px 24px; }
+    .academy-layout { display: grid; gap: 24px; }
+    /* Phones: no side navigation, so the phase pills stick under the bar, in one row that scrolls sideways */
+    .academy-nav { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none;
+      margin: 0 -24px; padding: 8px 24px; background: var(--bg); border-bottom: 1px solid #2a3142; }
+    .academy-nav a { flex: none; color: var(--fg); text-decoration: none; padding: 4px 10px; border-radius: 8px; background: #2a3142; font-size: 13px; white-space: nowrap; }
+    .academy-nav a:hover, .academy-nav a:focus-visible { background: #3a4358; }
+    .academy-nav a[aria-current="location"] { background: var(--accent); color: #062b14; font-weight: 600; }
+    .academy-nav ul { display: none; }
+    .academy-phase, .academy-group { scroll-margin-top: 64px; } /* clear of the sticky pills */
+    .academy-body .prose, .academy-body .hint { max-width: 80ch; }
+    .academy-groups { display: grid; gap: 22px; }
+    /* wide screens: blocks side by side, so a 4-case block doesn't leave the rest of the row empty */
+    .academy-group { align-content: start; padding: 12px; border-radius: 10px; background: #11141b; }
+    @media (min-width: 960px) {
+      .academy-layout { grid-template-columns: 230px minmax(0, 1fr); gap: 36px; }
+      .academy-nav { top: 16px; align-self: start; flex-direction: column; gap: 2px; margin: 0; padding: 0; border: 0; background: none;
+        max-height: calc(100dvh - var(--header-h) - 32px); overflow-x: visible; overflow-y: auto; }
+      .academy-nav a { background: none; padding: 5px 8px; white-space: normal; }
+      .academy-nav a[aria-current="location"] { background: #2a3142; color: var(--fg); }
+      .academy-phase, .academy-group { scroll-margin-top: 16px; }
+      .academy-nav > a { font-weight: 700; margin-top: 8px; }
+      .academy-nav ul { display: grid; list-style: none; margin: 0; padding: 0 0 0 8px; }
+      .academy-nav li a { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+      .academy-groups { grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 16px; }
+      .cards { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+      .card svg { width: 92px; }
+    }
+    /* Notation: every move is tappable and opens a tooltip with the move animated and explained */
+    .alg { font-family: ui-monospace, monospace; }
+    .alg .move { font: inherit; color: inherit; background: none; padding: 0 .15em; border-radius: 4px; cursor: help; text-decoration: underline dotted #ffffff40; text-underline-offset: .2em; }
+    .alg .move:hover, .alg .move:focus-visible, .alg .move[aria-expanded="true"] { background: #2a3142; text-decoration-color: currentColor; }
+    .alg .move.done { opacity: .5; }
+    .alg .move.current { color: var(--fg); font-weight: 700; text-decoration: underline; }
+    .alg .move.bad { color: #f87171; text-decoration: underline; }
+    .tip { position: fixed; inset: auto; margin: 0; width: 220px; overflow: hidden; padding: 10px; border: 1px solid #2a3142; border-radius: 10px; background: #151924; color: var(--fg); box-shadow: 0 8px 24px #0008; }
+    .tip twisty-player { width: 100%; height: 150px; } /* keep cubing.js's own display: overriding it collapses the canvas */
+    .tip-text { display: grid; gap: 2px; font-size: 13px; }
+    .tip-text strong { font: 700 18px ui-monospace, monospace; }
+    .tip-text span:last-child { color: var(--muted); }
+    .glossary { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+    .glossary-entry { display: grid; gap: 2px; padding: 8px; border-radius: 8px; background: #0b0d12aa; font-size: 13px; }
+    .glossary-entry .alg { font-size: 18px; }
+    .glossary-terms dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 13px; }
+    .glossary-terms dt { font-weight: 700; }
+    .glossary-terms dd { margin: 0; color: var(--muted); }
+    .academy-method { display: flex; align-items: center; gap: 8px; }
+    .quiz-sets { display: grid; gap: 6px; }
+    .quiz-set { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .quiz-set-label { min-width: 12ch; color: var(--muted); font-size: 12px; }
+    .crumbs { margin-bottom: 16px; color: var(--muted); font-size: 13px; }
+    .crumbs a { color: var(--fg); }
+    .academy-home { display: grid; gap: 12px; }
+    .academy-home h2 { margin: 0; }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+    .tile { display: grid; gap: 8px; align-content: start; padding: 16px; border-radius: 12px; background: #11141b; border: 1px solid #2a3142; color: var(--fg); text-decoration: none; }
+    .tile:hover, .tile:focus-visible { border-color: var(--accent); background: #151924; }
+    .tile strong { font-size: 18px; }
+    .tile .hint { margin: 0; }
+    .tile-meta { font-size: 12px; color: var(--muted); }
+    .tile-strip { display: flex; gap: 10px; align-items: center; min-height: 72px; }
+    .tile-moves { font: 700 30px ui-monospace, monospace; letter-spacing: .1em; color: var(--accent); }
+    .academy-body, .academy-phase { display: grid; gap: 10px; }
+    .academy-body { gap: 18px; }
+    .academy-phase h2 { margin: 6px 0 0; font-size: 17px; }
+    .academy-about h3 { margin: 8px 0 0; font-size: 14px; }
+    .academy-group { display: grid; gap: 6px; }
+    .academy-group h3 { margin: 0; font-size: 14px; }
+    .academy-group-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+    .card { display: grid; justify-items: center; align-content: start; gap: 4px; padding: 10px 6px; background: #0b0d12aa; text-align: center; }
+    .card:hover, .card:focus-visible { background: #2a3142; }
+    .card svg { width: 84px; height: auto; }
+    .card code { font-size: 11px; color: var(--muted); word-break: break-word; }
+    .card .hint { font-size: 11px; }
+    /* Dialogs: centered sheet, full screen on phones */
+    .sheet { width: min(640px, 100vw - 32px); max-width: none; max-height: calc(100dvh - 32px); overflow-y: auto; padding: 16px; border: 0; border-radius: 12px; background: #151924; color: var(--fg); }
+    .sheet[open] { display: grid; gap: 10px; align-content: start; }
+    .sheet::backdrop { background: #000b; }
+    .sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .sheet-head h2 { margin: 0; font-size: 18px; }
+    .sheet p { margin: 0; }
+    .sheet a { color: var(--accent); }
+    .close { padding: 4px 12px; font-size: 18px; }
+    @media (max-width: 600px) { .sheet { width: 100vw; height: 100dvh; max-height: none; margin: 0; border-radius: 0; } }
+    .algs { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; }
+    .algs legend { margin-bottom: 6px; padding: 0; color: var(--muted); }
+    .alg-option { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; padding: 8px; border-radius: 8px; background: #0b0d12aa; cursor: pointer; }
+    .alg-option input { grid-row: span 3; margin: 2px 0 0; }
+    .alg-option:has(input:checked) { outline: 2px solid var(--accent); }
+    .alg-option code { font: 600 14px/1.4 ui-monospace, monospace; }
+    #practice-player twisty-player { width: 100%; height: 260px; }
+    #practice-static, #practice-guided { display: grid; gap: 8px; }
+    #practice-case:not(.collapsible) > summary { display: none; } /* without a cube the case is the main content */
+    #practice-case.collapsible > summary { cursor: pointer; font-weight: 600; margin: 4px 0; }
+    code { font-family: ui-monospace, monospace; }
+    .steps { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+    .steps li { flex: 1; padding: 6px; border-radius: 8px; background: #0b0d12aa; color: var(--muted); text-align: center; counter-increment: step; }
+    .steps li::before { content: counter(step) ". "; }
+    .steps li[aria-current="step"] { background: #2a3142; color: var(--fg); font-weight: 700; }
+    .rotate { color: #facc15; font-size: 18px; font-weight: 700; }
+    .next { font: 700 44px/1 ui-monospace, monospace; color: var(--accent); }
+    .tokens { font-family: ui-monospace, monospace; color: var(--muted); word-break: break-word; }
+    .tokens span { margin-right: .6ch; }
+    .tokens .done { opacity: .5; }
+    .tokens .current { color: var(--fg); font-weight: 700; text-decoration: underline; }
+    /* Quiz */
+    #quiz-body { display: grid; gap: 10px; }
+    .quiz-diagram { display: grid; place-items: center; }
+    .quiz-diagram svg { width: min(180px, 50vw); height: auto; }
+    .answers { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
+    .answers button { display: flex; align-items: center; justify-content: center; gap: 6px; }
+    kbd { padding: 0 4px; border-radius: 4px; background: #0b0d12; color: var(--muted); font: 11px ui-monospace, monospace; }
+    .ok { color: var(--accent); font-weight: 700; }
+    .bad { color: #f87171; font-weight: 700; }
+    .quiz-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    .quiz-table th, .quiz-table td { padding: 4px 6px; border-bottom: 1px solid #2a3142; text-align: right; }
+    .quiz-table th:first-child, .quiz-table td:first-child { text-align: left; }
+    .quiz-table th { color: var(--muted); font-weight: 600; }
+    .quiz-modes { display: grid; gap: 8px; margin: 0; padding: 8px 12px; border: 1px solid #2a3142; border-radius: 8px; }
+    .quiz-mode { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+    .quiz-mode small { color: var(--muted); }
+    .scramble-toggle { display: block; width: 100%; text-align: left; background: #0b0d12aa; border: 1px dashed #2a3142; }
+    .scramble-toggle[aria-expanded="true"] { border-style: solid; }
+    .quiz-net { margin: 0; display: grid; justify-items: center; gap: 4px; }
+    .review { padding: 8px 0; border-top: 1px solid #2a3142; }
+    .review p { margin: 4px 0; }
+    .review .tokens .bad { color: #f87171; text-decoration: underline; }
+    /* White cross: guide page and trainer */
+    .tile-badge { justify-self: start; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: #062b14; font-size: 12px; font-weight: 700; }
+    .cross-examples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
+    .cross-examples p { margin: 0; }
+    .cross-progress { color: var(--accent); }
+    .cross-clock { display: grid; gap: 2px; }
+    .cross-clock .next { font-variant-numeric: tabular-nums; outline: none; }
+    .cross-solutions { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+    .cross-pad { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+    .cross-pad button { padding: 10px 0; font: 700 16px ui-monospace, monospace; touch-action: manipulation; }
+    #cross-body { display: grid; gap: 10px; }
+    #cross-player twisty-player, #cross-viewer-player twisty-player { width: 100%; height: min(280px, 40dvh); }
+    @media (max-width: 600px) { #cross-player twisty-player { height: 30dvh; } } /* the pad fits below the cube at 360x640 */
   </style>
 </head>
 <body>
   <div id="cube"></div>
-  <div class="panel">
-    <h1>Cube</h1>
-    <nav class="menu" aria-label="Módulos">
-      <button data-mod="solve" aria-pressed="true">Resolver</button>
-      <button data-mod="guide" aria-pressed="false">Guía</button>
-    </nav>
-    <div class="row">
-      <button id="connect" class="primary">Conectar cubo GAN</button>
-      <button id="reset-gyro" disabled>Recalibrar orientación</button>
-      <button id="reset-state" disabled>Marcar como resuelto</button>
+  <header class="app-header">
+    <h1 data-i18n="app.title">Cube</h1>
+    <span id="header-module" class="header-module"></span>
+    <button id="menu-toggle" class="menu-toggle" popovertarget="header-menu" data-i18n-aria-label="menu.open">☰</button>
+    <!-- a popover on phones (☰); on wide screens CSS keeps it inline in the bar -->
+    <div id="header-menu" class="header-menu" popover>
+      <nav class="menu" data-i18n-aria-label="menu.label">
+        <a href="/" data-mod="solve" aria-current="page" data-i18n="menu.solve"></a>
+        <a href="/academia" data-mod="academy" data-i18n="menu.academy"></a>
+      </nav>
+      <nav class="menu menu-cube" data-i18n-aria-label="menu.cube">
+        <a href="/cubo" data-mod="cube" data-i18n="menu.cube"></a>
+      </nav>
     </div>
-    <dl>
-      <dt>Estado</dt><dd id="status">Desconectado</dd>
-      <dt>Cubo</dt><dd id="device">–</dd>
-      <dt>Batería</dt><dd id="battery">–</dd>
+    <!-- always in the bar, phones included (there only the status) -->
+    <dl class="header-status">
+      <dt data-i18n="cube.status"></dt><dd id="status" data-i18n="cube.disconnected"></dd>
+      <dt data-i18n="cube.battery"></dt><dd id="battery">–</dd>
     </dl>
-    <section id="mod-solve" aria-label="Resolver">
+  </header>
+  <div class="panel">
+    <section id="mod-solve" data-i18n-aria-label="menu.solve">
       <div id="scramble-box" class="scramble-box">
-        <div id="scramble-text" class="scramble" aria-label="Mezcla"></div>
+        <div id="scramble-text" class="scramble" data-i18n-aria-label="solve.scramble"></div>
         <div id="net" class="net" aria-hidden="true"></div>
       </div>
       <p id="timer-hint" class="hint"></p>
       <div class="row">
-        <button id="start" class="primary">Empezar (Espacio)</button>
-        <button id="new-scramble">Nueva mezcla (N)</button>
+        <button id="start" class="primary" data-i18n="solve.start"></button>
+        <button id="new-scramble" data-i18n="solve.newScramble"></button>
       </div>
       <div class="stats-row">
         <p id="stats" class="hint"></p>
-        <button id="reset-results" class="small" hidden>Borrar todos</button>
+        <button id="reset-results" class="small" hidden data-i18n="results.deleteAll"></button>
       </div>
       <ol id="results" class="results" reversed></ol>
     </section>
-    <section id="mod-guide" aria-label="Guía" hidden>
-      <div id="guide-actions" class="row">
-        <button id="scramble-start" disabled>Mezclar</button>
-        <button id="guide-start" class="primary" disabled>Guíame a resolverlo</button>
-        <button id="demo">Demo sin cubo</button>
-      </div>
+    <section id="mod-cube" class="cube-screen" data-i18n-aria-label="menu.cube" hidden>
+      <h2 data-i18n="cube.title"></h2>
+      <section class="cube-block">
+        <h3 data-i18n="cube.connection"></h3>
+        <div class="row"><button id="connect" class="primary" data-i18n="cube.connect"></button></div>
+        <dl><dt data-i18n="cube.device"></dt><dd id="device">–</dd></dl>
+        <p class="hint" data-i18n="cube.connectionHint"></p>
+      </section>
+      <section class="cube-block">
+        <h3 data-i18n="cube.settings"></h3>
+        <div class="row">
+          <button id="reset-gyro" disabled data-i18n="cube.resetGyro"></button>
+          <button id="reset-state" disabled data-i18n="cube.resetState"></button>
+        </div>
+        <p class="hint" data-i18n="cube.resetGyroHint"></p>
+        <p class="hint" data-i18n="cube.resetStateHint"></p>
+      </section>
+      <section id="guide-actions" class="cube-block">
+        <h3 data-i18n="cube.guide"></h3>
+        <div class="row">
+          <button id="scramble-start" disabled data-i18n="guide.scramble"></button>
+          <button id="guide-start" class="primary" disabled data-i18n="guide.start"></button>
+        </div>
+        <p class="hint" data-i18n="cube.guideHint"></p>
+      </section>
     </section>
+    <section id="mod-academy" data-i18n-aria-label="menu.academy" hidden></section>
     <section id="guide" hidden aria-live="polite">
-      <div class="guide-head"><span><strong id="guide-title"></strong> · <span id="guide-progress"></span></span><button id="guide-stop">Salir</button></div>
+      <div class="guide-head"><span><strong id="guide-title"></strong> · <span id="guide-progress"></span></span><button id="guide-stop" data-i18n="guide.stop"></button></div>
       <div id="guide-next"></div>
       <div id="guide-desc"></div>
       <div id="guide-steps"></div>
-      <p class="hint">Sostén el cubo como se ve en pantalla. Si te equivocas, la guía recalcula desde donde estés.</p>
+      <p class="hint" data-i18n="guide.holdHint"></p>
     </section>
     <div id="moves"></div>
   </div>
   <div id="stage" class="stage" hidden>
     <div id="big" class="big" role="timer">15</div>
     <p id="stage-hint" class="stage-hint"></p>
-    <div id="penalties" class="row" role="group" aria-label="Penalización" hidden>
-      <button data-pen="0">OK</button>
+    <div id="penalties" class="row" role="group" data-i18n-aria-label="penalty.label" hidden>
+      <button data-pen="0" data-i18n="penalty.ok"></button>
       <button data-pen="2000">+2</button>
       <button data-pen="DNF">DNF</button>
-      <button id="delete-last">Eliminar</button>
+      <button id="delete-last" data-i18n="results.delete"></button>
     </div>
   </div>
-  <div class="view" role="group" aria-label="Orientación del cubo">
-    <button data-turn="up" aria-label="Girar hacia arriba" title="Girar hacia arriba (↑)">↑</button>
-    <button data-turn="left" aria-label="Girar a la izquierda" title="Girar a la izquierda (←)">←</button>
-    <button data-turn="reset" aria-label="Vista inicial" title="Volver a la vista inicial del módulo">⟲</button>
-    <button data-turn="right" aria-label="Girar a la derecha" title="Girar a la derecha (→)">→</button>
-    <button data-turn="down" aria-label="Girar hacia abajo" title="Girar hacia abajo (↓)">↓</button>
+  <div class="view" role="group" data-i18n-aria-label="view.label">
+    <button data-turn="up" data-i18n-aria-label="view.up" data-i18n-title="view.upTitle">↑</button>
+    <button data-turn="left" data-i18n-aria-label="view.left" data-i18n-title="view.leftTitle">←</button>
+    <button data-turn="reset" data-i18n-aria-label="view.reset" data-i18n-title="view.resetTitle">⟲</button>
+    <button data-turn="right" data-i18n-aria-label="view.right" data-i18n-title="view.rightTitle">→</button>
+    <button data-turn="down" data-i18n-aria-label="view.down" data-i18n-title="view.downTitle">↓</button>
   </div>
-  <script type="module" src="/src/main.ts"></script>
+  <dialog id="practice" class="sheet" aria-labelledby="practice-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="practice-title"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <p><strong data-i18n="practice.recognition"></strong> · <span id="practice-recognition"></span></p>
+    <p id="practice-note" class="hint"></p>
+    <a id="practice-scdb" target="_blank" rel="noopener" data-i18n="practice.scdb"></a>
+    <fieldset id="practice-algs" class="algs"></fieldset>
+    <section id="practice-guided" aria-live="polite" hidden>
+      <ol class="steps" data-i18n-aria-label="practice.steps">
+        <li id="practice-step-scramble" data-i18n="practice.stepScramble"></li>
+        <li id="practice-step-solve" data-i18n="practice.stepSolve"></li>
+      </ol>
+      <div id="practice-rotate" class="rotate"></div>
+      <div id="practice-next" class="next"></div>
+      <div id="practice-desc"></div>
+      <div id="practice-list" class="tokens"></div>
+      <p id="practice-result"></p>
+      <div class="row"><button id="practice-again" class="primary" data-i18n="practice.again" hidden></button></div>
+      <p id="practice-hint" class="hint"></p>
+    </section>
+    <details id="practice-case" open>
+      <summary data-i18n="practice.showCase"></summary>
+      <section id="practice-static">
+        <div id="practice-player"></div>
+        <dl>
+          <dt data-i18n="practice.setup"></dt><dd><code id="practice-setup"></code></dd>
+          <dt data-i18n="practice.alg"></dt><dd><code id="practice-alg"></code></dd>
+        </dl>
+        <p id="practice-static-hint" class="hint" data-i18n="practice.staticHint"></p>
+      </section>
+    </details>
+    <div class="stats-row">
+      <p id="practice-stats" class="hint"></p>
+      <button id="practice-quiz" class="small" data-i18n="practice.quiz"></button>
+    </div>
+  </dialog>
+  <dialog id="quiz" class="sheet" aria-labelledby="quiz-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="quiz-title"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div id="quiz-body"></div>
+    <p id="quiz-status" class="sr-only" role="status"></p>
+  </dialog>
+  <dialog id="cross" class="sheet" aria-labelledby="cross-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="cross-title"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div id="cross-player" hidden></div>
+    <div id="cross-body"></div>
+    <p id="cross-status" class="sr-only" role="status"></p>
+  </dialog>
+  <dialog id="cross-viewer" class="sheet" aria-labelledby="cross-viewer-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="cross-viewer-title"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div id="cross-viewer-player"></div>
+    <p id="cross-viewer-alg"></p>
+  </dialog>
+  <script type="module" src="/src/boot.ts"></script>
 </body>
 </html>
