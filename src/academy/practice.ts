@@ -17,11 +17,10 @@ import { IDENTITY, YELLOW_UP, centerMoves, expand, formatAlg, htm, invertTokens,
 import { formatTime } from '../timer.ts';
 import { algView } from '../notation-view.ts';
 import { loc, t, tp, type MessageKey } from '../i18n.ts';
-import { caseState, goalReached, llFaceOf, makeQuizItems, quizPattern, type QuizSpec } from './cube.ts';
+import { caseState, goalReached, llFaceOf, practiceSpec, quizPattern, type QuizSpec } from './cube.ts';
 import { isoSVG, maskFor, topSVG, type DiagramOpts } from './diagram.ts';
 import { StepFollower } from './follow.ts';
 import { cube, type CubeListener } from './link.ts';
-import { solutionFor } from './score.ts';
 import { addCustom, average, preferred, recordRep, removeCustom, save, setPreferred, setting, statsFor, STREAK_GOAL, variants, type Rep } from './store.ts';
 import type { AlgSource, AlgVariant, Case, Stage } from './types.ts';
 import { checkCustomAlg } from './customAlg.ts';
@@ -204,11 +203,10 @@ function choose(v: AlgVariant) {
 /** What's being done: Practicar's solution for this repetition, or the algorithm alone. */
 const active = () => (tab === 'practice' ? rep.tokens : tokens);
 
-/** Practicar: a fresh random state of the case (another AUF and last layer), solved with the chosen algorithm. */
+/** Practicar: the chosen algorithm backwards as the scramble, the algorithm itself as the solution. */
 function newRep() {
-  const spec = makeQuizItems([kase], 1, crypto.getRandomValues(new Uint32Array(1))[0], kpuzzle)[0];
-  const user = quizPattern(kpuzzle, spec, IDENTITY);
-  rep = { spec, user, tokens: tokenize(solutionFor(kase, variant.alg, user)) };
+  const spec = practiceSpec(kase, variant.alg);
+  rep = { spec, user: quizPattern(kpuzzle, spec, IDENTITY), tokens: tokenize(variant.alg) };
 }
 
 /** Starts the current tab: with a cube, set the case up (Practicar) or follow the algorithm from anywhere (Memoria

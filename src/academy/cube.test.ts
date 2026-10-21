@@ -5,7 +5,7 @@ import { patternToFacelets } from '../facelets.ts';
 import { KPattern } from 'cubing/kpuzzle';
 import { IDENTITY, YELLOW_UP, centerMoves, invertTokens, mapMove, tokenize } from '../notation.ts';
 import {
-  HOLDS, POOL_STAGES, caseState, goalReached, holdIn, llFaceOf, makeQuizItems, quizPattern, quizPool, randomStateScramble, referenceMoves, specsFor,
+  HOLDS, POOL_STAGES, caseState, goalReached, holdIn, llFaceOf, makeQuizItems, practiceSpec, quizPattern, quizPool, randomStateScramble, referenceMoves, specsFor,
 } from './cube.ts';
 import { METHODS, allCases, findCase } from './methods.ts';
 import type { Case, Stage } from './types.ts';
@@ -269,4 +269,16 @@ test('color neutral: a case held any of the 24 ways is still that case, and its 
     }
   }
   assert.deepEqual([...new Set(failures)], []);
+});
+
+test('practiceSpec: every variant\'s algorithm backwards, solved by exactly that algorithm (no extra U)', async () => {
+  const kp = await cube3x3x3.kpuzzle();
+  for (const c of METHODS.flatMap(allCases)) for (const v of c.algs) {
+    const spec = practiceSpec(c, v.alg);
+    const state = quizPattern(kp, spec, IDENTITY);
+    const where = `${c.id} ${v.id}: ${spec.moves.join(' ')}`;
+    assert.ok(spec.moves.length <= centerMoves(v.alg, IDENTITY).length, `${where} is longer than the algorithm`); // face turns: M is R L'
+    assert.ok(!goalReached(c.stage, state, 'U'), `${where} is already solved`);
+    assert.ok(goalReached(c.stage, state.applyAlg(centerMoves(v.alg, IDENTITY).join(' ')), 'U'), `${where} isn't solved by its algorithm`);
+  }
 });

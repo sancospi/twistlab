@@ -45,7 +45,6 @@ const status = $('quiz-status'); // persistent live region: #quiz-body is rebuil
 const PER_CASE = [3, 5, 10, 20];
 const SELECTIONS: Selection[] = ['one', 'pick', 'due', 'learning', 'known', 'slow', 'all'];
 const ORDERS: Order[] = ['uniform', 'probability', 'spaced'];
-const SCRAMBLE_MS = 3000; // the solver's first run loads it; past this, the merged setup is the scramble
 const KEYS = '123456789abcdefghijklmnopqrstuvwxyz'; // answer shortcuts, in button order
 const HISTORY_KEY = 'academy-quiz-history';
 
@@ -238,8 +237,9 @@ function prefetch(i: number) {
   const item = items[i];
   if (!item || item.scramble !== undefined || mode !== 'recognition') return;
   item.scramble = null;
-  const late = new Promise<null>((resolve) => setTimeout(resolve, SCRAMBLE_MS, null));
-  void Promise.race([randomStateScramble(item.user), late]).catch(() => null).then((moves) => {
+  // wait for the solver however long its first load takes ("Preparando la mezcla…"): the merged setup is 45–120 turns,
+  // so it's only the last resort when the solver fails outright
+  void randomStateScramble(item.user).catch(() => null).then((moves) => {
     item.scramble = (moves ?? item.spec.moves).join(' ');
     item.random = !!moves;
     // patched in place: re-rendering the question would drop the focus and a tap in progress on an answer
@@ -769,7 +769,7 @@ function reviewButton(c: Case): HTMLElement {
 function itemScramble(): Node[] {
   if (mode !== 'recognition') return [];
   const { scramble: s, random } = items[index];
-  const code = el('code', { textContent: s ?? '…', ariaBusy: String(s == null) });
+  const code = el('code', { textContent: s ?? t('quiz.preparing'), ariaBusy: String(s == null) });
   code.dataset.scramble = ''; // filled in place when the solver answers (prefetch)
   const hint = el('p', { className: 'hint', textContent: t('quiz.randomState'), hidden: !random }); // not true of the fallback
   hint.dataset.random = '';

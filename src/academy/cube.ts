@@ -3,7 +3,7 @@
 // (via notation.ts) and the last layer is simply "the pieces of the face whose center is yellow".
 import { KPattern, type KPuzzle } from 'cubing/kpuzzle';
 import { experimentalSolve3x3x3IgnoringCenters } from 'cubing/search';
-import { IDENTITY, centerMoves, expand, htm, invertTokens, mapMove, merge, type Face, type Frame } from '../notation.ts';
+import { IDENTITY, centerMoves, expand, htm, invertTokens, mapMove, merge, tokenize, type Face, type Frame } from '../notation.ts';
 import { METHODS, allCases } from './methods.ts';
 import type { AlgVariant, Case, Stage } from './types.ts';
 
@@ -151,6 +151,15 @@ function quizSpec(rng: Rng, c: Case, kpuzzle: KPuzzle): QuizSpec {
  * `perCase` random states of each case (deterministic for a seed), in rounds so cases interleave.
  * Each state is the case's setup on top of a random last layer the stage doesn't care about, plus a random AUF.
  */
+/**
+ * Practicar's scramble, for learning: exactly the chosen algorithm backwards, so the solution is exactly the algorithm
+ * (no extra U turns). Not a random state: the Quiz does that.
+ */
+export function practiceSpec(c: Case, alg: string): QuizSpec {
+  // inverted after the conversion to center turns, like caseState: an algorithm with a rotation (y' r' U' R U M') then works
+  return { caseId: c.id, moves: merge(invertTokens(centerMoves(tokenize(alg), IDENTITY))), auf: '' };
+}
+
 export function makeQuizItems(cases: Case[], perCase: number, seed: number, kpuzzle: KPuzzle): QuizSpec[] {
   const rng = mulberry32(seed);
   const items: QuizSpec[] = [];
