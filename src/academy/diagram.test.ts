@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { SOLVED_FACELETS, patternToFacelets } from '../facelets.ts';
-import { IDENTITY } from '../notation.ts';
+import { IDENTITY, centerMoves } from '../notation.ts';
 import { caseState } from './cube.ts';
 import { isoSVG, llArrows, maskFor, topSVG, netSVG } from './diagram.ts';
 import { findCase } from './methods.ts';
@@ -25,6 +25,30 @@ test('maskFor maps stages to masks', () => {
   assert.equal(maskFor('oll-corners'), 'oll');
   assert.equal(maskFor('pll-corners'), 'pll');
   assert.equal(maskFor('pll-edges'), 'pll');
+  assert.equal(maskFor('first-layer'), 'first-layer');
+  assert.equal(maskFor('second-layer'), 'f2l');
+  assert.equal(maskFor('ll-edges'), 'll-edges');
+  assert.equal(maskFor('ll-corners-placed'), 'pll');
+  assert.equal(maskFor('ll-corners-twist'), 'pll');
+});
+
+test('first-layer mask shows the white pieces and the side centers only', async () => {
+  const iso = stickers(isoSVG(SOLVED_FACELETS, 'first-layer'));
+  for (const [i, s] of iso) assert.equal(s.fill !== GREY, [13, 15, 16, 17, 22, 24, 25, 26].includes(i), `facelet ${i}`);
+  // white pieces up in the U layer are shown whole, wherever they are
+  const solved = (await cube3x3x3.kpuzzle()).defaultPattern();
+  const f = patternToFacelets(solved.applyAlg(centerMoves('R2', IDENTITY).join(' ')));
+  const out = stickers(isoSVG(f, 'first-layer'));
+  const white = [...out].filter(([i]) => f[i] === 'D').map(([i]) => i);
+  assert.ok(white.some((i) => i < 9)); // white on top
+  for (const i of white) assert.notEqual(out.get(i)!.fill, GREY);
+});
+
+test('ll-edges mask greys the yellow corners, keeps the yellow edges in full color', () => {
+  const top = stickers(topSVG(SOLVED_FACELETS, 'll-edges'));
+  for (const i of [0, 2, 6, 8, 45, 47, 18, 20, 36, 38, 9, 11]) assert.equal(top.get(i)!.fill, GREY, `facelet ${i}`);
+  for (const i of [1, 3, 4, 5, 7]) assert.equal(top.get(i)!.fill, YELLOW, `facelet ${i}`);
+  for (const [i, color] of [[19, GREEN], [10, ORANGE]] as const) assert.equal(top.get(i)!.fill, color);
 });
 
 test('solved cube: iso shows U, F, R fully colored; top shows U and its side bars', () => {

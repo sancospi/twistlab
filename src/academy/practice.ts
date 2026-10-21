@@ -1,6 +1,10 @@
-// Practice one case. Without a synced cube: a 3D player shows the case and plays the algorithm (static).
-// With one: 1) Mezcla walks the cube to the case, 2) Resolver follows the algorithm token by token,
-// with corrections, and records each repetition (time, moves, clean) towards the plan's drill criterion.
+// Practice one case, in three ways (tabs):
+// - Ponte a prueba: explains and opens the quiz of this case.
+// - Resolver el caso: without a synced cube, a 3D player shows the case and plays the algorithm (static). With one:
+//   1) Mezcla walks the cube to the case, 2) Resolver follows the algorithm token by token, with corrections.
+// - Memoria muscular: the algorithm alone, no scramble. With a cube it's followed from whatever state the cube is in
+//   (the next turn after a rep starts another); without one, a clock started and stopped by hand.
+// Every repetition (time, moves, clean) counts towards the plan's drill criterion.
 import { TwistyPlayer } from 'cubing/twisty';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPuzzle } from 'cubing/kpuzzle';
@@ -33,11 +37,16 @@ const REDO_MS = 1500; // how long "too many mistakes" stays up after re-planning
 // yellow = cubing's D layer. Order: EDGES UF UR UB UL DF DR DB DL FR FL BR BL, CORNERS UFR URB UBL ULF DRF DFL DLB DBR.
 // D = dim, I = ignored, O = only the yellow sticker, P = only the side colors, - = regular.
 const MASKS: Record<Stage, string> = {
+  'first-layer': 'EDGES:----IIIIIIII,CORNERS:----IIII,CENTERS:------', // the white pieces only
+  'second-layer': 'EDGES:DDDDIIII----,CORNERS:DDDDIIII,CENTERS:------', // the four middle-layer edges in color
   f2l: 'EDGES:DDDDIIIID-DD,CORNERS:DDD-IIII,CENTERS:------', // the green-orange pair stays in color
   'oll-cross': 'EDGES:DDDDOOOODDDD,CORNERS:DDDDIIII,CENTERS:------',
   'oll-corners': 'EDGES:DDDDOOOODDDD,CORNERS:DDDDOOOO,CENTERS:------',
   'pll-corners': 'EDGES:DDDDPPPPDDDD,CORNERS:DDDDPPPP,CENTERS:------',
   'pll-edges': 'EDGES:DDDDPPPPDDDD,CORNERS:DDDDPPPP,CENTERS:------',
+  'll-edges': 'EDGES:DDDD----DDDD,CORNERS:DDDDIIII,CENTERS:------',
+  'll-corners-placed': 'EDGES:DDDD----DDDD,CORNERS:DDDD----,CENTERS:------',
+  'll-corners-twist': 'EDGES:DDDD----DDDD,CORNERS:DDDD----,CENTERS:------',
 };
 
 // One player, reused: browsers allow only a few WebGL contexts.
@@ -50,6 +59,9 @@ function staticPlayer(): TwistyPlayer {
 }
 
 type Mode = 'static' | 'scramble' | 'solve' | 'result';
+type Tab = 'test' | 'case' | 'drill';
+const TABS: Tab[] = ['test', 'case', 'drill'];
+let tab = setting<Tab>('practice-tab', 'case', (v) => TABS.includes(v));
 let kpuzzle: KPuzzle;
 let kase: Case;
 let variant: AlgVariant;
@@ -63,6 +75,8 @@ let lastRep: Rep | null = null;
 let redoUntil = 0;
 let onUpdate: (c: Case) => void = () => {};
 let onQuiz: () => void = () => {};
+let timerAt = 0; // > 0 while the no-cube drill clock runs
+let timerRaf = 0;
 
 const guide = new PathGuide(() => cube.pattern(), () => {
   if (mode === 'scramble' && guide.reached()) beginSolve(); // an empty plan: already at the case
@@ -87,18 +101,38 @@ dialog.addEventListener('close', () => {
   if (dialog.open) return; // 'close' is queued: the dialog was reopened meanwhile
   if (cube.listener === listener) cube.listener = null; // the quiz may have taken the cube already
   guide.stop();
+  stopTimer();
   follower = null;
   mode = 'static';
   player?.pause();
 });
+
+const tabButtons = [...$('practice-tabs').querySelectorAll<HTMLButtonElement>('button')];
+for (const b of tabButtons) b.onclick = () => {
+  save('practice-tab', (tab = b.dataset.tab as Tab));
+  start();
+};
 
 function choose(v: AlgVariant) {
   variant = v;
   tokens = tokenize(v.alg);
   lastRep = null;
   loadPlayer(); // static it's the content; guided it's behind "Ver el caso"
-  if (cube.pattern()) startScramble();
-  else showStatic();
+  start();
+}
+
+/** Starts the current tab: with a cube, set the case up (Resolver el caso) or follow the algorithm from anywhere
+ *  (Memoria muscular); otherwise nothing runs until the user acts (quiz button, clock). */
+function start() {
+  stopTimer();
+  if (cube.pattern() && tab === 'case') return startScramble();
+  if (cube.pattern() && tab === 'drill') {
+    guide.stop();
+    beginSolve();
+    return render();
+  }
+  showStatic();
+  if (tab === 'drill') $('practice-clock').focus(); // Space then starts the clock natively
 }
 
 /** The case and the chosen algorithm in the 3D player (yellow up, ready to play). */
@@ -147,6 +181,7 @@ function finishRep() {
 
 const listener: CubeListener = {
   move(move) {
+    if (mode === 'result' && tab === 'drill') beginSolve(); // the next turn starts the next repetition
     if (mode === 'scramble') {
       guide.onMove(move);
       if (guide.reached()) beginSolve();
@@ -156,9 +191,10 @@ const listener: CubeListener = {
       if (follower.feed(move) === 'wrong') clean = false;
       if (follower.undo.length > MAX_UNDO) {
         redoUntil = performance.now() + REDO_MS;
-        startScramble();
+        if (tab === 'drill') beginSolve();
+        else startScramble();
       } else if (follower.done) {
-        if (goalReached(kase.stage, cube.pattern()!, llFaceOf(YELLOW_UP))) finishRep();
+        if (tab === 'drill' || goalReached(kase.stage, cube.pattern()!, llFaceOf(YELLOW_UP))) finishRep(); // drill: any start state
         else startScramble(); // can't happen from the exact case state; start over rather than record nonsense
       }
     }
@@ -166,9 +202,9 @@ const listener: CubeListener = {
   },
   sync() {
     if (!cube.pattern()) {
-      if (mode !== 'static') showStatic(); // disconnected
+      if (mode !== 'static') start(); // disconnected
     } else if (mode === 'static' || mode === 'solve') {
-      startScramble(); // a cube just synced, or the state drifted mid-algorithm: set the case up again
+      start(); // a cube just synced, or the state drifted mid-algorithm: start the repetition again
     } else if (mode === 'scramble') {
       void guide.replan();
     }
@@ -176,7 +212,42 @@ const listener: CubeListener = {
   },
 };
 
-$('practice-again').onclick = startScramble;
+$('practice-again').onclick = () => (tab === 'drill' ? start() : startScramble());
+
+// Memoria muscular without a cube: a clock the user starts and stops (tap or Space).
+const clockTime = el('span', { textContent: formatTime(0) });
+const clockLabel = el('small', { className: 'hint' });
+$('practice-clock').replaceChildren(clockTime, el('br'), clockLabel);
+$('practice-clock').onclick = toggleTimer;
+dialog.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' || tab !== 'drill' || cube.pattern() || (e.target as Element).closest?.('button, input, select, summary, a')) return;
+  e.preventDefault(); // a focused button presses itself; elsewhere Space is the clock
+  if (!e.repeat) toggleTimer();
+});
+
+function toggleTimer() {
+  if (!timerAt) {
+    timerAt = performance.now();
+    const tick = () => {
+      clockTime.textContent = formatTime(performance.now() - timerAt);
+      timerRaf = requestAnimationFrame(tick);
+    };
+    tick();
+  } else {
+    const n = htm(centerMoves(tokens, IDENTITY));
+    // ponytail: no cube, so the moves are the algorithm's and "clean" is the user's word for it
+    lastRep = { ms: performance.now() - timerAt, moves: n, htm: n, clean: true };
+    stopTimer();
+    recordRep(kase.id, lastRep);
+    onUpdate(kase);
+  }
+  render();
+}
+
+function stopTimer() {
+  cancelAnimationFrame(timerRaf);
+  timerAt = 0;
+}
 $('practice-quiz').onclick = () => {
   dialog.close(); // releases the cube for the quiz
   onQuiz();
@@ -225,13 +296,23 @@ $('practice-case').addEventListener('toggle', () => {
 
 function render() {
   if (!dialog.open) return;
+  for (const b of tabButtons) b.setAttribute('aria-pressed', String(b.dataset.tab === tab));
   const guided = mode !== 'static';
+  const timer = tab === 'drill' && !cube.pattern();
+  $('practice-test').hidden = tab !== 'test';
+  $('practice-timer').hidden = !timer;
+  if (timer) {
+    if (!timerAt) clockTime.textContent = formatTime(lastRep?.ms ?? 0);
+    clockLabel.textContent = t(timerAt ? 'practice.timerStop' : 'practice.timerStart');
+    $('practice-clock').classList.toggle('running', !!timerAt);
+  }
   // Guided, the case (3D player, scramble, algorithm) is one tap away, below the guidance; static, it's the content.
   const caseBox = $('practice-case') as HTMLDetailsElement;
   caseBox.classList.toggle('collapsible', guided);
   caseBox.open = !guided || showCase;
-  $('practice-static-hint').hidden = guided;
+  $('practice-static-hint').hidden = guided || tab !== 'case';
   $('practice-guided').hidden = !guided;
+  $('practice-steps').hidden = tab === 'drill'; // nothing to set up
   $('practice-alg').replaceChildren(algView(tokens));
   renderStats();
   if (!guided) return;
@@ -274,7 +355,8 @@ function renderSolve() {
   $('practice-next').textContent = undo.length ? name(undo[0]) : step.token;
   $('practice-desc').textContent = undo.length ? t('practice.wrong', { moves: undo.map(name).join(' ') })
     : partial ? t('practice.left', { moves: left.map(name).join(' ') }) : '';
-  $('practice-hint').textContent = t('practice.solveHint');
+  $('practice-hint').textContent = t(tab === 'drill' ? 'practice.drillHint' : 'practice.solveHint');
+  if (tab === 'drill' && !undo.length && performance.now() < redoUntil) $('practice-desc').textContent = t('practice.restartDrill');
   $('practice-list').replaceChildren(algView(tokens, { mark: (j) => (j < i ? 'done' : j === i ? 'current' : '') }));
 }
 

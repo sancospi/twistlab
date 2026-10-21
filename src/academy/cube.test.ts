@@ -2,18 +2,44 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { patternToFacelets } from '../facelets.ts';
-import { IDENTITY, YELLOW_UP, centerMoves, mapMove } from '../notation.ts';
-import { caseState, goalReached, llFaceOf, makeQuizItems, quizPattern, referenceMoves } from './cube.ts';
+import { KPattern } from 'cubing/kpuzzle';
+import { IDENTITY, YELLOW_UP, centerMoves, invertTokens, mapMove, tokenize } from '../notation.ts';
+import { POOL_STAGES, caseState, goalReached, llFaceOf, makeQuizItems, quizPattern, quizPool, referenceMoves } from './cube.ts';
 import { METHODS, allCases, findCase } from './methods.ts';
+import type { Case, Stage } from './types.ts';
 
 const kpuzzle = await cube3x3x3.kpuzzle();
 const solved = kpuzzle.defaultPattern();
 const user = (alg: string) => solved.applyAlg(centerMoves(alg, IDENTITY).join(' '));
-const cases = METHODS.flatMap(allCases);
 const STAGES = ['f2l', 'oll-cross', 'oll-corners', 'pll-corners', 'pll-edges'] as const;
+const ALL_STAGES = Object.keys(POOL_STAGES) as Stage[];
+
+// Typical beginner algorithms, one case each, for the stages no method has cases of yet.
+const fixture = (stage: Stage, alg: string, i: number): Case => ({
+  id: `fixture-${stage}-${i}`, code: 'X', name: { es: 'X' }, recognition: { es: 'X' }, stage,
+  algs: [{ id: 'main', alg, source: 'community' }], setup: invertTokens(tokenize(alg)).join(' '), scdb: null,
+});
+const FIXTURES = ([
+  ['first-layer', "U R U' R'"], // white corner from above into its slot
+  ['second-layer', "U R U' R' U' F' U F"], // middle-layer edge to the right
+  ['second-layer', "U' L' U L U F U' F'"], // ...and to the left
+  ['oll-cross', "F R U R' U' F'"],
+  ['ll-edges', "R U R' U R U2 R' U"], // swaps two yellow edges
+  ['ll-corners-placed', "U R U' L' U R' U' L"], // cycles three corners
+  ['ll-corners-twist', "R' D' R D R' D' R D U R' D' R D R' D' R D R' D' R D R' D' R D U'"], // two corners twisted
+] as const).map(([stage, alg], i) => fixture(stage, alg, i));
+const cases = [...METHODS.flatMap(allCases), ...FIXTURES];
+
+// Slots: EDGES UF UR UB UL DF DR DB DL FR FL BR BL; CORNERS UFR URB UBL ULF DRF DFL DLB DBR.
+const edit = (fn: (d: typeof solved.patternData) => void) => {
+  const d = structuredClone(solved.patternData);
+  fn(d);
+  return new KPattern(kpuzzle, d);
+};
+const swap = (xs: number[], i: number, j: number) => ([xs[i], xs[j]] = [xs[j], xs[i]]);
 
 test('goalReached: solved meets every goal, on either last-layer face', () => {
-  for (const stage of STAGES) for (const ll of ['U', 'D'] as const) assert.ok(goalReached(stage, solved, ll), `${stage} ${ll}`);
+  for (const stage of ALL_STAGES) for (const ll of ['U', 'D'] as const) assert.ok(goalReached(stage, solved, ll), `${stage} ${ll}`);
   assert.ok(goalReached('pll-edges', solved.applyMove("U'"), 'U')); // only an AUF away
   assert.ok(!goalReached('f2l', solved.applyMove("U'"), 'D')); // ...but that's a first-layer turn for llFace D
 });
@@ -70,7 +96,7 @@ test('makeQuizItems: every item is its case, solved by AUF + the main algorithm,
       }
     }
     const distinct = new Set(items.map((s) => patternToFacelets(quizPattern(kpuzzle, s, IDENTITY)))).size;
-    assert.ok(distinct >= (c.stage === 'pll-edges' ? 3 : 10), `${c.id}: only ${distinct} distinct states`);
+    assert.ok(distinct >= (quizPool(c.stage, kpuzzle).algs.length ? 10 : 3), `${c.id}: only ${distinct} distinct states`); // 3+: AUFs only
   }
   assert.deepEqual([...new Set(failures)], []);
 });
@@ -112,15 +138,7 @@ test('makeQuizItems: edge cases (no rounds, no cases, one case) and float seeds 
   assert.deepEqual(makeQuizItems(f2l, 2, 0.25, kpuzzle), makeQuizItems(f2l, 2, 0.25, kpuzzle));
 });
 
-test('goalReached: states that are almost the goal', async () => {
-  const { KPattern } = await import('cubing/kpuzzle');
-  // Slots: EDGES UF UR UB UL DF DR DB DL FR FL BR BL; CORNERS UFR URB UBL ULF DRF DFL DLB DBR.
-  const edit = (fn: (d: typeof solved.patternData) => void) => {
-    const d = structuredClone(solved.patternData);
-    fn(d);
-    return new KPattern(kpuzzle, d);
-  };
-  const swap = (xs: number[], i: number, j: number) => ([xs[i], xs[j]] = [xs[j], xs[i]]);
+test('goalReached: states that are almost the goal', () => {
   const goals = (p: typeof solved, ll: 'U' | 'D' = 'U') => STAGES.map((s) => +goalReached(s, p, ll)).join('');
   assert.equal(goals(edit((d) => { d.EDGES.orientation[0] = d.EDGES.orientation[1] = 1; })), '10000'); // 2 LL edges flipped
   assert.equal(goals(edit((d) => { d.EDGES.orientation[8] = d.EDGES.orientation[0] = 1; })), '00000'); // pair edge flipped in its slot
@@ -132,4 +150,44 @@ test('goalReached: states that are almost the goal', async () => {
   assert.equal(goals(edit((d) => { swap(d.EDGES.pieces, 8, 9); swap(d.EDGES.pieces, 0, 1); })), '00000'); // E-slice swap
   assert.equal(goals(edit((d) => { d.EDGES.orientation[4] = d.EDGES.orientation[5] = 1; }), 'D'), '10000'); // same, yellow on D
   assert.equal(goals(edit((d) => { d.EDGES.orientation[0] = d.EDGES.orientation[1] = 1; }), 'D'), '00000'); // U is F2L there
+});
+
+test('goalReached: the beginner stages, on hand-made states', () => {
+  const NEW = ['first-layer', 'second-layer', 'll-edges', 'll-corners-placed', 'll-corners-twist'] as const;
+  const goals = (p: typeof solved, ll: 'U' | 'D' = 'U') => NEW.map((s) => +goalReached(s, p, ll)).join('');
+  assert.equal(goals(solved.applyMove('U')), '11111'); // everything only an AUF away
+  assert.equal(goals(solved.applyMove('D')), '00000'); // a first-layer turn
+  assert.equal(goals(edit((d) => { d.EDGES.orientation[4] = d.EDGES.orientation[5] = 1; })), '00000'); // white edges flipped
+  assert.equal(goals(edit((d) => { d.CORNERS.orientation[4] = 1; d.CORNERS.orientation[5] = 2; })), '00000'); // white corners twisted
+  assert.equal(goals(edit((d) => { swap(d.CORNERS.pieces, 4, 5); swap(d.CORNERS.pieces, 0, 1); })), '00000'); // white corners swapped
+  assert.equal(goals(edit((d) => { swap(d.EDGES.pieces, 8, 9); swap(d.EDGES.pieces, 0, 1); })), '10000'); // middle edges swapped
+  assert.equal(goals(edit((d) => { d.EDGES.orientation[8] = d.EDGES.orientation[0] = 1; })), '10000'); // middle edge flipped
+  assert.equal(goals(edit((d) => { d.EDGES.orientation[0] = d.EDGES.orientation[1] = 1; })), '11000'); // yellow edges flipped
+  assert.equal(goals(edit((d) => { d.EDGES.pieces = [1, 2, 0, ...d.EDGES.pieces.slice(3)]; })), '11000'); // yellow edge 3-cycle
+  assert.equal(goals(edit((d) => { swap(d.EDGES.pieces, 0, 1); swap(d.CORNERS.pieces, 0, 1); })), '11000'); // yellow edges swapped
+  assert.equal(goals(edit((d) => { swap(d.CORNERS.pieces, 0, 2); swap(d.CORNERS.pieces, 1, 3); })), '11100'); // yellow corners swapped
+  assert.equal(goals(edit((d) => { d.CORNERS.pieces = [1, 2, 3, 0, 4, 5, 6, 7]; })), '11100'); // corners a U turn off the edges
+  assert.equal(goals(edit((d) => { d.CORNERS.orientation[0] = 1; d.CORNERS.orientation[1] = 2; })), '11110'); // corners home, twisted
+  assert.equal(goals(edit((d) => { d.CORNERS.orientation[0] = 1; d.CORNERS.orientation[1] = 2; }).applyMove("U'")), '11110'); // ...and turned
+  // yellow on D: the first layer is U
+  assert.equal(goals(solved.applyMove('U'), 'D'), '00000');
+  assert.equal(goals(solved.applyMove('D'), 'D'), '11111');
+  assert.equal(goals(edit((d) => { d.EDGES.orientation[4] = d.EDGES.orientation[5] = 1; }), 'D'), '11000');
+  assert.equal(goals(edit((d) => { d.EDGES.orientation[0] = d.EDGES.orientation[1] = 1; }), 'D'), '00000');
+});
+
+test('quiz pools: every pooled algorithm keeps its stage goal (goals are groups of states, so their products do too)', () => {
+  const broken: string[] = [];
+  const keeps = (stage: Stage, alg: string[] | string) =>
+    goalReached(stage, solved.applyAlg(typeof alg === 'string' ? centerMoves(alg, IDENTITY).join(' ') : alg.join(' ')), 'U');
+  for (const stage of ALL_STAGES) {
+    for (const alg of quizPool(stage, kpuzzle).algs) if (!keeps(stage, alg)) broken.push(`${stage}: ${alg.join(' ')}`);
+    for (const f of FIXTURES) if (POOL_STAGES[stage].includes(f.stage) && !keeps(stage, f.algs[0].alg)) broken.push(`${stage}: ${f.id}`);
+  }
+  assert.deepEqual(broken, []);
+  // ...and they really are pooled where the stage allows (a stage never pools its own algorithms)
+  for (const stage of ALL_STAGES) assert.ok(!POOL_STAGES[stage].includes(stage), stage);
+  for (const stage of ['first-layer', 'f2l', 'oll-cross', 'oll-corners', 'pll-corners'] as const) assert.ok(quizPool(stage, kpuzzle).algs.length > 0, stage);
+  // what a pool leaves out really would break it: twists undo OLL, an F2L insert undoes the first layer
+  assert.ok(!keeps('oll-corners', FIXTURES.at(-1)!.algs[0].alg) && !keeps('first-layer', "U R U' R'"));
 });

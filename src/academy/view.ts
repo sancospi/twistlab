@@ -92,7 +92,8 @@ function homeView(): HTMLElement {
     // a taste of each phase: its first case's diagram
     const strip = el('div', { className: 'tile-strip', ariaHidden: 'true' });
     strip.innerHTML = m.phases.map((phase) => {
-      const c = phase.groups[0].cases[0];
+      const c = phase.groups.flatMap((g) => g.cases)[0];
+      if (!c) return ''; // a phase still being written
       const draw = phase.diagram === 'iso' ? isoSVG : topSVG;
       return draw(patternToFacelets(caseState(kpuzzle, c.algs[0].alg, IDENTITY)), maskFor(c.stage), { size: 64 });
     }).join('');
@@ -199,16 +200,16 @@ function phaseView(phase: Phase): HTMLElement {
   // Two kinds of quiz, kept apart: generated (random states of every case, as many as you like) and the plan's own
   const set = (label: string, hint: string, ...buttons: HTMLElement[]) =>
     el('div', { className: 'quiz-set', role: 'group', ariaLabel: label }, el('span', { className: 'quiz-set-label', textContent: label, title: hint }), ...buttons);
-  const quizzes = el('div', { className: 'quiz-sets' },
+  const quizzes = !cases.length ? [] : [el('div', { className: 'quiz-sets' },
     set(t('academy.quizGenerated'), t('academy.quizGeneratedHint'),
       quizButton(t('academy.quizPhase'), { kind: 'cases', id: phase.id, cases, title: loc(phase.name) })),
     ...(phase.quizzes.length ? [set(t('academy.quizOfficial'), t('academy.quizOfficialHint'),
-      ...phase.quizzes.map((quiz) => quizButton(loc(quiz.name), { kind: 'official', quiz, phase })))] : []));
+      ...phase.quizzes.map((quiz) => quizButton(loc(quiz.name), { kind: 'official', quiz, phase })))] : []))]; // none without cases
   return el('section', { className: 'academy-phase', id: anchor(phase.id) },
     el('h2', { textContent: loc(phase.name) }),
     ...(phase.description ? [prose(loc(phase.description), 'prose hint')] : []),
     ...(phase.progression ? [el('details', {}, el('summary', { textContent: t('academy.progression') }), prose(loc(phase.progression)))] : []),
-    quizzes,
+    ...quizzes,
     el('div', { className: 'academy-groups' }, ...phase.groups.map((g) => groupView(phase, g))));
 }
 

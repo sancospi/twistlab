@@ -61,7 +61,7 @@ test('cfop reducido: SpeedCubeDB extras name real cases; a group holds one stage
 });
 
 test("the plan's notation, calendar and stage goals are part of the method", () => {
-  const m = METHODS[0];
+  const m = cfopReduced;
   assert.match(m.notation!.es, /Gatillos/);
   for (let week = 1; week <= 6; week++) assert.match(m.schedule!.es, new RegExp(`Semana ${week} `));
   assert.match(m.schedule!.es, /cruz en menos de 4 s, F2L en menos de 25 s, OLL en menos de 7 s y PLL en menos de 7 s/);

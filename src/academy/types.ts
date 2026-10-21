@@ -2,8 +2,19 @@
 // Algorithms and setups are written in the plan's frame (yellow up, green front) with ASCII primes.
 import type { Localized } from '../i18n.ts';
 
-/** What a case's algorithm achieves; decides the goal check, the quiz states and the diagram. */
-export type Stage = 'f2l' | 'oll-cross' | 'oll-corners' | 'pll-corners' | 'pll-edges';
+/**
+ * What a case's algorithm achieves; decides the goal check, the quiz states and the diagram.
+ * - first-layer: the face opposite the last layer (white) solved, nothing else matters
+ * - f2l / second-layer: the first two layers solved (second-layer: the beginner's middle-layer edges)
+ * - oll-cross: + last-layer edges oriented; oll-corners: + everything oriented
+ * - pll-corners: + corners home after some U turn; pll-edges: everything solved after some U turn
+ * - ll-edges: first two layers + last-layer edges home and oriented after some U turn (corners anything)
+ * - ll-corners-placed: ll-edges + last-layer corners in their slots (any orientation), after the same U turn
+ * - ll-corners-twist: everything solved after some U turn (the beginner's R' D' R D twists)
+ */
+export type Stage =
+  | 'first-layer' | 'second-layer' | 'f2l' | 'oll-cross' | 'oll-corners' | 'pll-corners' | 'pll-edges'
+  | 'll-edges' | 'll-corners-placed' | 'll-corners-twist';
 
 export type AlgSource = 'speedcubedb' | 'plan-b' | 'community';
 

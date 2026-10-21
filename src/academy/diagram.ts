@@ -2,7 +2,7 @@
 // Input is a 54-char Kociemba string in the USER frame (yellow up, green front), so letters are user faces.
 import type { Stage } from './types.ts';
 
-export type Mask = 'f2l' | 'oll-cross' | 'oll' | 'pll' | 'full';
+export type Mask = 'first-layer' | 'f2l' | 'oll-cross' | 'oll' | 'll-edges' | 'pll' | 'full';
 export interface DiagramOpts {
   size?: number; // rendered width in px
   title?: string; // accessible name; callers pass an already translated string
@@ -16,15 +16,16 @@ const GREY = '#9ca3af';
 const PLASTIC = '#111';
 const U_CENTER = 4;
 
-// Kociemba piece facelets; f2l greys whole pieces, so it needs to know which stickers travel together.
+// Kociemba piece facelets, the 8 corners first; f2l greys whole pieces, so it needs to know which stickers travel together.
 const PIECES = [
   [8, 9, 20], [6, 18, 38], [0, 36, 47], [2, 45, 11], [29, 26, 15], [27, 44, 24], [33, 53, 42], [35, 17, 51],
   [5, 10], [7, 19], [3, 37], [1, 46], [32, 16], [28, 25], [30, 43], [34, 52], [23, 12], [21, 41], [50, 39], [48, 14],
 ];
 
 export function maskFor(stage: Stage): Mask {
-  if (stage === 'f2l' || stage === 'oll-cross') return stage; // the cross step looks at edges only, as in the plan
-  return stage.startsWith('oll') ? 'oll' : 'pll';
+  if (stage === 'first-layer' || stage === 'f2l' || stage === 'oll-cross' || stage === 'll-edges') return stage; // oll-cross: edges only, as in the plan
+  if (stage === 'second-layer') return 'f2l';
+  return stage === 'oll-corners' ? 'oll' : 'pll'; // pll-*, ll-corners-*: every sticker counts
 }
 
 /** Which facelet indices are drawn grey under a mask. */
@@ -33,9 +34,14 @@ function maskedSet(facelets: string, mask: Mask): Set<number> {
   if (mask === 'oll' || mask === 'oll-cross') {
     for (let i = 0; i < 54; i++) if (facelets[i] !== 'U') out.add(i);
     if (mask === 'oll-cross') PIECES.slice(0, 8).forEach((corner) => corner.forEach((i) => out.add(i)));
-  } else if (mask === 'f2l') {
+  } else if (mask === 'f2l' || mask === 'first-layer') {
     out.add(U_CENTER);
-    for (const piece of PIECES) if (piece.some((i) => facelets[i] === 'U')) piece.forEach((i) => out.add(i));
+    // f2l: grey the last-layer (yellow) pieces; first-layer: grey every piece that isn't white
+    const hidden = (piece: number[]) => (mask === 'f2l' ? piece.some((i) => facelets[i] === 'U') : !piece.some((i) => facelets[i] === 'D'));
+    for (const piece of PIECES) if (hidden(piece)) piece.forEach((i) => out.add(i));
+  } else if (mask === 'll-edges') {
+    // last-layer corners (whole pieces, wherever they are) don't matter yet
+    for (const corner of PIECES.slice(0, 8)) if (corner.some((i) => facelets[i] === 'U')) corner.forEach((i) => out.add(i));
   }
   return out;
 }
