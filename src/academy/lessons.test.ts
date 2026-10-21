@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { tokenize } from '../notation.ts';
 import { beginner } from './beginner.ts';
+import { cfopReduced } from './cfop.ts';
 import { crossGuide } from './crossGuide.ts';
 import { caseChoices, courseFor, minutes, moveQuestion, nextLesson, parseDone, splitSteps } from './lessons.ts';
 import type { Case } from './types.ts';
@@ -45,7 +46,7 @@ test('lessons: case choices are at most 4, include the answer and keep the phase
 });
 
 test('lessons: every guide with lessons builds them from its own data', () => {
-  assert.equal(courseFor('cfop-reducido'), null);
+  assert.equal(courseFor('cfop-completo'), null); // a reference, no lessons
   const notation = courseFor('notacion')!;
   assert.deepEqual(notation.lessons.map((l) => l.id), ['caras', 'dos-capas', 'capas-del-medio', 'todo-el-cubo']);
   const cross = courseFor(crossGuide.id)!;
@@ -83,4 +84,13 @@ test('lessons: progress is validated and the next lesson is the first not done',
   const step = (kind: 'text' | 'cube') => (kind === 'text' ? { kind, text: '' } : { kind, text: '', setup: '', alg: 'R', doSetup: false });
   assert.equal(minutes({ id: 'x', title: 'x', steps: [step('text')] }), 1); // never "~0 min"
   assert.equal(minutes({ id: 'x', title: 'x', steps: [...Array(6)].map(() => step('cube')) }), 3); // 30 s per cube step
+});
+
+test('lessons: CFOP reducido gets a lesson per group in big phases, every case shown once', () => {
+  const c = courseFor(cfopReduced.id)!;
+  const cases = cfopReduced.phases.flatMap((p) => p.groups.flatMap((g) => g.cases));
+  const shown = c.lessons.flatMap((l) => l.steps).filter((s) => s.kind === 'cube');
+  assert.equal(shown.length, cases.length);
+  for (const l of c.lessons) assert.ok(l.steps.filter((s) => s.kind === 'cube').length <= 8, l.id); // short lessons
+  assert.equal(new Set(c.lessons.map((l) => l.id)).size, c.lessons.length); // ids unique (progress keys)
 });

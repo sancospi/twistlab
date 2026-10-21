@@ -4,8 +4,9 @@
 import { loc, t, type MessageKey } from '../i18n.ts';
 import { explainMove, invertTokens, tokenize } from '../notation.ts';
 import { beginner } from './beginner.ts';
+import { cfopReduced } from './cfop.ts';
 import { crossGuide } from './crossGuide.ts';
-import type { Case, Stage } from './types.ts';
+import type { Case, Method, Phase, Stage } from './types.ts';
 
 export type LessonStep =
   | { kind: 'text'; title?: string; text: string } // text: rich text (rich-text.ts)
@@ -126,8 +127,8 @@ function crossLessons(): Lesson[] {
   }));
 }
 
-// --- Método principiante: how to hold it, then per phase its goal and method, each case with its algorithm,
-// and "which case is it?" ---
+// --- A method (principiante, CFOP reducido): how to hold it, then per phase its goal and method, each case with its
+// algorithm, and "which case is it?". A phase with many cases (CFOP's F2L) gets a lesson per group instead. ---
 
 const caseTitle = (c: Case) => (loc(c.name) === c.code ? c.code : `${c.code} · ${loc(c.name)}`);
 
@@ -138,33 +139,42 @@ export function caseChoices(cases: Case[], answer: number): Case[] {
   return cases.filter((_, i) => picked.has(i));
 }
 
+const MAX_CASES = 8; // more in one phase: a lesson per group, so a lesson stays short
+
 /** `algOf`: the algorithm shown for a case (the user's chosen one, in the app). */
-function beginnerLessons(algOf: (c: Case) => string): Lesson[] {
+function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
   const hold: Lesson = {
     id: 'sostener',
     title: t('lesson.hold'),
-    steps: [...splitSteps(loc(beginner.orientation)), ...splitSteps(beginner.notation ? loc(beginner.notation) : '')].map(text),
+    steps: [...splitSteps(loc(m.orientation)), ...splitSteps(m.notation ? loc(m.notation) : '')].map(text),
   };
-  return [hold, ...beginner.phases.map((phase): Lesson => {
-    const cases = phase.groups.flatMap((g) => g.cases);
+  const lesson = (id: string, title: string, intro: string, cases: Case[], diagram: Phase['diagram']): Lesson => {
     const n = cases.length;
     const asked = [...new Set([n - 1, Math.floor((n - 1) / 2)])].filter((i) => i >= 0); // two spread out, if there are two
     return {
-      id: phase.id.replace(/^prin-/, ''),
-      title: loc(phase.name),
+      id,
+      title,
       steps: [
-        ...splitSteps(phase.description ? loc(phase.description) : '').map(text),
+        ...splitSteps(intro).map(text),
         ...cases.map((c): LessonStep => {
           const alg = algOf(c);
           const text = [`**${t('practice.recognition')}:** ${loc(c.recognition)}`, ...(c.note ? [loc(c.note)] : [])].join('\n');
           return { kind: 'cube', title: caseTitle(c), text, setup: invertTokens(tokenize(alg)).join(' '), alg, doSetup: false, stage: c.stage };
         }),
         ...asked.map((i): LessonStep => ({
-          kind: 'case', caseId: cases[i].id, alg: algOf(cases[i]), stage: cases[i].stage, diagram: phase.diagram,
+          kind: 'case', caseId: cases[i].id, alg: algOf(cases[i]), stage: cases[i].stage, diagram,
           choices: caseChoices(cases, i).map((c) => ({ id: c.id, label: c.code })),
         })),
       ],
     };
+  };
+  return [hold, ...m.phases.flatMap((phase): Lesson[] => {
+    const desc = phase.description ? loc(phase.description) : '';
+    const cases = phase.groups.flatMap((g) => g.cases);
+    const id = m === beginner ? phase.id.replace(/^prin-/, '') : phase.id; // the beginner's ids predate other methods' lessons
+    if (cases.length <= MAX_CASES) return [lesson(id, loc(phase.name), desc, cases, phase.diagram)];
+    return phase.groups.map((g, i) => lesson(g.id, `${loc(phase.name)} · ${loc(g.name)}`,
+      [...(i ? [] : [desc]), ...(g.description ? [loc(g.description)] : [])].join('\n'), g.cases, phase.diagram));
   })];
 }
 
@@ -172,7 +182,8 @@ function beginnerLessons(algOf: (c: Case) => string): Lesson[] {
 export function courseFor(id: string, algOf: (c: Case) => string = (c) => c.algs[0].alg): Course | null {
   if (id === 'notacion') return { id, title: t('glossary.title'), lessons: notationLessons() };
   if (id === crossGuide.id) return { id, title: t('cross.title'), lessons: crossLessons() };
-  if (id === beginner.id) return { id, title: loc(beginner.name), lessons: beginnerLessons(algOf) };
+  const m = [beginner, cfopReduced].find((x) => x.id === id); // the full CFOP is a reference: no lessons
+  if (m) return { id, title: loc(m.name), lessons: methodLessons(m, algOf) };
   return null;
 }
 
