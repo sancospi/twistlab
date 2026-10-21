@@ -18,6 +18,7 @@ export const heldColors = (hold: Record<string, string>): Record<string, string>
   Object.fromEntries(Object.entries(hold).map(([place, face]) => [place, COLORS[face]]));
 const GREY = '#9ca3af';
 const PLASTIC = '#111';
+const ARROW = '#e040fb'; // PLL arrows: no face has this colour, so they read on yellow, grey and the dark plastic alike
 const U_CENTER = 4;
 
 // Kociemba piece facelets, the 8 corners first; f2l greys whole pieces, so it needs to know which stickers travel together.
@@ -154,7 +155,7 @@ function arrowsSVG(moves: [number, number][], s: number): string {
     const [sx, sy, ex, ey] = [x1 + ux * trim, y1 + uy * trim, x2 - ux * trim, y2 - uy * trim];
     out += `<line x1="${r2(sx)}" y1="${r2(sy)}" x2="${r2(ex)}" y2="${r2(ey)}"/>${head(ex, ey, ux, uy)}${swap ? head(sx, sy, -ux, -uy) : ''}`;
   }
-  return out && `<g class="arrows" stroke="${PLASTIC}" stroke-width="0.9" fill="${PLASTIC}" stroke-linejoin="round">${out}</g>`;
+  return out && `<g class="arrows" stroke="${ARROW}" stroke-width="0.9" fill="${ARROW}" stroke-linejoin="round">${out}</g>`;
 }
 
 // Full net (cross layout, as on scramble sheets): U above F; L, F, R, B in a row; D below F. Each face in
