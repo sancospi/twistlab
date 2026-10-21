@@ -10,7 +10,7 @@
     body { margin: 0; height: 100dvh; background: radial-gradient(circle at 50% 40%, #1b2030, var(--bg)); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; overflow: hidden; }
     #cube { position: fixed; inset: 0; }
     #cube twisty-player { width: 100%; height: 100%; }
-    .panel { position: fixed; top: 16px; left: 16px; right: 16px; max-width: 360px; padding: 16px; border-radius: 12px; background: var(--panel); backdrop-filter: blur(8px); display: grid; gap: 10px; }
+    .panel { position: fixed; top: 16px; left: 16px; right: 16px; max-width: 400px; max-height: calc(100dvh - 32px); overflow-y: auto; padding: 16px; border-radius: 12px; background: var(--panel); backdrop-filter: blur(8px); display: grid; gap: 10px; }
     h1 { margin: 0; font-size: 18px; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; }
     button { font: inherit; padding: 8px 12px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); cursor: pointer; }
@@ -20,15 +20,57 @@
     dd { margin: 0; color: var(--fg); }
     #moves { font-family: ui-monospace, monospace; min-height: 1.4em; word-break: break-word; }
     #status.solved { color: var(--accent); font-weight: 600; }
+    #guide { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: #0b0d12aa; }
+    #guide[hidden] { display: none; }
+    .guide-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); }
+    #guide-actions[hidden], section[hidden] { display: none; }
+    .menu { display: flex; gap: 4px; padding: 4px; border-radius: 10px; background: #0b0d12aa; }
+    .menu button { flex: 1; background: none; color: var(--muted); }
+    .menu button[aria-pressed="true"] { background: #2a3142; color: var(--fg); font-weight: 600; }
+    #mod-solve { display: grid; gap: 8px; }
+    .scramble-box { display: grid; gap: 8px; }
+    .scramble-box[hidden], .scramble[hidden] { display: none; }
+    .scramble { font: 700 22px/1.45 ui-monospace, monospace; word-spacing: .2ch; }
+    .net twisty-player { width: 100%; height: 190px; }
+    .stage { position: fixed; inset: 0; z-index: 10; display: grid; place-content: center; justify-items: center; gap: 20px; padding: 16px;
+      background: color-mix(in srgb, var(--bg) 90%, transparent); touch-action: none; user-select: none; -webkit-user-select: none; }
+    .stage[hidden], #penalties[hidden] { display: none; }
+    .big { font: 700 min(26vw, 240px)/1 ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .big.warn { color: #facc15; } .big.late { color: #fb923c; } .big.hold { color: #ef4444; } .big.go { color: var(--accent); }
+    .stage-hint { margin: 0; color: var(--muted); text-align: center; }
+    #penalties button { min-width: 64px; }
+    #penalties button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+    .results { margin: 0; padding-left: 2.5em; max-height: 8.5em; overflow-y: auto; font-family: ui-monospace, monospace; color: var(--muted); }
+    .results li:first-child { color: var(--fg); }
+    .results li { padding-left: .5ch; }
+    .results li::marker { color: var(--muted); }
+    .del { margin-left: 1ch; padding: 0 .6ch; background: none; color: var(--muted); font-size: 16px; line-height: 1.2; }
+    .del:hover, .del:focus-visible { color: #f87171; }
+    .stats-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .stats-row[hidden], #reset-results[hidden] { display: none; }
+    button.small { padding: 4px 8px; font-size: 12px; }
+    .guide-head button { padding: 4px 10px; }
+    #guide-next { font: 700 44px/1 ui-monospace, monospace; color: var(--accent); }
+    #guide-steps { font-family: ui-monospace, monospace; color: var(--muted); word-break: break-word; }
+    #guide-steps span { margin-right: .5ch; }
+    #guide-steps .current { color: var(--fg); font-weight: 700; }
+    .hint { margin: 0; font-size: 12px; color: var(--muted); }
+    .view { position: fixed; right: 16px; bottom: 16px; display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 6px; }
+    .view button { padding: 0; font-size: 18px; background: var(--panel); backdrop-filter: blur(8px); }
+    .view [data-turn="up"] { grid-area: 1 / 2; } .view [data-turn="left"] { grid-area: 2 / 1; } .view [data-turn="reset"] { grid-area: 2 / 2; font-size: 15px; }
+    .view [data-turn="right"] { grid-area: 2 / 3; } .view [data-turn="down"] { grid-area: 3 / 2; }
   </style>
 </head>
 <body>
   <div id="cube"></div>
   <div class="panel">
     <h1>Cube</h1>
+    <nav class="menu" aria-label="Módulos">
+      <button data-mod="solve" aria-pressed="true">Resolver</button>
+      <button data-mod="guide" aria-pressed="false">Guía</button>
+    </nav>
     <div class="row">
       <button id="connect" class="primary">Conectar cubo GAN</button>
-      <button id="demo">Demo sin cubo</button>
       <button id="reset-gyro" disabled>Recalibrar orientación</button>
       <button id="reset-state" disabled>Marcar como resuelto</button>
     </div>
@@ -37,7 +79,54 @@
       <dt>Cubo</dt><dd id="device">–</dd>
       <dt>Batería</dt><dd id="battery">–</dd>
     </dl>
+    <section id="mod-solve" aria-label="Resolver">
+      <div id="scramble-box" class="scramble-box">
+        <div id="scramble-text" class="scramble" aria-label="Mezcla"></div>
+        <div id="net" class="net" aria-hidden="true"></div>
+      </div>
+      <p id="timer-hint" class="hint"></p>
+      <div class="row">
+        <button id="start" class="primary">Empezar (Espacio)</button>
+        <button id="new-scramble">Nueva mezcla (N)</button>
+      </div>
+      <div class="stats-row">
+        <p id="stats" class="hint"></p>
+        <button id="reset-results" class="small" hidden>Borrar todos</button>
+      </div>
+      <ol id="results" class="results" reversed></ol>
+    </section>
+    <section id="mod-guide" aria-label="Guía" hidden>
+      <div id="guide-actions" class="row">
+        <button id="scramble-start" disabled>Mezclar</button>
+        <button id="guide-start" class="primary" disabled>Guíame a resolverlo</button>
+        <button id="demo">Demo sin cubo</button>
+      </div>
+    </section>
+    <section id="guide" hidden aria-live="polite">
+      <div class="guide-head"><span><strong id="guide-title"></strong> · <span id="guide-progress"></span></span><button id="guide-stop">Salir</button></div>
+      <div id="guide-next"></div>
+      <div id="guide-desc"></div>
+      <div id="guide-steps"></div>
+      <p class="hint">Sostén el cubo como se ve en pantalla. Si te equivocas, la guía recalcula desde donde estés.</p>
+    </section>
     <div id="moves"></div>
+  </div>
+  <div id="stage" class="stage" hidden>
+    <div id="big" class="big" role="timer">15</div>
+    <p id="stage-hint" class="stage-hint"></p>
+    <div id="penalties" class="row" role="group" aria-label="Penalización" hidden>
+      <button data-pen="0">OK</button>
+      <button data-pen="2000">+2</button>
+      <button data-pen="DNF">DNF</button>
+      <button id="delete-last">Eliminar</button>
+    </div>
+  </div>
+  <div class="view" role="group" aria-label="Orientación del cubo">
+    <button data-turn="up" aria-label="Girar hacia arriba" title="Girar hacia arriba (↑)">↑</button>
+    <button data-turn="left" aria-label="Girar a la izquierda" title="Girar a la izquierda (←)">←</button>
+    <button data-turn="reset" aria-label="Vista inicial" title="Volver a la vista inicial del módulo">⟲</button>
+    <button data-turn="right" aria-label="Girar a la derecha" title="Girar a la derecha (→)">→</button>
+    <button data-turn="down" aria-label="Girar hacia abajo" title="Girar hacia abajo (↓)">↓</button>
   </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
