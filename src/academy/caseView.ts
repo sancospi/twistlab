@@ -1,9 +1,9 @@
 // A case's own page (/academia/<method>/caso/<case>) and the algorithm library (/academia/algoritmos).
-// The page: the case's diagram and a 3D player of the chosen algorithm; facts (probability, moves, group, and the inverse
+// The page: the case's diagram, and a 3D player of the chosen algorithm on demand ("Ver animación"); facts (probability, moves, group, and the inverse
 // and mirror cases found in the simulator); the algorithms with their triggers marked and their tags; how to recognise
-// it; your data and spaced-repetition status; the three ways to practise it; the other cases of its group.
-// Its 3D player lives in index.html's #case, outside #mod-academy (rebuilt per page), so it's never re-attached.
-import { TwistyPlayer } from 'cubing/twisty';
+// it; your data and spaced-repetition status; the three ways to work on it (Practicar, Quiz, Memoria muscular); the
+// other cases of its group. Its 3D player lives in index.html's #case, outside #mod-academy (rebuilt per page), so
+// it's never re-attached.
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
 import { IDENTITY, algTags, centerMoves, htm, invertTokens, tokenize, triggerSegments } from '../notation.ts';
@@ -15,7 +15,7 @@ import { caseState } from './cube.ts';
 import { isoSVG, maskFor, topSVG } from './diagram.ts';
 import { inverseCase, matches, mirrorCase, SETS, STATUSES, type CaseStatus, type LibraryFilter } from './library.ts';
 import { METHODS } from './methods.ts';
-import { el, fingersView, MASKS, openPractice, sourceLabel, type Tab } from './practice.ts';
+import { Animation, el, fingersView, loadCase, movesView, openPractice, sourceLabel } from './practice.ts';
 import { caseProbability, formatProbability } from './probability.ts';
 import { caseLabel, openQuiz } from './quiz.ts';
 import { average, isDue, learnStatus, learningFor, preferred, setPreferred, statsFor, variants } from './store.ts';
@@ -28,8 +28,12 @@ const stage = $('case-player');
 const body = $('case-body');
 
 let kpuzzle: KPuzzle;
-let player: TwistyPlayer | null = null;
 let shown: Case | null = null; // the case on screen: callbacks of a dialog closed by leaving the page must not redraw it
+const anim = new Animation(stage, (p) => {
+  const tokens = tokenize(preferred(shown!).alg);
+  loadCase(p, shown!.stage, invertTokens(tokens), tokens);
+});
+$('case-anim').append(anim.button());
 
 const casePath = (m: Method, c: Case) => routePath({ mod: 'academy', page: { kind: 'case', method: m.id, id: c.id } });
 const groupPath = (m: Method, g: Group) => `${routePath({ mod: 'academy', page: { kind: 'method', id: m.id } })}#academy-${g.id}`; // view.ts's anchors
@@ -63,8 +67,8 @@ function miniCard(m: Method, phase: Phase, c: Case): HTMLAnchorElement {
 /** Leaving the case's route: hide its section and stop its 3D player. */
 export function stopCase(): void {
   section.hidden = true;
+  anim.set(false);
   shown = null;
-  player?.pause();
 }
 
 /** Draws the case's page: returns the head for #mod-academy (under the crumbs); the rest goes to #case. */
@@ -82,12 +86,8 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
   const fill = () => {
     if (shown !== c) return;
     const v = preferred(c);
-    const tokens = tokenize(v.alg);
     figure.innerHTML = diagram(phase, c, 160, t('academy.diagram', { code: c.code }));
-    player!.experimentalSetupAlg = ['z2', ...invertTokens(tokens)].join(' ');
-    player!.alg = tokens.join(' ');
-    player!.experimentalStickeringMaskOrbits = MASKS[c.stage];
-    player!.jumpToStart();
+    anim.refresh();
     const inverse = inverseCase(kpuzzle, c, v.alg, phaseCases);
     const mirror = mirrorCase(kpuzzle, c, v.alg, phaseCases);
     const p = caseProbability(c.id, kpuzzle);
@@ -132,16 +132,16 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
     return box;
   }
 
-  // Quiz of this one case: random states of it, answered among its group's cases.
-  const quiz = () => void openQuiz({ kind: 'cases', id: c.id, cases: [c], answers: group.cases, title: caseLabel(c) }, fill);
-  const action = (tab: Tab, hint: MessageKey, primary = false) => {
-    const b = el('button', { type: 'button', className: primary ? 'primary' : '' },
-      el('span', { textContent: t(`practice.tab.${tab}`) }), el('small', { textContent: t(hint) }));
-    b.onclick = () => void openPractice(c, fill, quiz, tab);
-    return b;
-  };
+  // The three ways, in order: Practicar (this case), Quiz (random cases of its group, this one first ticked as "Uno
+  // solo"), Memoria muscular (this case's algorithm).
+  const quiz = () => void openQuiz({ kind: 'cases', id: c.id, cases: [c], answers: group.cases, title: t('academy.quizOf', { name: loc(group.name) }) }, fill); // the group's cases come up too
+  const action = (label: MessageKey, hint: MessageKey, onclick: () => void, primary = false) =>
+    el('button', { type: 'button', className: primary ? 'primary' : '', onclick },
+      el('span', { textContent: t(label) }), el('small', { textContent: t(hint) }));
   const actions = el('div', { className: 'case-actions', role: 'group', ariaLabel: t('practice.tabs') },
-    action('test', 'case.testHint', true), action('case', 'case.caseHint'), action('drill', 'case.drillHint'));
+    action('practice.tab.practice', 'case.practiceHint', () => void openPractice(c, fill, quiz, 'practice'), true),
+    action('practice.tab.quiz', 'case.quizHint', quiz),
+    action('practice.tab.drill', 'case.drillHint', () => void openPractice(c, fill, quiz, 'drill')));
 
   const recognition = el('section', { className: 'case-section' },
     el('h3', { textContent: t('case.recognition') }),
@@ -154,28 +154,13 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
     el('h3', { textContent: t('case.others', { name: loc(group.name) }) }),
     el('div', { className: 'mini-cards' }, ...siblings.map((x) => miniCard(m, phase, x))))];
 
-  section.hidden = false; // before the player: a 3D view set up at zero size stays blank
-  player ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start', hintFacelets: 'none' });
-  if (!player.isConnected) stage.append(player);
+  section.hidden = false;
+  anim.set(false); // a new case: its figure, the animation only when asked for
   body.replaceChildren(facts, actions, algs, recognition, why, data, ...others);
   fill();
   return el('header', { className: 'case-head' },
     el('h2', { textContent: caseLabel(c) }),
     text([loc(m.name), loc(phase.name), loc(group.name)].join(' · '), 'hint'));
-}
-
-/** The algorithm with its triggers as labelled groups; every move stays tappable. */
-function movesView(tokens: string[]): HTMLElement {
-  const out = el('div', { className: 'case-moves' });
-  triggerSegments(tokens).forEach((s, i) => {
-    if (i) out.append(' '); // real spaces: readable when copied
-    if (!s.trigger) return void out.append(algView(s.tokens));
-    const name = t(`case.trigger.${s.trigger}`);
-    const label = s.left ? t('case.triggerLeft', { name }) : name;
-    out.append(el('span', { className: 'trigger', role: 'group', ariaLabel: label },
-      algView(s.tokens), el('span', { className: 'trigger-name', ariaHidden: 'true', textContent: label })));
-  });
-  return out;
 }
 
 const day = new Intl.DateTimeFormat(lang, { weekday: 'short', day: 'numeric', month: 'short' });

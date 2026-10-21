@@ -1,7 +1,7 @@
 // Reusable notation: an algorithm as tappable moves. Each move opens a tooltip with a small 3D cube doing that
 // move in a loop (camera on the turning layer) and a short caption: what turns and which way.
 import { TwistyPlayer } from 'cubing/twisty';
-import { explainMove, moveCamera, repeats, tokenize } from './notation.ts';
+import { algParts, explainMove, moveCamera, tokenize, type AlgPart } from './notation.ts';
 import { showTip } from './tooltip.ts';
 import { t } from './i18n.ts';
 
@@ -45,15 +45,18 @@ export function algView(alg: string | string[], opts: AlgViewOptions = {}): HTML
   return out;
 }
 
-/** Moves with repeated blocks as (block)×n, nested when a block repeats inside: ((R' D' R D)×2 U)×2. */
+/** Moves with common triggers in parentheses and repeated blocks as (block)×n, nested: ((R' D' R D)×2 U)×2. */
 function grouped(tokens: string[], button: (token: string) => HTMLElement): (Node | string)[] {
-  return repeats(tokens).flatMap((run, i) => {
+  const render = (parts: AlgPart[]): (Node | string)[] => parts.flatMap((p, i) => {
     const sep = i ? [' '] : [];
-    if (run.times === 1) return [...sep, ...run.tokens.flatMap((token, j) => (j ? [' ', button(token)] : [button(token)]))];
-    const group = Object.assign(document.createElement('span'), { className: 'repeat' });
-    group.append('(', ...grouped(run.tokens, button), `)×${run.times}`);
+    const moves = (tokens: string[]) => tokens.flatMap((token, j) => (j ? [' ', button(token)] : [button(token)]));
+    if (p.kind === 'moves') return [...sep, ...moves(p.tokens)];
+    const group = Object.assign(document.createElement('span'), { className: p.kind === 'trigger' ? 'alg-trigger' : 'repeat' }); // not .trigger: case pages use it
+    if (p.kind === 'trigger') group.append('(', ...moves(p.tokens), ')');
+    else group.append('(', ...render(p.parts), `)×${p.times}`);
     return [...sep, group];
   });
+  return render(algParts(tokens));
 }
 
 // One looping player and one caption for every tooltip, built once and never re-attached (see tooltip.ts):

@@ -187,6 +187,14 @@ export function parseHistory(raw: unknown): SessionRecord[] {
 export const autoGrade = (issue: Issue | null, ms: number, avgMs: number | null): Grade =>
   issue ? 'fail' : avgMs !== null && ms < avgMs ? 'easy' : 'good';
 
+// ponytail: fixed thresholds; tune them here (or per stage) if they step in too early or too late
+export const STUCK_EXTRA = 8; // turns beyond the algorithm's (with its AUF)
+export const STUCK_MS = 60_000; // since the first turn
+
+/** Solving on the smart cube: the quiz steps in and explains the algorithm past STUCK_EXTRA extra turns or STUCK_MS. */
+export const isStuck = (turns: number, refHtm: number | null, ms: number): boolean =>
+  (refHtm !== null && turns > refHtm + STUCK_EXTRA) || ms > Math.max(STUCK_MS, 6000 * (refHtm ?? 0)); // long algorithms get more time
+
 export type Selection = 'one' | 'pick' | 'known' | 'learning' | 'slow' | 'due' | 'all';
 export type Order = 'uniform' | 'probability' | 'spaced';
 

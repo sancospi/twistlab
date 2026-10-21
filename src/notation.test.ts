@@ -130,7 +130,7 @@ test('repeats: blocks repeated in a row are grouped for display, the rest stays 
   assert.equal(f("R' D' R D R' D' R D U R' D' R D R' D' R D U'"), "(R' D' R D)×2 U (R' D' R D)×2 U'");
   assert.equal(f("U R U' R' U R U' R' U R U' R'"), "(U R U' R')×3");
   assert.equal(f("R U R' U R U2 R'"), "R U R' U R U2 R'", 'no repetition: unchanged');
-  assert.equal(f("R U R' U' R U R'"), "R U R' U' R U R'", 'a block and a half is not a repetition');
+  assert.equal(f("R U R' U' R U R'"), "(R U R' U') R U R'", 'a block and a half is not a repetition; its trigger is grouped');
   assert.equal(f("R U R U R U R U"), '(R U)×4', 'on a tie the shorter block wins');
   assert.equal(f('U U'), 'U U', 'single moves are never grouped');
   assert.equal(f("R' D' R D R' D' R D R' D' R D R' D' R D U R' D' R D R' D' R D R' D' R D R' D' R D U"), "((R' D' R D)×4 U)×2", 'nested');
@@ -191,4 +191,16 @@ test('algTags: what stands out in an algorithm', () => {
   assert.deepEqual(tags("x R' U R' D2 R U' R' D2 R2 x'"), ['rotation']);
   assert.deepEqual(tags("F R U R' U' F'"), []);
   assert.deepEqual(tags(''), []);
+});
+
+test('formatAlg: common triggers in parentheses, never doubled', () => {
+  const f = (alg: string) => formatAlg(tokenize(alg));
+  assert.equal(f("R U R' U' R' F R F'"), "(R U R' U') (R' F R F')");
+  assert.equal(f("F R U R' U' F'"), "F (R U R' U') F'");
+  assert.equal(f("F R U R' U' R U R' U' F'"), "F (R U R' U')×2 F'", 'a repeated trigger: one pair of parentheses');
+  assert.equal(f("R U R' U R U2 R'"), "R U R' U R U2 R'", 'the whole algorithm is the trigger (Sune): no parentheses');
+  assert.equal(f("R U R' U'"), "R U R' U'");
+  assert.equal(f("U R U' R' U' F' U F"), "(U R U' R') U' F' U F");
+  assert.equal(f("L' U' L U"), "L' U' L U", 'left-hand trigger alone');
+  assert.equal(f("R U2 R' U' R U' R'"), "R U2 R' U' R U' R'");
 });

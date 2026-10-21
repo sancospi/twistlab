@@ -267,15 +267,18 @@
     .algs > button { justify-self: end; margin-top: -4px; }
     .custom-alg { display: grid; gap: 4px; }
     .custom-alg input { flex: 1; min-width: 0; padding: 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); font: 16px ui-monospace, monospace; } /* 16px: no zoom on focus in iOS */
-    #practice-player twisty-player { width: 100%; height: 260px; }
+    .anim-player twisty-player { width: 100%; height: 260px; }
     #practice-static, #practice-guided, #practice-test, #practice-timer { display: grid; gap: 8px; }
     #practice-static[hidden], #practice-guided[hidden], #practice-test[hidden], #practice-timer[hidden] { display: none; }
+    #practice-setup-row { display: contents; }
+    .practice-head { display: flex; gap: 12px; align-items: flex-start; }
+    .practice-head .practice-facts { display: grid; gap: 4px; min-width: 0; }
+    .practice-diagram { flex: none; }
+    .practice-diagram svg { width: min(120px, 30vw); height: auto; display: block; }
     .practice-tabs button { flex: 1; }
     .practice-tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
     .practice-clock { font: 700 56px/1.2 ui-monospace, monospace; font-variant-numeric: tabular-nums; padding: 16px; touch-action: manipulation; }
     .practice-clock.running { color: var(--accent); }
-    #practice-case:not(.collapsible) > summary { display: none; } /* without a cube the case is the main content */
-    #practice-case.collapsible > summary { cursor: pointer; font-weight: 600; margin: 4px 0; }
     code { font-family: ui-monospace, monospace; }
     .steps { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
     .steps li { flex: 1; padding: 6px; border-radius: 8px; background: #0b0d12aa; color: var(--muted); text-align: center; counter-increment: step; }
@@ -622,7 +625,7 @@
     <section id="mod-progress" class="cube-screen" data-i18n-aria-label="nav.progress" hidden></section>
     <!-- a case's page (caseView.ts): the head goes in #mod-academy; the rest lives here, so its 3D cube is never re-attached -->
     <section id="case" class="case-page" hidden>
-      <div class="case-visual"><div id="case-diagram" class="case-diagram"></div><div id="case-player" class="case-player" role="group" aria-label="Animación del algoritmo"></div></div>
+      <div class="case-visual"><div id="case-diagram" class="case-diagram"></div><div id="case-anim"></div><div id="case-player" class="case-player" role="group" data-i18n-aria-label="anim.label" hidden></div></div>
       <div id="case-body" class="case-body"></div>
     </section>
     <!-- the lesson player (lessonView.ts): outside #mod-academy, which is rebuilt per page, so its 3D cube is never re-attached -->
@@ -692,23 +695,35 @@
       <h2 id="practice-title"></h2>
       <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
     </form>
-    <p id="practice-prob" class="hint" hidden></p>
-    <p><strong data-i18n="practice.recognition"></strong> · <span id="practice-recognition"></span></p>
-    <p id="practice-note" class="hint"></p>
-    <a id="practice-scdb" target="_blank" rel="noopener" data-i18n="practice.scdb"></a>
+    <div class="practice-head">
+      <div id="practice-diagram" class="practice-diagram"></div>
+      <div class="practice-facts">
+        <p id="practice-prob" class="hint" hidden></p>
+        <p><strong data-i18n="practice.recognition"></strong> · <span id="practice-recognition"></span></p>
+        <p id="practice-note" class="hint"></p>
+        <a id="practice-scdb" target="_blank" rel="noopener" data-i18n="practice.scdb"></a>
+      </div>
+    </div>
     <div id="practice-tabs" class="row practice-tabs" role="group" data-i18n-aria-label="practice.tabs">
-      <button type="button" data-tab="test" data-i18n="practice.tab.test"></button>
-      <button type="button" data-tab="case" data-i18n="practice.tab.case"></button>
+      <button type="button" data-tab="practice" data-i18n="practice.tab.practice"></button>
+      <button type="button" data-tab="quiz" data-i18n="practice.tab.quiz"></button>
       <button type="button" data-tab="drill" data-i18n="practice.tab.drill"></button>
     </div>
+    <p id="practice-help" class="hint"></p>
     <fieldset id="practice-algs" class="algs"></fieldset>
     <section id="practice-test" hidden>
-      <p class="hint" data-i18n="practice.testHint"></p>
       <div class="row"><button id="practice-quiz" type="button" class="primary" data-i18n="practice.testStart"></button></div>
     </section>
+    <section id="practice-static">
+      <dl>
+        <div id="practice-setup-row"><dt data-i18n="practice.setup"></dt><dd><code id="practice-setup"></code></dd></div>
+        <dt id="practice-alg-label"></dt><dd><code id="practice-alg"></code></dd>
+      </dl>
+      <div id="practice-fingers"></div>
+    </section>
     <section id="practice-timer" hidden>
-      <p class="hint" data-i18n="practice.timerHint"></p>
       <button id="practice-clock" type="button" class="practice-clock">0.00</button>
+      <div class="row"><button id="practice-another" type="button" data-i18n="practice.another"></button></div>
     </section>
     <section id="practice-guided" aria-live="polite" hidden>
       <ol id="practice-steps" class="steps" data-i18n-aria-label="practice.steps">
@@ -721,19 +736,9 @@
       <div id="practice-list" class="tokens"></div>
       <p id="practice-result"></p>
       <div class="row"><button id="practice-again" class="primary" data-i18n="practice.again" hidden></button></div>
-      <p id="practice-hint" class="hint"></p>
     </section>
-    <details id="practice-case" open>
-      <summary data-i18n="practice.showCase"></summary>
-      <section id="practice-static">
-        <div id="practice-player"></div>
-        <dl>
-          <dt data-i18n="practice.setup"></dt><dd><code id="practice-setup"></code></dd>
-          <dt data-i18n="practice.alg"></dt><dd><code id="practice-alg"></code></dd>
-        </dl>
-        <p id="practice-static-hint" class="hint" data-i18n="practice.staticHint"></p>
-      </section>
-    </details>
+    <div id="practice-anim" class="row"></div>
+    <div id="practice-player" class="anim-player" role="group" data-i18n-aria-label="anim.label" hidden></div>
     <div class="stats-row">
       <p id="practice-stats" class="hint"></p>
     </div>
@@ -743,6 +748,8 @@
       <h2 id="quiz-title"></h2>
       <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
     </form>
+    <!-- the explanation's animation: outside #quiz-body, which is rebuilt on every render, so it's never re-attached; above it, so it's seen -->
+    <div id="quiz-player" class="anim-player" role="group" data-i18n-aria-label="anim.label" hidden></div>
     <div id="quiz-body"></div>
     <p id="quiz-status" class="sr-only" role="status"></p>
   </dialog>

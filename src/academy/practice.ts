@@ -1,21 +1,27 @@
-// Practice one case, in three ways (tabs):
-// - Ponte a prueba: explains and opens the quiz of this case.
-// - Resolver el caso: without a synced cube, a 3D player shows the case and plays the algorithm (static). With one:
-//   1) Mezcla walks the cube to the case, 2) Resolver follows the algorithm token by token, with corrections.
-// - Memoria muscular: the algorithm alone, no scramble. With a cube it's followed from whatever state the cube is in
-//   (the next turn after a rep starts another); without one, a clock started and stopped by hand.
-// Every repetition (time, moves, clean) counts towards the plan's drill criterion.
+// Practice one case, in three ways (tabs), the same three as on its page and in this order:
+// - Practicar (aprender): a fresh scramble of the case each repetition (another AUF and last layer, so it isn't learnt
+//   as text), solved with its solution. With a synced cube: 1) Mezcla walks the cube there, 2) Resuelve follows the
+//   solution token by token, with corrections, timed from the first turn. Without one: figure, scramble and solution
+//   together, and a clock started and stopped by hand (Espacio or tap); Otra mezcla is the next repetition.
+// - Quiz (retener): explains and opens the quiz of the case's group (quiz.ts).
+// - Memoria muscular (agilizar): the algorithm alone, no scramble. With a cube it's followed from whatever state the
+//   cube is in (the next turn after a rep starts another); without one, the same hand clock.
+// Every repetition (time, moves, clean) counts towards the plan's drill criterion. The case's flat figure is always
+// on top; the 3D animation only when asked for (Animation, shared with the case page and the quiz).
 import { TwistyPlayer } from 'cubing/twisty';
 import { cube3x3x3 } from 'cubing/puzzles';
-import type { KPuzzle } from 'cubing/kpuzzle';
+import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
+import { patternToFacelets } from '../facelets.ts';
 import { describe, nextStep, PathGuide } from '../guide.ts';
-import { IDENTITY, YELLOW_UP, centerMoves, expand, formatAlg, htm, invertTokens, merge, tokenize, turnCount, unmapMove } from '../notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, expand, formatAlg, htm, invertTokens, mapMove, tokenize, triggerSegments, turnCount, unmapMove } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView } from '../notation-view.ts';
 import { loc, t, tp, type MessageKey } from '../i18n.ts';
-import { caseState, goalReached, llFaceOf } from './cube.ts';
+import { caseState, goalReached, llFaceOf, makeQuizItems, quizPattern, type QuizSpec } from './cube.ts';
+import { isoSVG, maskFor, topSVG, type DiagramOpts } from './diagram.ts';
 import { StepFollower } from './follow.ts';
 import { cube, type CubeListener } from './link.ts';
+import { solutionFor } from './score.ts';
 import { addCustom, average, preferred, recordRep, removeCustom, save, setPreferred, setting, statsFor, STREAK_GOAL, variants, type Rep } from './store.ts';
 import type { AlgSource, AlgVariant, Case, Stage } from './types.ts';
 import { checkCustomAlg } from './customAlg.ts';
@@ -52,23 +58,90 @@ export const MASKS: Record<Stage, string> = {
   'll-corners-twist': 'EDGES:DDDD----DDDD,CORNERS:DDDD----,CENTERS:------',
 };
 
-// One player, reused: browsers allow only a few WebGL contexts.
-let player: TwistyPlayer | null = null;
-function staticPlayer(): TwistyPlayer {
-  // drag stays on so the case can be inspected from any angle; hint facelets only add clutter here
-  player ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start', hintFacelets: 'none' });
-  if (!player.isConnected) $('practice-player').append(player);
-  return player;
+/** Sets a player up: `alg` from the state `setup` leads to (user frame: yellow up, green front), the stage's pieces in color. */
+export function loadCase(p: TwistyPlayer, stage: Stage, setup: string[], alg: string[]): void {
+  p.experimentalSetupAlg = ['z2', ...setup].join(' '); // the player starts white up: z2 is the plan's yellow up
+  p.alg = alg.join(' ');
+  p.experimentalStickeringMaskOrbits = MASKS[stage];
+  p.jumpToStart();
+}
+
+/** The 3D animation, only on demand ("Ver animación"). One player per slot: a fixed element of index.html, outside
+ *  anything that's rebuilt, so the player is created the first time it's asked for and then only shown and hidden,
+ *  never re-attached (browsers allow few WebGL contexts, and a moved player starts over). `load` sets it up for
+ *  what's on screen. */
+export class Animation {
+  #player: TwistyPlayer | null = null;
+  #label: (() => void) | null = null; // relabels the last button made
+
+  constructor(readonly slot: HTMLElement, readonly load: (p: TwistyPlayer) => void) {
+    slot.hidden = true;
+  }
+
+  get open(): boolean {
+    return !this.slot.hidden;
+  }
+
+  set(open: boolean): void {
+    this.slot.hidden = !open; // before loading: a 3D view set up at zero size stays blank
+    this.#label?.();
+    if (!open) return void this.#player?.pause();
+    // drag stays on so the case can be inspected from any angle; hint facelets only add clutter here
+    this.#player ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start', hintFacelets: 'none' });
+    if (!this.#player.isConnected) this.slot.append(this.#player);
+    this.load(this.#player);
+  }
+
+  /** What's on screen changed: reload the player if it's showing. */
+  refresh(): void {
+    if (this.open && this.#player) this.load(this.#player);
+  }
+
+  /** "Ver animación" / "Ocultar animación". */
+  button(): HTMLButtonElement {
+    const b = el('button', { type: 'button', className: 'small' });
+    b.setAttribute('aria-controls', this.slot.id);
+    const label = () => {
+      b.textContent = t(this.open ? 'anim.hide' : 'anim.show');
+      b.ariaExpanded = String(this.open);
+    };
+    b.onclick = () => this.set(!this.open);
+    this.#label = label;
+    label();
+    return b;
+  }
+}
+
+/** The case's flat figure, as the academy draws it: iso for the first layers and F2L, top view for the last layer, with
+ *  the PLL arrows when `arrows` (never in a recognition question: they'd give it away). `user`: the state, user frame. */
+export function caseSVG(c: Case, user: KPattern, opts: DiagramOpts = {}): string {
+  const mask = maskFor(c.stage);
+  return (phaseOf(c.id)?.diagram === 'iso' ? isoSVG : topSVG)(patternToFacelets(user), mask, { ...opts, arrows: !!opts.arrows && mask === 'pll' });
+}
+
+/** The algorithm with its triggers as labelled groups; every move stays tappable. */
+export function movesView(tokens: string[]): HTMLElement {
+  const out = el('div', { className: 'case-moves' });
+  triggerSegments(tokens).forEach((s, i) => {
+    if (i) out.append(' '); // real spaces: readable when copied
+    if (!s.trigger) return void out.append(algView(s.tokens));
+    const name = t(`case.trigger.${s.trigger}`);
+    const label = s.left ? t('case.triggerLeft', { name }) : name;
+    out.append(el('span', { className: 'trigger', role: 'group', ariaLabel: label },
+      algView(s.tokens), el('span', { className: 'trigger-name', ariaHidden: 'true', textContent: label })));
+  });
+  return out;
 }
 
 type Mode = 'static' | 'scramble' | 'solve' | 'result';
-export type Tab = 'test' | 'case' | 'drill';
-const TABS: Tab[] = ['test', 'case', 'drill'];
-let tab = setting<Tab>('practice-tab', 'case', (v) => TABS.includes(v));
+export type Tab = 'practice' | 'quiz' | 'drill';
+const TABS: Tab[] = ['practice', 'quiz', 'drill'];
+let tab = setting<Tab>('practice-tab', 'practice', (v) => TABS.includes(v));
 let kpuzzle: KPuzzle;
 let kase: Case;
 let variant: AlgVariant;
-let tokens: string[] = [];
+let tokens: string[] = []; // the algorithm
+let rep: { spec: QuizSpec; user: KPattern; tokens: string[] }; // Practicar: this repetition's state and its solution
 let mode: Mode = 'static';
 let follower: StepFollower | null = null;
 let startedAt = 0; // first move of the Resolver phase
@@ -78,7 +151,7 @@ let lastRep: Rep | null = null;
 let redoUntil = 0;
 let onUpdate: (c: Case) => void = () => {};
 let onQuiz: () => void = () => {};
-let timerAt = 0; // > 0 while the no-cube drill clock runs
+let timerAt = 0; // > 0 while the no-cube clock runs
 let timerRaf = 0;
 
 const guide = new PathGuide(() => cube.pattern(), () => {
@@ -97,6 +170,7 @@ export async function openPractice(c: Case, onChange: (c: Case) => void, quiz: (
   onQuiz = quiz;
   lastRep = null;
   customInput.value = customStatus.textContent = '';
+  anim.set(false); // the figure is the default; the animation is asked for
   renderInfo();
   cube.listener = listener;
   dialog.showModal();
@@ -110,7 +184,7 @@ dialog.addEventListener('close', () => {
   stopTimer();
   follower = null;
   mode = 'static';
-  player?.pause();
+  anim.set(false);
 });
 
 const tabButtons = [...$('practice-tabs').querySelectorAll<HTMLButtonElement>('button')];
@@ -122,37 +196,55 @@ for (const b of tabButtons) b.onclick = () => {
 function choose(v: AlgVariant) {
   variant = v;
   tokens = tokenize(v.alg);
-  hints = fingertricks(tokens);
-  const wasOpen = drillFingers.querySelector('details')?.open ?? false;
-  drillFingers.replaceChildren(fingersView(tokens));
-  drillFingers.querySelector('details')!.open = wasOpen;
+  newRep();
   lastRep = null;
-  loadPlayer(); // static it's the content; guided it's behind "Ver el caso"
   start();
 }
 
-/** Starts the current tab: with a cube, set the case up (Resolver el caso) or follow the algorithm from anywhere
- *  (Memoria muscular); otherwise nothing runs until the user acts (quiz button, clock). */
+/** What's being done: Practicar's solution for this repetition, or the algorithm alone. */
+const active = () => (tab === 'practice' ? rep.tokens : tokens);
+
+/** Practicar: a fresh random state of the case (another AUF and last layer), solved with the chosen algorithm. */
+function newRep() {
+  const spec = makeQuizItems([kase], 1, crypto.getRandomValues(new Uint32Array(1))[0], kpuzzle)[0];
+  const user = quizPattern(kpuzzle, spec, IDENTITY);
+  rep = { spec, user, tokens: tokenize(solutionFor(kase, variant.alg, user)) };
+}
+
+/** Starts the current tab: with a cube, set the case up (Practicar) or follow the algorithm from anywhere (Memoria
+ *  muscular); otherwise nothing runs until the user acts (quiz button, clock). */
 function start() {
   stopTimer();
-  if (cube.pattern() && tab === 'case') return startScramble();
+  showContent();
+  if (cube.pattern() && tab === 'practice') return startScramble();
   if (cube.pattern() && tab === 'drill') {
     guide.stop();
     beginSolve();
     return render();
   }
   showStatic();
-  if (tab === 'drill') $('practice-clock').focus(); // Space then starts the clock natively
+  if (tab !== 'quiz') $('practice-clock').focus(); // Space then starts the clock natively
 }
 
-/** The case and the chosen algorithm in the 3D player (yellow up, ready to play). */
-function loadPlayer() {
-  const p = staticPlayer();
-  p.experimentalSetupAlg = ['z2', ...invertTokens(tokens)].join(' ');
-  p.alg = tokens.join(' ');
-  p.experimentalStickeringMaskOrbits = MASKS[kase.stage];
-  p.jumpToStart();
+/** The figure (this repetition's state in Practicar, the case otherwise), the scramble, the algorithm and its fingers. */
+function showContent() {
+  const practice = tab === 'practice';
+  $('practice-diagram').innerHTML = caseSVG(kase, practice ? rep.user : caseState(kpuzzle, variant.alg, IDENTITY),
+    { size: 120, title: t('academy.diagram', { code: kase.code }), arrows: true });
+  $('practice-setup-row').hidden = !practice;
+  $('practice-setup').replaceChildren(algView(rep.spec.moves));
+  $('practice-alg-label').textContent = t(practice ? 'practice.solution' : 'practice.alg');
+  $('practice-alg').replaceChildren(algView(active()));
+  hints = fingertricks(active());
+  const wasOpen = fingers.querySelector('details')?.open ?? false;
+  fingers.replaceChildren(fingersView(active()));
+  fingers.querySelector('details')!.open = wasOpen;
+  anim.refresh();
 }
+
+// Practicar: from this repetition's scramble; Memoria muscular: the algorithm backwards, as on the case page.
+const anim = new Animation($('practice-player'), (p) => loadCase(p, kase.stage, tab === 'practice' ? rep.spec.moves : invertTokens(tokens), active()));
+$('practice-anim').append(anim.button());
 
 function showStatic() {
   mode = 'static';
@@ -164,17 +256,15 @@ function showStatic() {
 function startScramble() {
   mode = 'scramble';
   follower = null;
-  // cube frame (yellow is the cube's D). From solved, the plan's way in: the algorithm backwards — short and
-  // familiar; from anywhere else the guide falls back to the solver.
-  const backwards = merge(invertTokens(centerMoves(variant.alg, YELLOW_UP)));
-  void guide.start(caseState(kpuzzle, variant.alg, YELLOW_UP), backwards);
+  // cube frame (yellow is the cube's D). From solved, the repetition's own scramble; from anywhere else the solver's.
+  void guide.start(quizPattern(kpuzzle, rep.spec, YELLOW_UP), rep.spec.moves.map((m) => mapMove(m, YELLOW_UP)));
   render();
 }
 
 function beginSolve() {
   guide.stop();
   mode = 'solve';
-  follower = new StepFollower(expand(tokens, YELLOW_UP).steps);
+  follower = new StepFollower(expand(active(), YELLOW_UP).steps);
   startedAt = 0;
   done = [];
   clean = true;
@@ -205,7 +295,7 @@ const listener: CubeListener = {
         else startScramble();
       } else if (follower.done) {
         if (tab === 'drill' || goalReached(kase.stage, cube.pattern()!, llFaceOf(YELLOW_UP))) finishRep(); // drill: any start state
-        else startScramble(); // can't happen from the exact case state; start over rather than record nonsense
+        else startScramble(); // can't happen from the exact state; start over rather than record nonsense
       }
     }
     render();
@@ -222,12 +312,11 @@ const listener: CubeListener = {
   },
 };
 
-// Memoria muscular: the suggested fingers, for the current move while following, all of them under the clock.
+// The suggested fingers: for the current move while following (Memoria muscular), all of them without a cube.
 let hints: FingerHint[] = [];
 const fingerNow = el('p', { className: 'hint', role: 'status' });
 $('practice-next').after(fingerNow);
-const drillFingers = el('div');
-$('practice-timer').append(drillFingers);
+const fingers = $('practice-fingers');
 const markText = (h: FingerHint) => (h.regrip ? t('fingers.regrip') : h.home ? t('fingers.home') : '');
 
 /** The algorithm move by move with its suggested fingers, folded under "Ver dedos"; every move stays tappable. */
@@ -240,15 +329,23 @@ export function fingersView(tokens: string[]): HTMLDetailsElement {
     el('ol', { className: 'fingers', ariaLabel: t('fingers.list') }, ...fingertricks(tokens).map(item)));
 }
 
-$('practice-again').onclick = () => (tab === 'drill' ? start() : startScramble());
+$('practice-again').onclick = () => {
+  if (tab === 'practice') newRep();
+  start();
+};
+$('practice-another').onclick = () => {
+  newRep();
+  lastRep = null;
+  start();
+};
 
-// Memoria muscular without a cube: a clock the user starts and stops (tap or Space).
+// Without a cube (Practicar, Memoria muscular): a clock the user starts and stops (tap or Space).
 const clockTime = el('span', { textContent: formatTime(0) });
 const clockLabel = el('small', { className: 'hint' });
 $('practice-clock').replaceChildren(clockTime, el('br'), clockLabel);
 $('practice-clock').onclick = toggleTimer;
 dialog.addEventListener('keydown', (e) => {
-  if (e.code !== 'Space' || tab !== 'drill' || cube.pattern() || (e.target as Element).closest?.('button, input, select, summary, a')) return;
+  if (e.code !== 'Space' || tab === 'quiz' || cube.pattern() || (e.target as Element).closest?.('button, input, select, summary, a')) return;
   e.preventDefault(); // a focused button presses itself; elsewhere Space is the clock
   if (!e.repeat) toggleTimer();
 });
@@ -262,7 +359,7 @@ function toggleTimer() {
     };
     tick();
   } else {
-    const n = htm(centerMoves(tokens, IDENTITY));
+    const n = htm(centerMoves(active(), IDENTITY));
     // ponytail: no cube, so the moves are the algorithm's and "clean" is the user's word for it
     lastRep = { ms: performance.now() - timerAt, moves: n, htm: n, clean: true };
     stopTimer();
@@ -320,7 +417,7 @@ customForm.onsubmit = (e) => {
     customInput.value = '';
     renderInfo();
     say(t(known ? 'custom.exists' : 'custom.added'));
-    customInput.focus(); // prefer() may have moved it to the drill's clock
+    customInput.focus(); // prefer() may have moved it to the clock
     return;
   }
   if (r.kind === 'inverse') customInput.value = r.alg;
@@ -352,7 +449,6 @@ function renderInfo() {
   const link = $('practice-scdb') as HTMLAnchorElement;
   link.hidden = !kase.scdb;
   link.href = kase.scdb?.url ?? '';
-  $('practice-setup').replaceChildren(algView(kase.setup));
   const p = caseProbability(kase.id, kpuzzle);
   $('practice-prob').textContent = p === null ? '' : t('prob.practice', { p: formatProbability(p) });
   $('practice-prob').hidden = p === null;
@@ -371,32 +467,29 @@ function renderInfo() {
 }
 
 
-let showCase = setting('practice-show-case', false); // guided: whether the user keeps the case open
-$('practice-case').addEventListener('toggle', () => {
-  const box = $('practice-case') as HTMLDetailsElement;
-  if (box.classList.contains('collapsible')) save('practice-show-case', (showCase = box.open));
-});
+/** The helper of what's on screen: what to do now, how it ends, what comes next. */
+const helpKey = (): MessageKey =>
+  tab === 'quiz' ? 'practice.testHint'
+  : tab === 'drill' ? (cube.pattern() ? 'practice.drillHint' : 'practice.timerHint')
+  : mode === 'scramble' ? 'practice.scrambleHint' : mode === 'solve' ? 'practice.solveHint' : mode === 'result' ? 'practice.resultHint' : 'practice.staticHint';
 
 function render() {
   if (!dialog.open) return;
   for (const b of tabButtons) b.setAttribute('aria-pressed', String(b.dataset.tab === tab));
   const guided = mode !== 'static';
-  const timer = tab === 'drill' && !cube.pattern();
-  $('practice-test').hidden = tab !== 'test';
+  const timer = tab !== 'quiz' && !cube.pattern();
+  $('practice-help').textContent = t(helpKey());
+  $('practice-test').hidden = tab !== 'quiz';
+  $('practice-static').hidden = !timer; // with a cube, the guidance lists the moves
   $('practice-timer').hidden = !timer;
+  $('practice-another').hidden = tab !== 'practice';
   if (timer) {
     if (!timerAt) clockTime.textContent = formatTime(lastRep?.ms ?? 0);
     clockLabel.textContent = t(timerAt ? 'practice.timerStop' : 'practice.timerStart');
     $('practice-clock').classList.toggle('running', !!timerAt);
   }
-  // Guided, the case (3D player, scramble, algorithm) is one tap away, below the guidance; static, it's the content.
-  const caseBox = $('practice-case') as HTMLDetailsElement;
-  caseBox.classList.toggle('collapsible', guided);
-  caseBox.open = !guided || showCase;
-  $('practice-static-hint').hidden = guided || tab !== 'case';
   $('practice-guided').hidden = !guided;
   $('practice-steps').hidden = tab === 'drill'; // nothing to set up
-  $('practice-alg').replaceChildren(algView(tokens));
   fingerNow.hidden = true; // renderSolve shows it
   renderStats();
   if (!guided) return;
@@ -419,7 +512,6 @@ function renderScramble() {
   const desc = shown && describe(shown);
   $('practice-desc').textContent = performance.now() < redoUntil ? t('practice.restart')
     : !desc ? t('guide.planning') : g!.half ? t('guide.secondHalf', { desc }) : desc;
-  $('practice-hint').textContent = t('practice.scrambleHint');
   $('practice-list').replaceChildren(algView((g?.steps ?? []).map(cube.label), { mark: (i) => (i === 0 ? 'current' : '') }));
 }
 
@@ -427,6 +519,7 @@ function renderSolve() {
   const f = follower!;
   const i = f.index;
   const step = f.steps[i];
+  const tokens = active();
   const frame = expand(tokens.slice(0, i), YELLOW_UP).frame; // how the user holds the cube now
   const name = (m: string) => unmapMove(m, frame);
   // Rotations right before this step: the user turns the whole cube first.
@@ -439,7 +532,6 @@ function renderSolve() {
   $('practice-next').textContent = undo.length ? name(undo[0]) : step.token;
   $('practice-desc').textContent = undo.length ? t('practice.wrong', { moves: undo.map(name).join(' ') })
     : partial ? t('practice.left', { moves: left.map(name).join(' ') }) : '';
-  $('practice-hint').textContent = t(tab === 'drill' ? 'practice.drillHint' : 'practice.solveHint');
   if (tab === 'drill' && !undo.length && performance.now() < redoUntil) $('practice-desc').textContent = t('practice.restartDrill');
   if (tab === 'drill' && !undo.length && hints[i]) {
     fingerNow.hidden = false;
@@ -453,8 +545,7 @@ function renderResult() {
   const s = statsFor(kase.id)!;
   $('practice-rotate').textContent = '';
   $('practice-next').textContent = formatTime(r.ms);
-  $('practice-desc').textContent = t('practice.rep', { moves: r.moves, htm: r.htm, ref: htm(centerMoves(tokens, IDENTITY)) });
-  $('practice-hint').textContent = '';
+  $('practice-desc').textContent = t('practice.rep', { moves: r.moves, htm: r.htm, ref: htm(centerMoves(active(), IDENTITY)) });
   $('practice-list').replaceChildren();
   $('practice-result').textContent = [
     t(r.clean ? 'practice.clean' : 'practice.notClean'),
@@ -467,6 +558,7 @@ function renderStats() {
   const avg = s && average(s);
   $('practice-stats').textContent = !s ? t('practice.noStats') : t('practice.stats', {
     reps: tp('academy.reps', s.reps),
+    last: formatTime(s.last[0]),
     clean: s.clean,
     best: s.best === null ? '–' : formatTime(s.best),
     avg: avg == null ? '–' : formatTime(avg),

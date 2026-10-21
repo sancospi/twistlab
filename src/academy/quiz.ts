@@ -1,29 +1,34 @@
-// Quizzes, a smart trainer. Setup: which cases (by hand, by learning status, slowest, due today…) and in which order
-// (uniform, as often as they come up in a solve, due first). Recognition: pick the case shown in a diagram, on the
-// clock (the only mode without a cube); a random-state scramble lets you set it up on a normal cube, and after a right
-// answer you say whether you solved it. Execution, with a synced cube: guided to each state, then solve it on the
-// clock without being asked its name; graded by itself, the previous item's result shown while setting up the next,
-// time, turns and efficiency measured and the errors reviewed at the end. Every item grades its case for the
-// spaced repetition (store.ts). Scoring lives in score.ts; a short history of sessions is kept in this browser.
+// The Quiz (retener), the same activity from a case page, a group, a phase, the whole method or the plan's own
+// quizzes: only the scope changes. Setup: which cases (by hand, by learning status, slowest, due today…) and in which
+// order (uniform, as often as they come up in a solve, due first). Each item, timed:
+// - With a synced cube: 1) Mezcla, guided to a random state of the case; 2) Resuelve, on the clock from the first
+//   turn, without being asked its name. Graded by itself (time, turns, efficiency).
+// - Without one: 1) Reconoce, pick the case shown in a figure (no arrows: they'd give it away); 2) Resuelve, set the
+//   random-state scramble up on a normal cube and solve it on a clock started and stopped by hand, then say how it went.
+// Solved: the time, turns and grade with the case's best and average, then Repetir (the same case, another state) or
+// Siguiente. A wrong answer, "Me atasqué", or (with the cube) too many turns or too long: the explanation (figure,
+// algorithm with its triggers, recognition, fingers, animation on demand), then Reintentar or Siguiente. Saltar is
+// always there. Every item grades its case for the spaced repetition (store.ts) and every solve counts as a repetition
+// of it; scoring lives in score.ts, a short history of sessions in this browser; the errors are reviewed at the end.
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { describe, nextStep, PathGuide } from '../guide.ts';
 import { patternToFacelets } from '../facelets.ts';
-import { IDENTITY, YELLOW_UP, centerMoves, turnCount, unmapMove, type Frame } from '../notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, htm, tokenize, turnCount, unmapMove, type Frame } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView } from '../notation-view.ts';
 import { lang, loc, t, tp, type MessageKey } from '../i18n.ts';
 import {
   HOLDS, caseState, goalReached, holdIn, llFaceOf, makeQuizItems, quizPattern, randomStateScramble, specsFor, type QuizSpec,
 } from './cube.ts';
-import { heldColors, isoSVG, maskFor, netSVG, topSVG } from './diagram.ts';
+import { heldColors, netSVG } from './diagram.ts';
 import { cube, type CubeListener } from './link.ts';
 import { METHODS, findCase } from './methods.ts';
-import { el, openPractice } from './practice.ts';
+import { Animation, caseSVG, el, fingersView, loadCase, movesView, openPractice } from './practice.ts';
 import { caseProbability } from './probability.ts';
-import { learningFor, load, preferred, recordGrade, save, setting, type Grade } from './store.ts';
+import { average, learningFor, load, preferred, recordGrade, recordRep, save, setting, statsFor, type Grade } from './store.ts';
 import {
-  addSession, aufFor, autoGrade, byCase, lastSession, parseHistory, referenceHtm, review, score, selectCases, solutionFor, spacedTiers,
+  addSession, aufFor, autoGrade, byCase, isStuck, lastSession, parseHistory, referenceHtm, review, score, selectCases, solutionFor, spacedTiers,
   toRetry, weightedOrder, type Attempt, type Issue, type Order, type QuizMode, type Selection, type SessionRecord,
 } from './score.ts';
 import type { Case, OfficialQuiz, Phase } from './types.ts';
@@ -63,10 +68,11 @@ const phaseOf = (c: Case): Phase | undefined =>
   METHODS.flatMap((m) => m.phases).find((p) => p.groups.some((g) => g.cases.includes(c)));
 
 /** The quiz of one case, answered among its group's cases. */
-const caseScope = (c: Case): QuizScope => ({
-  kind: 'cases', id: c.id, cases: [c], title: caseLabel(c),
-  answers: METHODS.flatMap((m) => m.phases).flatMap((p) => p.groups).find((g) => g.cases.includes(c))?.cases,
-});
+const caseScope = (c: Case): QuizScope => {
+  const group = METHODS.flatMap((m) => m.phases).flatMap((p) => p.groups).find((g) => g.cases.includes(c));
+  // titled by the group: its cases come up too (Uno solo narrows it to this one)
+  return { kind: 'cases', id: c.id, cases: [c], title: group ? t('academy.quizOf', { name: loc(group.name) }) : caseLabel(c), answers: group?.cases };
+};
 
 /** Answers for an item: the scope's cases of its phase (a whole method would be too many buttons). */
 function answersFor(item: Item): Case[] {
@@ -80,7 +86,7 @@ interface Item {
   spec: QuizSpec;
   c: Case;
   user: KPattern; // the state in the user frame: diagram, AUF and reference length
-  scramble?: string | null; // recognition, generated: the random-state scramble (null while the solver works)
+  scramble?: string | null; // recognition: the plan's scramble, or the random-state one (null while the solver works)
   random?: boolean; // ...found by the solver (else, too slow: the merged setup)
   hold: Frame; // color neutral: how the cube is held (place -> color), IDENTITY = yellow up, green front
 }
@@ -88,7 +94,7 @@ interface Item {
 /** The item's frame on the GAN cube: its moves, goal and solution are those of the grip it's held in. */
 const onCube = (item: Item): Frame => holdIn(item.hold, YELLOW_UP);
 
-/** What the user is told about an item once it's done. */
+/** What the user is told about an item once it's solved. */
 interface Feedback {
   item: Item;
   grade: Grade;
@@ -96,7 +102,10 @@ interface Feedback {
   extra: number; // ...and by how many turns, for 'extra'
 }
 
-type Screen = 'setup' | 'ask' | 'scramble' | 'solve' | 'reveal' | 'results';
+// ask (Reconoce) → clock (Resuelve) without a cube, scramble (Mezcla) → solve (Resuelve) with one; then done, or
+// explain after a mistake
+type Screen = 'setup' | 'ask' | 'clock' | 'scramble' | 'solve' | 'done' | 'explain' | 'results';
+type Why = 'wrong' | 'stuck' | 'fail'; // why the explanation is up
 let kpuzzle: KPuzzle;
 let scope: QuizScope;
 let onClose: () => void = () => {};
@@ -110,17 +119,20 @@ let attempts: Attempt[] = [];
 let chosen: string | null = null; // recognition: the case picked for the current item
 let shownAt = 0; // the item became answerable / solvable
 let firstMoveAt = 0;
+let fromClock = false; // the explanation follows a failed solve on the hand clock: Reintentar goes back to it
+let retried = false; // Reintentar: the item is not graded for the SRS again
 let done: string[] = []; // quarter turns while solving the current item
 let assisted = false;
-let wantExecution = setting('quiz-on-cube', true); // with a cube: solve on the cube (default) or name the case
+let clockAt = 0; // without a cube: > 0 while the solve clock runs
+let clockMs: number | null = null; // ...its time, once stopped
+let why: Why = 'wrong';
 let showNet = setting('quiz-net', false); // the scramble's 2D net, to check the cube by eye (kept across items)
 let neutral = setting('quiz-neutral', false); // color neutral: each item held a random way (another color on top)
 let selection: Selection = 'all'; // which cases (setup), see openQuiz
 let order = setting<Order>('quiz-order', 'uniform', (v) => ORDERS.includes(v));
 let picked = new Set<string>(); // "Elegir a mano"
 let pickGrid: HTMLElement | null = null; // built once per scope: one diagram per case
-let grade: Grade | null = null; // recognition: the current item's grade, once known
-let feedback: Feedback | null = null; // solve mode: the last item's, shown while setting up the next
+let feedback: Feedback | null = null; // the solved item's, on the done screen
 let failed = new Set<string>(); // cases graded as failed this session: repeated with the misses
 /** Execution: what happened on each item, for the review at the end. */
 let logs: { item: Item; n: number; done: string[]; skipped: boolean; assisted: boolean }[] = [];
@@ -128,6 +140,12 @@ let logs: { item: Item; n: number; done: string[]; skipped: boolean; assisted: b
 const guide = new PathGuide(() => cube.pattern(), () => {
   if (screen === 'scramble' && guide.reached()) beginSolve(); // an empty plan: already at the state
   render();
+});
+
+// The explanation's animation: the item's state and its solution.
+const anim = new Animation($('quiz-player'), (pl) => {
+  const item = items[index];
+  loadCase(pl, item.c.stage, item.spec.moves, tokenize(solution(item)));
 });
 
 /** Opens a quiz on its setup screen; `onDone` runs when the dialog closes (the history may have changed). */
@@ -150,6 +168,7 @@ dialog.addEventListener('close', () => {
   if (dialog.open) return; // 'close' is queued: the dialog was reopened meanwhile
   if (cube.listener === listener) cube.listener = null;
   guide.stop();
+  anim.set(false);
   screen = 'setup';
   onClose();
 });
@@ -158,18 +177,20 @@ dialog.addEventListener('close', () => {
 
 /** The case the quiz was opened from (its scope answers among its group). */
 const oneCase = (): Case | null => (scope.kind === 'cases' && scope.cases.length === 1 && scopeCases(scope).length > 1 ? scope.cases[0] : null);
-const executionNext = () => !!cube.pattern() && wantExecution;
+const executionNext = () => !!cube.pattern(); // with a cube the quiz is solved on it
 const selectContext = () => ({
   one: oneCase(), picked, learning: learningFor, now: Date.now(), timeKey: executionNext() ? 'solveMs' as const : 'recognitionMs' as const,
 });
 const selected = (sel = selection): Case[] => selectCases(sel, scopeCases(scope), selectContext());
 
-/** From a case: that case; a retry: its cases, ticked by hand; otherwise the last choice, if it has cases. */
+/** From a case: random cases of its group ("Uno solo" one tap away); a retry: its cases (that one, or ticked by hand);
+ *  otherwise the last choice, if it has cases. */
 function initialSelection(): Selection {
   if (scope.kind !== 'cases') return 'all';
-  if (oneCase()) return 'one';
+  const retry = scope.id.endsWith(':retry');
+  if (oneCase()) return retry ? 'one' : 'all';
   if (scope.cases.length < scopeCases(scope).length) return 'pick';
-  if (scope.id.endsWith(':retry')) return 'all'; // every case is being retried
+  if (retry) return 'all'; // every case is being retried
   const last = setting<Selection>('quiz-select', 'all', (v) => SELECTIONS.includes(v));
   return last !== 'one' && selected(last).length ? last : selected('due').length ? 'due' : 'all';
 }
@@ -194,13 +215,16 @@ function makeSpecs(): QuizSpec[] {
   return makeQuizItems(cases, perCase, seed, kpuzzle);
 }
 
+// the state stays the same in the grip (diagram, scramble, AUF, answers): only the colors and the cube's frame change
+const makeItem = (spec: QuizSpec, scramble?: string): Item => ({
+  spec, c: findCase(spec.caseId)!, user: quizPattern(kpuzzle, spec, IDENTITY),
+  hold: neutral ? HOLDS[Math.floor(Math.random() * HOLDS.length)] : IDENTITY,
+  ...(scramble === undefined ? {} : { scramble, random: false }),
+});
+
 function start() {
   mode = executionNext() ? 'execution' : 'recognition';
-  // the state stays the same in the grip (diagram, scramble, AUF, answers): only the colors and the cube's frame change
-  items = makeSpecs().map((spec) => ({
-    spec, c: findCase(spec.caseId)!, user: quizPattern(kpuzzle, spec, IDENTITY),
-    hold: neutral ? HOLDS[Math.floor(Math.random() * HOLDS.length)] : IDENTITY,
-  }));
+  items = makeSpecs().map((spec, i) => makeItem(spec, scope.kind === 'official' ? scope.quiz.items[i].scramble : undefined));
   index = 0;
   attempts = [];
   logs = [];
@@ -212,7 +236,7 @@ function start() {
 /** Recognition: the item's random-state scramble, solved for ahead of time (this item and the next). */
 function prefetch(i: number) {
   const item = items[i];
-  if (!item || item.scramble !== undefined || scope.kind === 'official' || mode !== 'recognition') return;
+  if (!item || item.scramble !== undefined || mode !== 'recognition') return;
   item.scramble = null;
   const late = new Promise<null>((resolve) => setTimeout(resolve, SCRAMBLE_MS, null));
   void Promise.race([randomStateScramble(item.user), late]).catch(() => null).then((moves) => {
@@ -229,16 +253,18 @@ function prefetch(i: number) {
 
 /** Grades the item's case for the spaced repetition; `time` only for a real one (right answer, solve without help). */
 function gradeItem(item: Item, g: Grade, time?: Parameters<typeof recordGrade>[2]) {
-  recordGrade(item.c.id, g, time);
+  if (!retried) recordGrade(item.c.id, g, time); // a retry, after the answer was shown, doesn't touch the SRS
   if (g === 'fail') failed.add(item.c.id);
 }
 
 function startItem() {
   chosen = null;
-  grade = null;
   assisted = false;
   done = [];
   firstMoveAt = 0;
+  clockAt = 0;
+  clockMs = null;
+  anim.set(false);
   prefetch(index);
   prefetch(index + 1);
   if (mode === 'execution') {
@@ -258,30 +284,76 @@ function beginSolve() {
   requestAnimationFrame(tick);
 }
 
+/** Recognition: right, solve it on your cube (clock); wrong, the explanation. */
 function answer(caseId: string) {
   if (screen !== 'ask') return;
   chosen = caseId;
   const item = items[index];
   attempts.push({ caseId: item.c.id, correct: caseId === item.c.id, recognitionMs: performance.now() - shownAt });
-  if (caseId !== item.c.id) gradeItem(item, (grade = 'fail')); // right: the user says how the solve went
-  screen = 'reveal';
+  if (caseId === item.c.id) {
+    screen = 'clock';
+    return render();
+  }
+  gradeItem(item, 'fail');
+  explain('wrong');
+}
+
+/** Without a cube, the solve clock: started and stopped by hand (tap or Space); stopped, the user says how it went. */
+function toggleClock() {
+  if (screen !== 'clock' || clockMs !== null) return;
+  if (!clockAt) {
+    clockAt = performance.now();
+    requestAnimationFrame(tick);
+  } else {
+    clockMs = performance.now() - clockAt;
+    clockAt = 0;
+    attempts.at(-1)!.executionMs = clockMs;
+  }
   render();
 }
 
-/** Recognition, after a right answer: "¿Lo resolviste bien?" — well: next; failed: stay for "Repasar ahora". */
+/** Recognition, after the solve: "¿Lo resolviste bien?" — well: the result; failed: the explanation. */
 function selfGrade(g: 'good' | 'fail') {
-  gradeItem(items[index], (grade = g), { key: 'recognitionMs', ms: attempts.at(-1)!.recognitionMs });
-  if (g === 'good') next();
-  else render();
+  const item = items[index];
+  gradeItem(item, g, { key: 'recognitionMs', ms: attempts.at(-1)!.recognitionMs });
+  const n = htm(centerMoves(solution(item), IDENTITY)); // ponytail: no cube, so the moves are the algorithm's
+  if (g === 'good') recordRep(item.c.id, { ms: clockMs!, moves: n, htm: n, clean: true });
+  if (g === 'fail') {
+    attempts.at(-1)!.correct = false;
+    return explain('fail');
+  }
+  feedback = { item, grade: g, issue: null, extra: 0 };
+  screen = 'done';
+  render();
+}
+
+/** A wrong answer, "Me atasqué" / "No lo sé", or (on the cube) too many turns or too long: graded as failed, explained. */
+function stuck() {
+  const item = items[index];
+  guide.stop();
+  if (screen === 'clock') attempts.at(-1)!.correct = false;
+  if (screen === 'ask') attempts.push({ caseId: item.c.id, correct: false, recognitionMs: performance.now() - shownAt });
+  if (screen === 'solve') {
+    assisted = true;
+    attempts.push({ caseId: item.c.id, correct: false, recognitionMs: (firstMoveAt || performance.now()) - shownAt });
+    logs.push({ item, n: index + 1, done, skipped: false, assisted });
+  }
+  gradeItem(item, 'fail');
+  explain('stuck');
+}
+
+function explain(w: Why) {
+  why = w;
+  fromClock = screen === 'clock';
+  screen = 'explain';
+  render();
 }
 
 /** Closes the quiz and drills the case: its practice on the Memoria muscular tab. */
 function reviewNow(c: Case) {
   saveSession(); // the items done so far count
   dialog.close(); // releases the cube for the practice
-  void openPractice(c, () => {}, () => void openQuiz(caseScope(c))).then(() =>
-    // ponytail: through the dialog's own tab button, which also remembers the tab; a parameter if it ever needs more
-    document.querySelector<HTMLButtonElement>('#practice-tabs [data-tab="drill"]')?.click());
+  void openPractice(c, () => {}, () => void openQuiz(caseScope(c)), 'drill');
 }
 
 function solved() {
@@ -289,6 +361,7 @@ function solved() {
   const item = items[index];
   const { issue, extra } = review(done, centerMoves(solution(item), onCube(item)), false, assisted);
   const g = autoGrade(issue, now - shownAt, item.hold !== IDENTITY ? null : learningFor(item.c.id)?.solveMs ?? null);
+  recordRep(item.c.id, { ms: now - firstMoveAt, moves: done.length, htm: turnCount(done), clean: !issue });
   gradeItem(item, g, issue || item.hold !== IDENTITY ? undefined : { key: 'solveMs', ms: now - shownAt }); // regripping is in the clock when neutral
   feedback = { item, grade: g, issue, extra };
   attempts.push({
@@ -301,27 +374,36 @@ function solved() {
     refHtm: referenceHtm(item.c, item.user, preferred(item.c)) ?? undefined, // the algorithm being practised
   });
   logs.push({ item, n: index + 1, done, skipped: false, assisted });
-  next(); // nothing stops between items: the verdict shows while the next one is set up, the errors at the end
+  screen = 'done';
+  render();
 }
 
+/** Saltar: tried on the cube, it's a fail; not tried yet, it isn't graded. Recognised (clock), the answer stands. */
 function skip() {
   guide.stop();
-  if (screen === 'solve') {
-    gradeItem(items[index], 'fail');
-    feedback = { item: items[index], grade: 'fail', issue: 'skipped', extra: 0 };
-  } else feedback = null; // still setting it up: not tried, not graded
-  attempts.push({ caseId: items[index].c.id, correct: false, recognitionMs: screen === 'solve' ? performance.now() - shownAt : 0 });
-  logs.push({ item: items[index], n: index + 1, done, skipped: true, assisted });
+  const item = items[index];
+  if (screen === 'solve') gradeItem(item, 'fail');
+  if (screen !== 'clock') attempts.push({ caseId: item.c.id, correct: false, recognitionMs: screen === 'solve' || screen === 'ask' ? performance.now() - shownAt : 0 });
+  logs.push({ item, n: index + 1, done, skipped: true, assisted });
+  next();
+}
+
+/** Repetir: the same case again, from another random state (an item more, right after this one). */
+function repeat() {
+  const c = items[index].c;
+  items.splice(index + 1, 0, makeItem(specsFor([c], crypto.getRandomValues(new Uint32Array(1))[0], kpuzzle)[0]));
   next();
 }
 
 function next() {
+  retried = false;
   if (++index < items.length) startItem();
   else finish();
 }
 
 function finish() {
   guide.stop();
+  anim.set(false);
   screen = 'results';
   saveSession();
   render();
@@ -342,6 +424,7 @@ const listener: CubeListener = {
       firstMoveAt ||= performance.now();
       done.push(move);
       if (goalReached(items[index].c.stage, cube.pattern()!, llFaceOf(onCube(items[index])))) return solved();
+      if (isStuck(turnCount(done), referenceHtm(items[index].c, items[index].user, preferred(items[index].c)), performance.now() - firstMoveAt)) return stuck();
     } else return;
     render();
   },
@@ -355,17 +438,26 @@ const listener: CubeListener = {
   },
 };
 
-// Live clock while solving (one loop per item, started in beginSolve); stops by itself when the screen changes.
+// Live clocks (one loop per solve, started in beginSolve / toggleClock); they stop by themselves when the screen changes.
+// On the cube the time runs from the first turn; too long, and the quiz steps in (isStuck).
 function tick() {
-  if (screen !== 'solve' || !dialog.open) return;
+  if (!dialog.open || !(screen === 'solve' || (screen === 'clock' && clockAt))) return;
+  const now = performance.now();
+  if (screen === 'solve' && firstMoveAt && isStuck(0, null, now - firstMoveAt)) return stuck();
   const clock = document.getElementById('quiz-clock'); // re-rendered on every move: look it up each frame
-  if (clock) clock.textContent = formatTime(performance.now() - shownAt);
+  if (clock) clock.textContent = formatTime(screen === 'solve' ? (firstMoveAt ? now - firstMoveAt : 0) : now - clockAt);
   requestAnimationFrame(tick);
 }
 
 // On document: re-rendering drops the focus to <body>, outside the dialog, where its own listener can't hear.
 document.addEventListener('keydown', (e) => {
-  if (!dialog.open || screen !== 'ask' || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!dialog.open || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (screen === 'clock' && e.code === 'Space' && !(e.target as Element).closest?.('button, input, select, summary, a')) {
+    e.preventDefault(); // a focused button presses itself; elsewhere Space is the clock
+    if (!e.repeat) toggleClock();
+    return;
+  }
+  if (screen !== 'ask') return;
   const i = KEYS.indexOf(e.key.toLowerCase());
   const cases = answersFor(items[index]);
   if (i < 0 || i >= cases.length) return;
@@ -392,7 +484,7 @@ const solution = (item: Item): string => solutionFor(item.c, preferred(item.c).a
 
 function render() {
   if (!dialog.open) return;
-  const view = { setup: renderSetup, ask: renderItem, scramble: renderScramble, solve: renderSolve, reveal: renderItem, results: renderResults }[screen];
+  const view = { setup: renderSetup, ask: renderAsk, clock: renderClock, scramble: renderScramble, solve: renderSolve, done: renderDone, explain: renderExplain, results: renderResults }[screen];
   const focused = body.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.action : undefined;
   const same = screen === rendered;
   rendered = screen;
@@ -408,15 +500,17 @@ function render() {
   if (status.textContent !== text) status.textContent = text; // unchanged text isn't announced again
 }
 
-/** What the live region says: the question, the next scramble move, the verdict… */
+/** What the live region says: the question, the next scramble move, the result… */
 function statusText(): string {
   const where = items.length ? t('quiz.progress', { n: index + 1, total: items.length }) : '';
+  const item = items[index];
   switch (screen) {
-    case 'ask': return `${where}. ${neutral ? `${holdText(items[index])} ` : ''}${t('quiz.question')}`;
-    // the last item's grade once, while the next one is being planned; then the moves
-    case 'scramble': return [feedback && !guide.total ? feedbackText(feedback) : '', nextMove() ?? '', scrambleDesc(), neutral && items[index] ? holdText(items[index], 'neutral.holdAfter') : ''].join(' ').trim();
-    case 'solve': return `${where}. ${t('quiz.solveHint')}${neutral ? ` ${holdText(items[index], 'neutral.holdSolve')}` : ''}`; // not the clock: it would talk every frame
-    case 'reveal': return [...verdict(items[index]).map((node) => node.textContent), grade === null ? t('quiz.gradeAsk') : ''].join(' ').trim();
+    case 'ask': return `${where}. ${neutral ? `${holdText(item)} ` : ''}${t('quiz.question')}`;
+    case 'clock': return `${t('quiz.correct')} ${caseLabel(item.c)}. ${t(clockMs !== null ? 'quiz.gradeAsk' : clockAt ? 'practice.timerStop' : 'practice.timerStart')}`;
+    case 'scramble': return [nextMove() ?? '', scrambleDesc(), neutral && item ? holdText(item, 'neutral.holdAfter') : ''].join(' ').trim();
+    case 'solve': return `${where}. ${t('quiz.helpSolve')}${neutral ? ` ${holdText(item, 'neutral.holdSolve')}` : ''}`; // not the clock: it would talk every frame
+    case 'done': return `${feedbackText(feedback!)} ${t('quiz.time', { time: formatTime(itemTime()) })}`;
+    case 'explain': return `${whyText()} ${caseLabel(item.c)}`;
     case 'results': return t('quiz.results');
     default: return '';
   }
@@ -480,13 +574,7 @@ function renderSetup(): Node[] {
       el('label', { className: 'academy-method' }, t('quiz.perCase'), select),
       summary);
   }
-  if (execution) {
-    out.push(el('fieldset', { className: 'quiz-modes' }, el('legend', { textContent: t('quiz.modeChoose') }),
-      option('quiz-mode', 'cube', wantExecution, () => save('quiz-on-cube', (wantExecution = true)), t('quiz.optExecution'), t('quiz.optExecutionHint')),
-      option('quiz-mode', 'name', !wantExecution, () => save('quiz-on-cube', (wantExecution = false)), t('quiz.optRecognition'), t('quiz.optRecognitionHint'))));
-  } else {
-    out.push(p(t('quiz.modeRecognition')));
-  }
+  out.push(p(t(execution ? 'quiz.howCube' : 'quiz.howNoCube')));
   const box = el('input', { type: 'checkbox', checked: neutral });
   box.dataset.action = 'neutral';
   box.onchange = () => save('quiz-neutral', (neutral = box.checked));
@@ -538,17 +626,12 @@ function pickView(): HTMLElement {
     el('div', { className: 'quiz-pick-grid', role: 'group', ariaLabel: t('quiz.selPick') }, ...inputs.map(([c, input]) => {
       const box = el('label', { className: 'quiz-pick', title: caseLabel(c) }, input);
       const pic = el('span', { ariaHidden: 'true' }); // the code names it
-      pic.innerHTML = caseSVG(c, 56);
+      pic.innerHTML = caseSVG(c, caseState(kpuzzle, preferred(c).alg, IDENTITY), { size: 56 });
       box.append(pic, el('span', { textContent: c.code }));
       return box;
     }))));
 }
 
-/** The case as the academy's cards draw it. */
-function caseSVG(c: Case, size: number, user = caseState(kpuzzle, preferred(c).alg, IDENTITY), hold = IDENTITY): string {
-  const draw = phaseOf(c)?.diagram === 'iso' ? isoSVG : topSVG;
-  return draw(patternToFacelets(user), maskFor(c.stage), { size, colors: heldColors(hold) });
-}
 
 const color = (face: string) => t(`paint.color.${face}` as MessageKey);
 /** Color neutral: which colors go up and in front for this item. */
@@ -560,37 +643,119 @@ const summaryLine = (r: SessionRecord) =>
 
 const progress = () => p(t('quiz.progress', { n: index + 1, total: items.length }), 'hint');
 
-function diagram(item: Item): HTMLElement {
-  const draw = phaseOf(item.c)?.diagram === 'iso' ? isoSVG : topSVG;
+/** The item's state as a figure; `arrows` (PLL) only once the case is known. */
+function diagram(item: Item, size = 180, arrows = false): HTMLElement {
   const box = el('div', { className: 'quiz-diagram' });
-  box.innerHTML = draw(patternToFacelets(item.user), maskFor(item.c.stage), { size: 180, title: t('quiz.question'), colors: heldColors(item.hold) });
+  box.innerHTML = caseSVG(item.c, item.user, { size, title: arrows ? caseLabel(item.c) : t('quiz.question'), colors: heldColors(item.hold), arrows });
   return box;
 }
 
-/** Recognition question and its verdict. */
-function renderItem(): Node[] {
+/** Step indicator: 1 Reconoce (no cube) or Mezcla (cube) · 2 Resuelve. */
+const steps = (current: 1 | 2) => el('ol', { className: 'steps', ariaLabel: t('practice.steps') },
+  ...[t(mode === 'execution' ? 'practice.stepScramble' : 'quiz.stepRecognize'), t('practice.stepSolve')].map((text, i) =>
+    el('li', { textContent: text, ...(i + 1 === current ? { ariaCurrent: 'step' } : {}) })));
+
+/** "Me atasqué" (or "No lo sé" on the question): the explanation. */
+const stuckButton = (label: MessageKey = 'quiz.stuck') => action('stuck', t(label), stuck);
+
+/** Paso 1 without a cube: which case is it? */
+function renderAsk(): Node[] {
   const item = items[index];
-  const out: Node[] = [progress(), ...holdHint(item)];
-  out.push(diagram(item));
-  if (screen === 'ask') {
-    out.push(...itemScramble(), el('p', {}, el('strong', { textContent: t('quiz.question') })),
-      el('div', { className: 'answers', role: 'group', ariaLabel: t('quiz.answers') }, ...answersFor(item).map((c, i) =>
-        el('button', { type: 'button', onclick: () => answer(c.id) }, ...(i < KEYS.length ? [el('kbd', { textContent: KEYS[i] })] : []), c.code))));
-    return out;
+  return [
+    progress(), steps(1), p(t('quiz.helpAsk'), 'hint'), ...holdHint(item), diagram(item), ...itemScramble(),
+    el('p', {}, el('strong', { textContent: t('quiz.question') })),
+    el('div', { className: 'answers', role: 'group', ariaLabel: t('quiz.answers') }, ...answersFor(item).map((c, i) =>
+      el('button', { type: 'button', onclick: () => answer(c.id) }, ...(i < KEYS.length ? [el('kbd', { textContent: KEYS[i] })] : []), c.code))),
+    el('div', { className: 'row' }, action('skip', t('quiz.skip'), skip), stuckButton('quiz.dontKnow')),
+  ];
+}
+
+/** Paso 2 without a cube: solve it on your cube against a clock started and stopped by hand, then say how it went. */
+function renderClock(): Node[] {
+  const item = items[index];
+  const stopped = clockMs !== null;
+  // stopped, it's no longer a button: the focus moves on to "Bien"
+  const clock = stopped ? el('div', { className: 'practice-clock', textContent: formatTime(clockMs!) })
+    : el('button', { type: 'button', className: `practice-clock${clockAt ? ' running' : ''}`, onclick: toggleClock },
+      el('span', { id: 'quiz-clock', textContent: formatTime(clockAt ? performance.now() - clockAt : 0) }), el('br'),
+      el('small', { className: 'hint', textContent: t(clockAt ? 'practice.timerStop' : 'practice.timerStart') }));
+  if (!stopped) Object.assign(clock.dataset, { action: 'clock', focus: '' });
+  const out: Node[] = [
+    progress(), steps(2), p(t(stopped ? 'quiz.gradeAsk' : 'quiz.helpClock'), 'hint'),
+    p(`${t('quiz.correct')} ${caseLabel(item.c)} · ${t('quiz.recognized', { time: formatTime(attempts.at(-1)!.recognitionMs) })}`, 'ok'),
+    ...holdHint(item), diagram(item, 120, true), ...itemScramble(), clock,
+  ];
+  if (!stopped) return [...out, el('div', { className: 'row' }, action('skip', t('quiz.skip'), skip), stuckButton())];
+  const good = action('good', t('quiz.gradeGood'), () => selfGrade('good'));
+  good.className = 'primary';
+  good.dataset.focus = '';
+  return [...out, el('div', { className: 'row' }, good, action('fail', t('quiz.gradeFail'), () => selfGrade('fail')))];
+}
+
+/** The item's time: on the cube, first turn to solved; without one, the hand clock. */
+const itemTime = () => attempts.at(-1)?.executionMs ?? 0;
+
+/** Reintentar: the same item; without a cube, after a failed solve, only the solve clock (the case is already known). */
+function retryButton(): HTMLElement {
+  const b = action('retry', t('quiz.retryItem'), () => {
+    retried = true;
+    if (fromClock) {
+      clockAt = 0;
+      clockMs = null;
+      screen = 'clock';
+      return render();
+    }
+    startItem();
+  });
+  b.dataset.focus = '';
+  return b;
+}
+
+/** Siguiente, or Ver resultados after the last item. */
+function nextButton(primary: boolean): HTMLElement {
+  const b = action('next', t(index + 1 < items.length ? 'quiz.next' : 'quiz.finish'), next);
+  if (primary) {
+    b.className = 'primary';
+    b.dataset.focus = '';
   }
-  out.push(...itemScramble(), ...verdict(item));
-  if (grade === null) { // a right answer: did the solve go well too?
-    const good = action('good', t('quiz.gradeGood'), () => selfGrade('good'));
-    good.className = 'primary';
-    good.dataset.focus = '';
-    out.push(p(t('quiz.gradeAsk')), el('div', { className: 'row' }, good, action('fail', t('quiz.gradeFail'), () => selfGrade('fail'))));
-    return out;
-  }
-  const more = index + 1 < items.length;
-  const go = button(t(more ? 'quiz.next' : 'quiz.finish'), next, 'primary');
-  go.dataset.focus = '';
-  out.push(el('div', { className: 'row' }, go, reviewButton(item.c)));
-  return out;
+  return b;
+}
+
+/** Solved: time, turns and grade, the case's best and average; Repetir (the same case, another state) or Siguiente. */
+function renderDone(): Node[] {
+  const f = feedback!;
+  const a = attempts.at(-1)!;
+  const s = statsFor(f.item.c.id);
+  const avg = s && average(s);
+  return [
+    progress(), p(t(f.grade === 'fail' ? 'quiz.helpDoneFail' : 'quiz.helpDone'), 'hint'),
+    el('p', { className: 'next', textContent: formatTime(itemTime()) }),
+    p(t('quiz.recognized', { time: formatTime(a.recognitionMs) }), 'hint'),
+    ...(a.htm === undefined ? [] : [p(t('practice.rep', { moves: a.moves!, htm: a.htm, ref: a.refHtm ?? '–' }), 'hint')]),
+    ...(s ? [p(t('quiz.caseStats', { best: timeOr(s.best), avg: timeOr(avg ?? null) }), 'hint')] : []),
+    feedbackView(f),
+    el('div', { className: 'row' }, ...(f.grade === 'fail' ? [retryButton()] : []), action('repeat', t('quiz.repeat'), repeat), nextButton(true), ...(f.grade === 'fail' ? [reviewButton(f.item.c)] : [])),
+  ];
+}
+
+const whyText = () => (why === 'wrong' ? t('quiz.wrong', { chosen: findCase(chosen!)?.code ?? '' }) : t(why === 'stuck' ? 'quiz.whyStuck' : 'quiz.whyFail'));
+
+/** After a mistake: the case explained (figure, algorithm with its triggers, how to recognise it, fingers, animation on
+ *  demand); Reintentar (the same item) or Siguiente. */
+function renderExplain(): Node[] {
+  const item = items[index];
+  const tokens = tokenize(solution(item));
+  const retry = retryButton();
+  retry.className = 'primary';
+  return [
+    progress(), p(whyText(), 'bad'), diagram(item, 140, true),
+    el('p', {}, el('strong', { textContent: caseLabel(item.c) })),
+    p(loc(item.c.recognition), 'hint'),
+    movesView(tokens), fingersView(tokens),
+    el('div', { className: 'row' }, anim.button()),
+    p(t('quiz.helpExplain'), 'hint'),
+    el('div', { className: 'row' }, retry, nextButton(false), reviewButton(item.c)),
+  ];
 }
 
 /** "Repasar ahora": it leaves the quiz, so it says so. */
@@ -603,7 +768,6 @@ function reviewButton(c: Case): HTMLElement {
 /** Without a smart cube the user sets each item up by hand: the plan's scramble, or a random-state one. */
 function itemScramble(): Node[] {
   if (mode !== 'recognition') return [];
-  if (scope.kind === 'official') return scrambleToggle([`${t('quiz.scramble')}: `, el('code', { textContent: scope.quiz.items[index].scramble })]);
   const { scramble: s, random } = items[index];
   const code = el('code', { textContent: s ?? '…', ariaBusy: String(s == null) });
   code.dataset.scramble = ''; // filled in place when the solver answers (prefetch)
@@ -627,25 +791,6 @@ function scrambleToggle(content: (Node | string)[]): Node[] {
   return [b, net];
 }
 
-/** Recognition verdict, with the case and how to solve it. */
-function verdict(item: Item): Node[] {
-  const a = attempts.at(-1)!;
-  return [
-    p(a.correct ? t('quiz.correct') : t('quiz.wrong', { chosen: findCase(chosen!)?.code ?? '' }), a.correct ? 'ok' : 'bad'),
-    ...(a.correct && grade === 'fail' ? [p(t('quiz.gradedFail'), 'bad')] : []), // "Fallé": it comes back today
-    p(t('quiz.time', { time: formatTime(a.recognitionMs) }), 'hint'),
-    // right answer: the solution only once the user says how the solve went, as the smart cube counts a look as a fail
-    ...(a.correct && grade === null ? [] : a.correct ? howTo(item) : [wrongCase(item)]),
-  ];
-}
-
-/** A wrong answer: the right case's diagram beside its name and algorithm. */
-function wrongCase(item: Item): HTMLElement {
-  const pic = el('div', { ariaHidden: 'true' }); // the case's name is next to it
-  pic.innerHTML = caseSVG(item.c, 72, undefined, item.hold);
-  return el('div', { className: 'quiz-verdict-case' }, pic, el('div', {}, ...howTo(item)));
-}
-
 /** The case's name, the AUF it needed and the chosen algorithm. */
 function howTo(item: Item): Node[] {
   const alg = preferred(item.c).alg;
@@ -657,7 +802,7 @@ function howTo(item: Item): Node[] {
   ];
 }
 
-/** Solve mode: how the last item went, while the next one is set up (nothing stops between items). */
+/** How a solved item went: its grade, and why it failed. */
 function feedbackText(f: Feedback): string {
   if (f.grade !== 'fail') return t(f.grade === 'easy' ? 'quiz.gradedEasy' : 'quiz.gradedGood');
   const why = f.issue === 'extra' ? tp('quiz.reviewExtra', f.extra) : f.issue ? t(f.issue === 'skipped' ? 'quiz.reviewSkipped' : 'quiz.reviewAssisted') : '';
@@ -666,11 +811,8 @@ function feedbackText(f: Feedback): string {
 
 function feedbackView(f: Feedback): HTMLElement {
   const pic = el('div', { className: 'quiz-feedback-diagram', ariaHidden: 'true' }); // the case's name is next to it
-  pic.innerHTML = caseSVG(f.item.c, 72, f.item.user, f.item.hold);
-  return el('div', { className: 'quiz-feedback' }, pic, el('div', {},
-    p(feedbackText(f), f.grade === 'fail' ? 'bad' : 'ok'),
-    ...howTo(f.item),
-    ...(f.grade === 'fail' ? [el('div', { className: 'row' }, reviewButton(f.item.c))] : [])));
+  pic.innerHTML = caseSVG(f.item.c, f.item.user, { size: 72, colors: heldColors(f.item.hold), arrows: true });
+  return el('div', { className: 'quiz-feedback' }, pic, el('div', {}, p(feedbackText(f), f.grade === 'fail' ? 'bad' : 'ok'), ...howTo(f.item)));
 }
 
 const nextMove = () => {
@@ -686,35 +828,25 @@ function scrambleDesc(): string {
 function renderScramble(): Node[] {
   const g = guide.guide;
   return [
-    progress(),
-    el('ol', { className: 'steps' },
-      el('li', { ariaCurrent: 'step', textContent: t('practice.stepScramble') }),
-      el('li', { textContent: t('quiz.stepSolve') })),
+    progress(), steps(1), p(t('quiz.helpScramble'), 'hint'),
     el('div', { className: 'next', textContent: nextMove() ?? '…' }),
     el('div', { textContent: scrambleDesc() }),
     ...holdHint(items[index], 'neutral.holdAfter'),
     ...scrambleToggle([el('span', { className: 'tokens' }, ...(g?.steps ?? []).flatMap((m, i) => [el('span', { textContent: cube.label(m), className: i === 0 ? 'current' : '' }), ' ']))]),
-    p(t('practice.scrambleHint'), 'hint'),
+    diagram(items[index], 120), // where the scramble leads
     el('div', { className: 'row' }, action('skip', t('quiz.skip'), skip)),
-    ...(feedback ? [feedbackView(feedback)] : []), // below: the guide stays where it always is
   ];
 }
 
 function renderSolve(): Node[] {
   const item = items[index];
   return [
-    progress(),
-    el('ol', { className: 'steps' },
-      el('li', { textContent: t('practice.stepScramble') }),
-      el('li', { ariaCurrent: 'step', textContent: t('quiz.stepSolve') })),
-    el('div', { id: 'quiz-clock', className: 'next', role: 'timer', textContent: formatTime(performance.now() - shownAt) }),
-    p(t('quiz.solveHint'), 'hint'),
+    progress(), steps(2), p(t('quiz.helpSolve'), 'hint'),
+    el('div', { id: 'quiz-clock', className: 'next', role: 'timer', textContent: formatTime(firstMoveAt ? performance.now() - firstMoveAt : 0) }),
     ...holdHint(item, 'neutral.holdSolve'),
-    ...(assisted ? [el('p', {}, el('strong', { textContent: caseLabel(item.c) }), ' · ', algView(solution(item)))] : []),
+    diagram(item, 120),
     p(tp('quiz.turns', turnCount(done)), 'hint'), // as the review counts them
-    el('div', { className: 'row' },
-      action('skip', t('quiz.skip'), skip),
-      ...(assisted ? [] : [action('solution', t('quiz.showSolution'), () => { assisted = true; render(); })])),
+    el('div', { className: 'row' }, action('skip', t('quiz.skip'), skip), stuckButton()),
   ];
 }
 
@@ -727,7 +859,8 @@ function renderResults(): Node[] {
   const summary = el('dl', {},
     ...row(t('quiz.accuracy'), t('quiz.accuracyValue', { pct: percent(s.accuracy), correct: s.correct, n: s.n })),
     ...row(t('quiz.avgRecognition'), timeOr(s.recognitionMs)),
-    ...(execution ? [...row(t('quiz.avgExecution'), timeOr(s.executionMs)), ...row(t('quiz.avgEfficiency'), pctOr(s.efficiency))] : []));
+    ...row(t('quiz.avgExecution'), timeOr(s.executionMs)), // both modes time the solve
+    ...(execution ? row(t('quiz.avgEfficiency'), pctOr(s.efficiency)) : []));
   const th = (text: string) => el('th', { textContent: text, scope: 'col' });
   const td = (text: string) => el('td', { textContent: text });
   const table = el('table', { className: 'quiz-table' },

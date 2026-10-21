@@ -6,8 +6,8 @@ import { goalReached, makeQuizItems, quizPattern } from './cube.ts';
 import { METHODS, allCases, findCase } from './methods.ts';
 import { cfopReduced } from './cfop.ts';
 import {
-  addSession, aufFor, autoGrade, byCase, efficiency, HISTORY_MAX, lastSession, parseHistory, referenceHtm, review, score, selectCases,
-  solutionFor, spacedTiers, toRetry, weightedOrder, type Attempt, type SelectContext, type SessionRecord,
+  addSession, aufFor, autoGrade, byCase, efficiency, HISTORY_MAX, isStuck, lastSession, parseHistory, referenceHtm, review, score, selectCases,
+  solutionFor, spacedTiers, STUCK_EXTRA, STUCK_MS, toRetry, weightedOrder, type Attempt, type SelectContext, type SessionRecord,
 } from './score.ts';
 import type { Learning } from './store.ts';
 import type { Case } from './types.ts';
@@ -193,4 +193,12 @@ test('weightedOrder: follows the weights, unknown ones get the mean', () => {
   assert.deepEqual(weightedOrder(['solo'], [0.2], 3, rng), ['solo', 'solo', 'solo']);
   assert.deepEqual(weightedOrder([], [], 3, rng), []);
   assert.equal(new Set(weightedOrder(['x', 'y'], [0, 0], 10, rng)).size, 2, 'all zero: uniform');
+});
+
+test('isStuck: too many turns beyond the algorithm, or too long', () => {
+  assert.equal(isStuck(10, 10, 1000), false);
+  assert.equal(isStuck(10 + STUCK_EXTRA, 10, 1000), false); // at the threshold: still trying
+  assert.equal(isStuck(11 + STUCK_EXTRA, 10, 1000), true);
+  assert.equal(isStuck(3, 10, STUCK_MS + 1), true);
+  assert.equal(isStuck(99, null, 1000), false); // no reference: only the clock
 });

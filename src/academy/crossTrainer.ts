@@ -391,7 +391,7 @@ function statusText(): string {
 }
 
 const steps = (current: 0 | 1 | 2) => el('ol', { className: 'steps' },
-  ...[t('practice.stepScramble'), t('cross.stepInspect'), t('quiz.stepSolve')].map((s, i) =>
+  ...[t('practice.stepScramble'), t('cross.stepInspect'), t('practice.stepSolve')].map((s, i) =>
     el('li', { textContent: s, ...(i === current ? { ariaCurrent: 'step' } : {}) })));
 
 function progressText(l: CrossLevel): string {

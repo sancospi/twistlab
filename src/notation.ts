@@ -174,9 +174,27 @@ export function repeats(tokens: string[]): Run[] {
   return out;
 }
 
-/** The algorithm as text with its repetitions grouped. */
+/** How an algorithm is shown: plain moves, a common trigger in parentheses, or a block repeated in a row. */
+export type AlgPart =
+  | { kind: 'moves'; tokens: string[] }
+  | { kind: 'trigger'; tokens: string[] }
+  | { kind: 'repeat'; parts: AlgPart[]; times: number };
+
+/** Repetitions first ((block)×n), then the common triggers ((R U R' U')). A trigger that is the whole sequence (Sune,
+ *  or a repeated block) gets no parentheses of its own: they would add nothing. */
+export function algParts(tokens: string[]): AlgPart[] {
+  const parts = repeats(tokens).flatMap((run): AlgPart[] => {
+    if (run.times > 1) return [{ kind: 'repeat', parts: algParts(run.tokens), times: run.times }];
+    return triggerSegments(run.tokens).map((s): AlgPart => ({ kind: s.trigger ? 'trigger' : 'moves', tokens: s.tokens }));
+  });
+  return parts.length === 1 && parts[0].kind === 'trigger' ? [{ kind: 'moves', tokens }] : parts;
+}
+
+/** The algorithm as text with its repetitions and triggers grouped. */
 export const formatAlg = (tokens: string[]): string =>
-  repeats(tokens).map((r) => (r.times > 1 ? `(${formatAlg(r.tokens)})×${r.times}` : r.tokens.join(' '))).join(' ');
+  algParts(tokens).map((p) => (p.kind === 'repeat' ? `(${p.parts.map(partText).join(' ')})×${p.times}` : partText(p))).join(' ');
+const partText = (p: AlgPart): string =>
+  p.kind === 'moves' ? p.tokens.join(' ') : p.kind === 'trigger' ? `(${p.tokens.join(' ')})` : `(${p.parts.map(partText).join(' ')})×${p.times}`;
 
 // --- Explaining a move to a person (tooltips) ---
 

@@ -1,7 +1,7 @@
 // Academia: a home of tiles (the white cross first, one per method, plus Notación), then each on its own route.
-// A method page starts with the trainer of the whole method (and how many cases are due today), then shows its phases
-// and groups, each case as a card that opens its page (caseView.ts), with quiz buttons per group and phase, plus the
-// plan's own quizzes.
+// A method page starts with the Quiz of the whole method (and how many cases are due today), then shows its phases
+// and groups, each case as a card that opens its page (caseView.ts: Practicar, Quiz, Memoria muscular), with Quiz
+// buttons per group and phase, plus the plan's own quizzes: the same Quiz, only the scope changes.
 import { prose } from '../rich-text-view.ts';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPuzzle } from 'cubing/kpuzzle';
@@ -246,7 +246,7 @@ const text = (s: string, className = '') => el('p', { textContent: s, className 
 
 const dueCount = (cases: Case[]) => cases.filter((c) => isDue(learningFor(c.id), Date.now())).length;
 
-/** The trainer of the whole method, and how many of its cases are due today (refreshed when it closes). */
+/** The Quiz of the whole method (which cases: chosen in its setup), and how many are due today (refreshed when it closes). */
 function trainView(m: Method): HTMLElement {
   const cases = allCases(m);
   const due = el('span', { className: 'tile-due' });
@@ -295,7 +295,7 @@ function phaseView(phase: Phase): HTMLElement {
     el('div', { className: 'quiz-set', role: 'group', ariaLabel: label }, el('span', { className: 'quiz-set-label', textContent: label, title: hint }), ...buttons);
   const quizzes = !cases.length ? [] : [el('div', { className: 'quiz-sets' },
     set(t('academy.quizGenerated'), t('academy.quizGeneratedHint'),
-      quizButton(t('academy.quizPhase'), { kind: 'cases', id: phase.id, cases, title: loc(phase.name) })),
+      quizButton(t('academy.quizPhase'), { kind: 'cases', id: phase.id, cases, title: loc(phase.name) }, t('academy.quizOf', { name: loc(phase.name) }))),
     ...(phase.quizzes.length ? [set(t('academy.quizOfficial'), t('academy.quizOfficialHint'),
       ...phase.quizzes.map((quiz) => quizButton(loc(quiz.name), { kind: 'official', quiz, phase })))] : []))]; // none without cases
   return el('section', { className: 'academy-phase', id: anchor(phase.id) },
