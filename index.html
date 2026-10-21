@@ -263,7 +263,10 @@
     .alg-option { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; padding: 8px; border-radius: 8px; background: #0b0d12aa; cursor: pointer; }
     .alg-option input { grid-row: span 3; margin: 2px 0 0; }
     .alg-option:has(input:checked) { outline: 2px solid var(--accent); }
-    .alg-option code { font: 600 14px/1.4 ui-monospace, monospace; }
+    .alg-option code { font: 500 12px/1.4 ui-monospace, monospace; color: var(--muted); }
+    .alg-option .hint { font-size: 11px; }
+    .alg-option:has(input:checked) code { font: 700 17px/1.4 ui-monospace, monospace; color: var(--fg); } /* the selected one stands out */
+    .alg-option:has(input:checked) .hint { font-size: 12px; }
     .algs > button { justify-self: end; margin-top: -4px; }
     .custom-alg { display: grid; gap: 4px; }
     .custom-alg input { flex: 1; min-width: 0; padding: 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); font: 16px ui-monospace, monospace; } /* 16px: no zoom on focus in iOS */
@@ -393,6 +396,17 @@
     .case-alg.chosen { outline: 2px solid var(--accent); }
     .case-alg:focus-visible { outline: 2px solid var(--fg); }
     .case-moves { font-size: 20px; line-height: 2.2; }
+    /* alternatives stay quiet next to the chosen algorithm; "Usar este" makes one the chosen (big) one */
+    /* compact: the moves on one line, then source · chips · Ver dedos · Usar este on another */
+    .case-alg:not(.chosen) { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; padding: 6px 12px; background: #0e1117; font-size: 12px; }
+    .case-alg:not(.chosen) .case-moves { flex: 1 0 100%; font-size: 14px; line-height: 1.8; color: var(--muted); }
+    .case-alg:not(.chosen) .trigger-name { display: none; } /* underlined is enough here: the label is on the chosen one */
+    .case-alg:not(.chosen) .hint { margin: 0; font-size: 12px; }
+    .case-alg:not(.chosen) .chips { margin: 0; font-size: 11px; }
+    .case-alg:not(.chosen) .chip { padding: 1px 8px; }
+    .case-alg:not(.chosen) .fingers-box { order: 1; font-size: 12px; }
+    .case-alg:not(.chosen) .fingers-box[open] { flex-basis: 100%; }
+    .case-alg:not(.chosen) .row { order: 2; margin-left: auto; }
     .trigger { display: inline-grid; justify-items: center; vertical-align: top; line-height: 1.5; }
     .trigger > .alg { padding: 0 2px; border-bottom: 2px solid var(--accent); }
     .trigger-name { font-size: 11px; color: var(--accent); white-space: nowrap; }
