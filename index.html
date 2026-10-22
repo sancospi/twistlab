@@ -632,7 +632,7 @@
       var m = /^\/(academia|algoritmos)(\/|$)/.test(p) ? 'academy' : /^\/progreso(\/|$)/.test(p) ? 'progress' : /^\/acerca(\/|$)/.test(p) ? 'about' : /^\/(cubo|guia)(\/|$)/.test(p) ? 'cube' : 'solve';
       b.dataset.module = m;
       if (/^\/cubo\/pintar(\/|$)/.test(p)) b.setAttribute('data-paint', '');
-      try { var e = JSON.parse(localStorage.getItem('cube-event')); if (m === 'solve' && typeof e === 'string' && e.slice(0, 3) !== '333') b.classList.add('other-puzzle'); } catch (x) {}
+      try { var e = JSON.parse(localStorage.getItem('cube-event')); if (m === 'solve' && typeof e === 'string' && e.slice(0, 3) !== '333' && e !== '222') b.classList.add('other-puzzle'); } catch (x) {}
       // First visit (none of the app's keys, as progress.ts's inBackup, but the empty times main.ts writes on load):
       // the Resolver's welcome card, laid out before the first paint so nothing moves. Dismissed: 'cube-welcome'.
       try { for (var i = 0, s = localStorage, k, fresh = true; fresh && i < s.length; i++) { k = s.key(i); if (/^(cube|academy|quiz|cross|practice|progress|paint)-/.test(k) && !(k === 'cube-results' && s.getItem(k) === '[]')) fresh = false; } if (fresh) b.classList.add('fresh'); } catch (x) {}

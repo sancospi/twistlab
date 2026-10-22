@@ -50,8 +50,9 @@ function loadTwisty(): Promise<void> {
     // 2D net of the scrambled state (WCA scramble-sheet style: white up, green front)
     net = new TwistyPlayer({ puzzle: wcaEvents[event].puzzleID, visualization: '2D', background: 'none', controlPanel: 'none', experimentalDragInput: 'none', hintFacelets: 'none', experimentalSetupAlg: netAlg });
     $('net').append(net);
+    shown3d = puzzle3d();
     player = new TwistyPlayer({
-      puzzle: '3x3x3',
+      puzzle: shown3d,
       visualization: 'PG3D',
       alg: playerAlg,
       experimentalSetupAnchor: 'start',
@@ -294,6 +295,7 @@ function handle(e: GanCubeEvent) {
 
 function disconnected() {
   conn = null;
+  render3d(); // the Resolver's 2x2 event gets its 2x2 model back
   pattern = null;
   moves = [];
   guide.stop();
@@ -325,6 +327,7 @@ $('connect').onclick = async () => {
     void loadTwisty(); // the 3D cube mirrors every move: it loads while the device picker is open
     const { connectGanCube } = await import('gan-web-bluetooth'); // usually prefetched by the Cubo screen
     const c = (conn = await connectGanCube(macProvider));
+    render3d(); // the model mirrors the smart cube: a 3x3, whatever the event
     trustFirstMove((c as unknown as { driver: unknown }).driver);
     c.events$.subscribe(handle); // right away: events$ doesn't replay, a DISCONNECT here must not be lost
     $('device').textContent = `${c.deviceName} (${c.deviceMAC})`;
@@ -385,8 +388,19 @@ eventSelect.onchange = () => {
   renderResults();
   void newScramble();
 };
-/** The big 3D model is a 3x3: in the Resolver it (and its view arrows) only shows for 3x3 events. */
-const render3d = () => document.body.classList.toggle('other-puzzle', mod === 'solve' && !is333(event));
+/** The big 3D model: a 3x3, or a 2x2 for the 2x2 event in the Resolver (without a smart cube, which is a 3x3); other
+ *  events hide it and its view arrows. */
+const has3d = (e: EventId) => is333(e) || e === '222';
+let shown3d: '2x2x2' | '3x3x3' = '3x3x3';
+const puzzle3d = (): '2x2x2' | '3x3x3' => (mod === 'solve' && event === '222' && !conn ? '2x2x2' : '3x3x3');
+const render3d = () => {
+  document.body.classList.toggle('other-puzzle', mod === 'solve' && !has3d(event));
+  if (player && shown3d !== puzzle3d()) {
+    player.puzzle = shown3d = puzzle3d(); // TwistyPlayer can't read .puzzle back: track it here
+    scene = undefined; // the new puzzle comes with its own scene: frame() looks it up again
+    to = undefined;
+  }
+};
 
 // Times persist in this browser (newest first, every event in one list); anything malformed in storage is dropped
 const RESULTS_KEY = 'cube-results';
@@ -509,7 +523,7 @@ async function newScramble() {
   $('scramble-text').replaceChildren(is333(event) ? algView(scramble, { frame: 'white-up' }) : scramble);
   $('scramble-text').classList.toggle('long', scramble.length > 80);
   setNet(scramble);
-  if (!conn && is333(event)) setAlg(scramble); // no cube: the 3D model shows the scrambled state too
+  if (!conn && has3d(event)) setAlg(scramble); // no cube: the 3D model shows the scrambled state too (3x3 or 2x2)
   else if (phase === 'scramble') await startGuide(target); // walk the real cube there from wherever it is
   render();
   idle(loadTwisty); // the scramble is up: now the net and the 3D cube
