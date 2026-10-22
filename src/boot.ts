@@ -13,6 +13,19 @@ addEventListener('click', (e) => {
   const l = (e.target as Element).closest?.('[data-lang]')?.getAttribute('data-lang');
   if (l && l !== lang) setLang(l as Lang);
 });
+// Tamaño del texto (Cubo → Ajustes, /acerca): this device only; the inline script applies it before the first paint
+const pressText = () => document.querySelectorAll('button[data-text]').forEach((b) =>
+  b.setAttribute('aria-pressed', String(b.getAttribute('data-text') === (document.documentElement.dataset.text ?? ''))));
+pressText();
+addEventListener('click', (e) => {
+  const b = (e.target as Element).closest?.('button[data-text]');
+  if (!b) return;
+  const v = b.getAttribute('data-text')!;
+  if (v) document.documentElement.dataset.text = v;
+  else delete document.documentElement.dataset.text;
+  try { if (v) localStorage.setItem('ui-text', v); else localStorage.removeItem('ui-text'); } catch { /* private mode */ }
+  pressText();
+});
 // A lazy chunk that won't load (a tab left open across a deploy: its hashed files are gone) would leave an empty
 // screen or no 3D cube: reload once onto the new build. ponytail: once per tab session, so an offline tab can't loop.
 addEventListener('vite:preloadError', () => {

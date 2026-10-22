@@ -922,4 +922,8 @@ export const en: Record<MessageKey, string> = {
   'about.welcomeTimer': 'I just want the timer',
   // Language switch (ES · EN: index.html's .lang-switch)
   'lang.label': 'Language',
+  'text.label': 'Text size',
+  'text.normal': 'Normal text',
+  'text.large': 'Large text',
+  'text.xlarge': 'Extra large text',
 };

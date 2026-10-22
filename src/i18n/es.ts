@@ -925,6 +925,10 @@ export const es = {
   'about.welcomeTimer': 'Solo quiero el cronómetro',
   // Language switch (ES · EN: index.html's .lang-switch)
   'lang.label': 'Idioma',
+  'text.label': 'Tamaño del texto',
+  'text.normal': 'Texto normal',
+  'text.large': 'Texto grande',
+  'text.xlarge': 'Texto muy grande',
 } as const;
 
 export type MessageKey = keyof typeof es;

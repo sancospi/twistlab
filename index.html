@@ -25,7 +25,7 @@
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
     /* Type scales from the root (every size is in rem): 17px on phones and desktops alike. */
-    html { font-size: 17px; }
+    html { font-size: 18px; } html[data-text="l"] { font-size: 20px; } html[data-text="xl"] { font-size: 22px; } /* Tamaño del texto (boot.ts) */
     body { margin: 0; height: 100dvh; background: radial-gradient(circle at 50% 40%, #1b2030, var(--bg)); color: var(--fg); font: 1rem/1.4 system-ui, sans-serif; overflow: hidden; }
     #cube { position: fixed; inset: var(--header-h) 0 0 0; }
     #cube twisty-player { width: 100%; height: 100%; }
@@ -686,6 +686,7 @@
       try { l = localStorage.getItem('lang'); } catch (x) {}
       if (l !== 'es' && l !== 'en') l = /^en/i.test(navigator.language || '') && !/bot|crawl|spider|slurp/i.test(navigator.userAgent || '') ? 'en' : 'es';
       h.lang = l;
+      try { var tx = localStorage.getItem('ui-text'); if (tx === 'l' || tx === 'xl') h.dataset.text = tx; } catch (x) {} // Tamaño del texto, before the first paint
       if (l === 'en') h.classList.add('i18n-wait');
       if (l === 'en' && en) { var k = document.createElement('link'); k.rel = 'modulepreload'; k.crossOrigin = ''; k.href = en; document.head.appendChild(k); }
       // Reopened (the installed app, or a new tab: nothing in this tab's session yet) at the start page: back where it
@@ -801,6 +802,7 @@
         <p class="hint" data-i18n="cube.resetStateHint"></p>
         <!-- phones have no ☰ menu (the tab bar replaces it): the language switch lives here too -->
         <p class="lang-switch" role="group" aria-labelledby="cube-lang"><span id="cube-lang" data-i18n="lang.label"></span> <button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button></p>
+        <p class="lang-switch" role="group" aria-labelledby="cube-text"><span id="cube-text" data-i18n="text.label"></span> <button type="button" data-text="" data-i18n-aria-label="text.normal">A</button> · <button type="button" data-text="l" data-i18n-aria-label="text.large">A+</button> · <button type="button" data-text="xl" data-i18n-aria-label="text.xlarge">A++</button></p>
       </section>
       <section id="guide-actions" class="cube-block">
         <h3 data-i18n="cube.guide"></h3>
@@ -861,6 +863,7 @@
       <h2 id="about-title" data-i18n="about.title"></h2>
       <p data-i18n="about.intro"></p>
       <p class="lang-switch" role="group" aria-labelledby="about-lang"><span id="about-lang" data-i18n="lang.label"></span> <button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button></p>
+      <p class="lang-switch" role="group" aria-labelledby="about-text"><span id="about-text" data-i18n="text.label"></span> <button type="button" data-text="" data-i18n-aria-label="text.normal">A</button> · <button type="button" data-text="l" data-i18n-aria-label="text.large">A+</button> · <button type="button" data-text="xl" data-i18n-aria-label="text.xlarge">A++</button></p>
       <ul class="about-points">
         <li data-i18n="about.pointFree"></li>
         <li data-i18n="about.pointLocal"></li>
