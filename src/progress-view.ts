@@ -110,21 +110,44 @@ function practiceSection(results: Result[]): HTMLElement {
 
 // --- Aprendizaje: per method and phase, where each case stands in the spaced repetition ---
 
+/** Which groups of Aprendizaje are open ({ id: open }): this device's view only, so not in the backup nor synced. */
+const OPEN_KEY = 'ui-progress-open';
+
 function learningSection(): HTMLElement {
   const now = Date.now();
-  const methods = METHODS.filter((m) => allCases(m).length).map((m) => el('div', { className: 'learn-method' },
-    el('h4', { textContent: loc(m.name) }),
-    ...m.phases.flatMap((p) => {
+  const done = parseDone(load(LESSONS_KEY));
+  const opened = (load(OPEN_KEY) ?? {}) as Record<string, boolean>;
+  const counts = (cases: { id: string }[]) => {
+    const n = { known: 0, learning: 0, fresh: 0, due: 0, practised: 0 };
+    for (const c of cases) {
+      const l = learningFor(c.id);
+      const st = learnStatus(l);
+      n[st === 'new' ? 'fresh' : st]++;
+      if (isDue(l, now)) n.due++;
+      if (statsFor(c.id)) n.practised++;
+    }
+    return n;
+  };
+  const lessonRow = (id: string) => {
+    const c = courseFor(id);
+    if (!c) return [];
+    const n = c.lessons.filter((l) => done[c.id]?.includes(l.id)).length;
+    return [el('label', { className: 'learn-row' }, el('strong', { textContent: `${t('progress.lessons')}: ${c.title}` }),
+      el('progress', { max: c.lessons.length, value: n }), text(t('progress.lessonsDone', { done: n, total: c.lessons.length }), 'hint'))];
+  };
+  // a collapsible group; untouched ones start open only if something in them was practised
+  const group = (id: string, title: string, hint: string, used: boolean, rows: HTMLElement[]) => {
+    const d = el('details', { className: 'learn-method', open: opened[id] ?? used },
+      el('summary', {}, el('h4', { textContent: title }), text(hint, 'hint')), ...rows);
+    d.ontoggle = () => save(OPEN_KEY, { ...((load(OPEN_KEY) ?? {}) as Record<string, boolean>), [id]: d.open });
+    return d;
+  };
+  const methods = METHODS.filter((m) => allCases(m).length).map((m) => {
+    const all = counts(allCases(m));
+    const phases = m.phases.flatMap((p) => {
       const cases = p.groups.flatMap((g) => g.cases);
       if (!cases.length) return [];
-      const n = { known: 0, learning: 0, fresh: 0, due: 0, practised: 0 };
-      for (const c of cases) {
-        const l = learningFor(c.id);
-        const st = learnStatus(l);
-        n[st === 'new' ? 'fresh' : st]++;
-        if (isDue(l, now)) n.due++;
-        if (statsFor(c.id)) n.practised++;
-      }
+      const n = counts(cases);
       const bar = el('div', { className: 'learn-bar', ariaHidden: 'true' }, // the text below says the same
         ...(['known', 'learning', 'fresh'] as const).map((k) => {
           const seg = el('span', { className: k });
@@ -132,16 +155,13 @@ function learningSection(): HTMLElement {
           return seg;
         }));
       return [el('div', { className: 'learn-row' }, el('strong', { textContent: loc(p.name) }), bar, text(t('progress.counts', n), 'hint'))];
-    })));
-  const done = parseDone(load(LESSONS_KEY));
-  const courses = ['notacion', 'cruz', '2x2', ...METHODS.map((m) => m.id)].map((id) => courseFor(id)).filter((c) => c !== null);
-  const lessons = courses.map((c) => {
-    const n = c.lessons.filter((l) => done[c.id]?.includes(l.id)).length;
-    return el('label', { className: 'learn-row' }, el('strong', { textContent: c.title }),
-      el('progress', { max: c.lessons.length, value: n }), text(t('progress.lessonsDone', { done: n, total: c.lessons.length }), 'hint'));
+    });
+    return group(m.id, loc(m.name), t('progress.methodSummary', { known: all.known, total: allCases(m).length, due: all.due }),
+      all.practised > 0, [...phases, ...lessonRow(m.id)]);
   });
+  const guides = ['notacion', 'cruz', '2x2'].flatMap(lessonRow);
   return section(t('progress.learning'), text(t('progress.learningHint', { days: KNOWN_DAYS }), 'hint'), ...methods,
-    el('div', { className: 'learn-method' }, el('h4', { textContent: t('progress.lessons') }), ...lessons));
+    group('guias', t('progress.guides'), '', guides.some((r) => (r.querySelector('progress')?.value ?? 0) > 0), guides));
 }
 
 // --- Objetivo: an average under a time, and when today's pace gets there ---

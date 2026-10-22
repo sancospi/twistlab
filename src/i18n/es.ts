@@ -769,6 +769,8 @@ export const es = {
   'progress.learningHint': 'Lo sé: su próximo repaso está a {days} días o más. Para repasar hoy: los casos que te tocan en el Quiz (Repaso de hoy).',
   'progress.counts': '{known} lo sé · {learning} aprendiendo · {fresh} nuevos · {due} para repasar hoy · {practised} practicados',
   'progress.lessons': 'Lecciones',
+  'progress.methodSummary': '{known} de {total} casos sabidos · {due} para repasar hoy',
+  'progress.guides': 'Guías',
   'progress.lessonsDone': '{done} de {total}',
   'progress.goal': 'Objetivo',
   'progress.goalHint': 'Elige una media y un tiempo: con tus medias diarias estimamos cuándo lo conseguirías.',

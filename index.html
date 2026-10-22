@@ -573,7 +573,12 @@
     .activity .l1 { background: color-mix(in srgb, var(--accent) 35%, #2a3142); }
     .activity .l2 { background: color-mix(in srgb, var(--accent) 65%, #2a3142); }
     .activity .l3 { background: var(--accent); }
-    .learn-method { display: grid; gap: 10px; margin-top: 6px; }
+    .learn-method { display: grid; gap: 10px; margin-top: 6px; padding: 10px 12px; border-radius: 10px; background: #11141b; }
+    .learn-method > summary { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; list-style: none; }
+    .learn-method > summary::-webkit-details-marker { display: none; }
+    .learn-method > summary::after { content: '▸'; grid-area: 1 / 2 / span 2; align-self: center; color: var(--muted); }
+    .learn-method[open] > summary::after { content: '▾'; }
+    .learn-method > summary h4 { margin: 0; }
     .learn-row { display: grid; gap: 4px; }
     .learn-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #2a3142; outline: 1px solid var(--muted); outline-offset: 0; }
     .learn-bar .known { background: var(--accent); } .learn-bar .learning { background: #facc15; }

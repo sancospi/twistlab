@@ -766,6 +766,8 @@ export const en: Record<MessageKey, string> = {
   'progress.learningHint': 'I know it: its next review is {days} days away or more. Due today: the cases up for you in the Quiz (Today’s review).',
   'progress.counts': '{known} known · {learning} learning · {fresh} new · {due} due today · {practised} practiced',
   'progress.lessons': 'Lessons',
+  'progress.methodSummary': '{known} of {total} cases known · {due} to review today',
+  'progress.guides': 'Guides',
   'progress.lessonsDone': '{done} of {total}',
   'progress.goal': 'Goal',
   'progress.goalHint': 'Choose an average and a time: from your daily averages we estimate when you’d get there.',
