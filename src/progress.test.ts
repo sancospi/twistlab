@@ -95,15 +95,16 @@ test('backup: a file that is not a valid backup of this version is refused', () 
   assert.deepEqual(unpackBackup(file({ exportedAt: 'ayer' })), { ok: false, error: 'shape' });
   assert.deepEqual(unpackBackup(file({ data: { 'cube-results': 5 } })), { ok: false, error: 'shape' });
   assert.deepEqual(unpackBackup(file({ data: { 'cube-results': '{bad' } })), { ok: false, error: 'shape' });
-  assert.deepEqual(unpackBackup(file({ data: { 'cube-mac:x': '"AA"' } })), { ok: false, error: 'shape' });
+  assert.deepEqual(unpackBackup(file({ data: { 'cube-mac:x': '"AA"', scanner_session: '1', 'cube-results': '[]' } })), { ok: true, data: { 'cube-results': '[]' }, exportedAt: Date.parse('2026-10-21T10:00:00.000Z') }); // MACs and other apps' keys are skipped
   assert.equal(unpackBackup(file({ data: { 'cube-results': '[]' } })).ok, true);
 });
 
 test('backup: replacing keeps the MACs, drops keys not in the file, and rolls back when storage is full', () => {
-  const s = fakeStorage({ 'cube-results': '[]', 'old-key': '1', 'cube-mac:GAN_1': '"AA"' });
+  const s = fakeStorage({ 'cube-results': '[]', 'cube-old': '1', 'cube-mac:GAN_1': '"AA"', 'other-app': 'x' });
   assert.equal(replaceAppData(s, { 'cube-results': '[{"ms":1,"penalty":0}]', 'academy-stats': '{}' }), true);
-  assert.deepEqual(Object.fromEntries(s.map), { 'cube-mac:GAN_1': '"AA"', 'cube-results': '[{"ms":1,"penalty":0}]', 'academy-stats': '{}' });
-  const full = fakeStorage({ a: '1', 'cube-mac:x': '"AA"' }, 2);
-  assert.equal(replaceAppData(full, { b: '1', c: '2', d: '3' }), false);
-  assert.deepEqual(Object.fromEntries(full.map), { 'cube-mac:x': '"AA"', a: '1' });
+  // the MAC and another app's key on the same origin are left alone; this app's keys not in the file go
+  assert.deepEqual(Object.fromEntries(s.map), { 'cube-mac:GAN_1': '"AA"', 'other-app': 'x', 'cube-results': '[{"ms":1,"penalty":0}]', 'academy-stats': '{}' });
+  const full = fakeStorage({ 'cube-a': '1', 'cube-mac:x': '"AA"' }, 2);
+  assert.equal(replaceAppData(full, { 'cube-b': '1', 'cube-c': '2', 'cube-d': '3' }), false);
+  assert.deepEqual(Object.fromEntries(full.map), { 'cube-mac:x': '"AA"', 'cube-a': '1' });
 });

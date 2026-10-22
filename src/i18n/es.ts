@@ -1,7 +1,7 @@
 // Spanish UI strings. Keys are grouped by area (app., solve., guide., academy., …).
 // Other languages must provide every key: `export const en: Record<MessageKey, string> = { … }`.
 export const es = {
-  'app.title': 'Cube',
+  'app.title': 'TwistLab',
 
   'menu.label': 'Módulos',
   'menu.open': 'Menú',

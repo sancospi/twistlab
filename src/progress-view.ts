@@ -198,7 +198,7 @@ function backupSection(): HTMLElement {
     let data: Record<string, string>;
     try { data = appData(localStorage); } catch { return void (status.textContent = t('backup.unavailable')); }
     const now = Date.now();
-    const a = el('a', { href: URL.createObjectURL(new Blob([packBackup(data, now)], { type: 'application/json' })), download: `cube-datos-${new Date(now).toISOString().slice(0, 10)}.json` });
+    const a = el('a', { href: URL.createObjectURL(new Blob([packBackup(data, now)], { type: 'application/json' })), download: `twistlab-datos-${new Date(now).toISOString().slice(0, 10)}.json` });
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 0);
     status.textContent = t('backup.exported');

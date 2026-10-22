@@ -82,8 +82,9 @@ export function activity(times: number[], now: number, weeks: number): { day: nu
 
 export const BACKUP_APP = 'cube';
 export const BACKUP_VERSION = 1;
-/** Each cube's MAC belongs to this device's Bluetooth pairing: never exported nor replaced. */
-export const inBackup = (key: string) => !key.startsWith('cube-mac:');
+/** This app's own keys only (an allowlist: the origin's localStorage may hold other apps' data, e.g. on localhost).
+ * Each cube's MAC belongs to this device's Bluetooth pairing: never exported nor replaced. */
+export const inBackup = (key: string) => /^(cube|academy|quiz|cross|practice|progress|paint)-/.test(key) && !key.startsWith('cube-mac:');
 
 /** The part of Storage used here (localStorage in the page, a fake in the tests). */
 export type StorageLike = Pick<Storage, 'length' | 'key' | 'getItem' | 'setItem' | 'removeItem'>;
@@ -112,9 +113,9 @@ export function unpackBackup(text: string): Unpacked {
   if (version !== BACKUP_VERSION) return { ok: false, error: 'version' };
   const at = Date.parse(String(exportedAt));
   if (!data || typeof data !== 'object' || Array.isArray(data) || !Number.isFinite(at)) return { ok: false, error: 'shape' };
-  const entries = Object.entries(data);
+  const entries = Object.entries(data).filter(([k]) => inBackup(k)); // an older file may hold other keys: skipped, not an error
   const json = (v: unknown) => { try { return typeof v === 'string' && (JSON.parse(v), true); } catch { return false; } };
-  if (!entries.every(([k, v]) => inBackup(k) && json(v))) return { ok: false, error: 'shape' };
+  if (!entries.every(([, v]) => json(v))) return { ok: false, error: 'shape' };
   return { ok: true, data: Object.fromEntries(entries) as Record<string, string>, exportedAt: at };
 }
 
