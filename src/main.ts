@@ -21,6 +21,7 @@ import { cube as academyCube } from './academy/link.ts';
 import { el } from './el.ts';
 import { load, save, setting } from './academy/store.ts';
 import { routePath, startRouter, type Route } from './router.ts';
+import { startSync, sync } from './sync.ts';
 // (static markup is already translated: src/boot.ts does it before loading this module)
 // The other screens (Academia, Progreso, Pinta tu cubo), the 3D/2D players and the smart-cube library are loaded
 // when needed (dynamic import), so the Resolver shows its scramble with the least code.
@@ -841,8 +842,11 @@ let academy: typeof import('./academy/view.ts') | undefined; // loaded by the fi
 // One canonical URL per screen (crawlers run this script; /resolver and the like point to /)
 const canonical = document.querySelector<HTMLLinkElement>('link[rel=canonical]') // the build's static pages bring theirs (src/seo.ts)
   ?? document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'canonical' }));
+let shownRoute: Route | undefined;
 async function onRoute(r: Route, scroll: number | null = null) {
   const id = ++routeId;
+  shownRoute = r;
+  void sync(); // the account (if signed in): this page's changes go up; the account's come down if nothing is going on
   document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => d.close()); // back/forward leaves any modal
   const menu = $('header-menu');
   if (menu.matches(':popover-open')) menu.hidePopover(); // phones: following a link closes the menu
@@ -879,6 +883,11 @@ async function onRoute(r: Route, scroll: number | null = null) {
 }
 const panelEl = () => document.querySelector<HTMLElement>('.panel')!;
 startRouter((r, scroll) => void onRoute(r, scroll), () => panelEl().scrollTop);
+// The optional account (sync.ts), once the app is up. Its changes from other devices reload the page, so never during a
+// solve, a quiz (dialogs), a trainer, lesson or case practice, or with a smart cube connected (it would have to pair again).
+const ACTIVE_PAGES = ['trainer', 'lesson', 'case'];
+idle(() => void startSync(() => !!conn || phase === 'inspect' || phase === 'solving' || !!document.querySelector('dialog[open]')
+  || (shownRoute?.mod === 'academy' && ACTIVE_PAGES.includes(shownRoute.page.kind))));
 
 $('reset-state').onclick = async () => {
   await conn?.sendCubeCommand({ type: 'REQUEST_RESET' });

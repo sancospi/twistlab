@@ -3,18 +3,21 @@
   "scripts": {
     "test": "node --test 'src/**/*.test.ts'",
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "tsc && tsc -p api && vite build",
+    "preview": "vite preview",
+    "db:migrate": "node db/migrate.js"
   },
   "type": "module",
   "private": true,
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
     "@vercel/analytics": "^2.0.1",
     "cubing": "^0.66.1",
     "gan-web-bluetooth": "^3.0.2",
     "three": "^0.170.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.5",
     "@types/three": "^0.169.0",
     "@types/web-bluetooth": "^0.0.21",
     "typescript": "^7.0.2",

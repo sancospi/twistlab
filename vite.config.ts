@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { es, type MessageKey } from './src/i18n/es.ts';
 
 // The markup carries i18n keys (src/i18n.ts fills them in the browser); the build also writes the Spanish in, so the
@@ -82,12 +82,42 @@ const prerender: Plugin = {
   }),
 };
 
+// /api in dev: on Vercel each api/**/*.js is a function; here Vite answers with the same handlers (no `vercel dev`),
+// with .env.local's variables (DATABASE_URL, AUTH_SECRET…) in process.env. Files and folders starting with _ aren't routes.
+const api: Plugin = {
+  name: 'api',
+  apply: 'serve',
+  configureServer(server) {
+    for (const [k, v] of Object.entries(loadEnv(server.config.mode, server.config.root, ''))) process.env[k] ??= v;
+    server.middlewares.use(async (req, res, next) => {
+      const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+      if (!url.pathname.startsWith('/api/')) return next();
+      const file = join(server.config.root, `${url.pathname.replace(/\/$/, '')}.js`);
+      const handler = /^\/api(\/[a-z]\w*)+\/?$/.test(url.pathname) && existsSync(file) && (await server.ssrLoadModule(file))[req.method ?? ''];
+      if (!handler) return void res.writeHead(404, { 'Cache-Control': 'no-store' }).end();
+      try {
+        const chunks: Buffer[] = [];
+        for await (const c of req) chunks.push(c);
+        const headers = new Headers({ 'x-real-ip': req.socket.remoteAddress ?? '' });
+        for (const [k, v] of Object.entries(req.headers)) if (typeof v === 'string') headers.set(k, v);
+        const out: Response = await handler(new Request(url, { method: req.method, headers, body: chunks.length ? Buffer.concat(chunks) : undefined }));
+        res.statusCode = out.status;
+        out.headers.forEach((v, k) => k !== 'set-cookie' && res.setHeader(k, v));
+        if (out.headers.getSetCookie().length) res.setHeader('set-cookie', out.headers.getSetCookie());
+        res.end(Buffer.from(await out.arrayBuffer()));
+      } catch (e) {
+        next(e);
+      }
+    });
+  },
+};
+
 // cubing.js looks for its solver worker at `./search-worker-entry.js` next to its own code
 // (import.meta.resolve). Vite can't see that, so src/main.ts imports the entry with `?worker&url`
 // to emit it as a self-contained worker bundle, named exactly what cubing.js looks for.
 // Without it, cubing.js falls back to a worker that shares the page's chunks and runs page code.
 export default defineConfig({
-  plugins: [i18nHtml, enPreload, swPrecache, prerender],
+  plugins: [i18nHtml, enPreload, swPrecache, prerender, api],
   optimizeDeps: { exclude: ['cubing'] }, // keep cubing's files unbundled in dev so its lookup works there too
   worker: {
     format: 'es',

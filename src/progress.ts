@@ -2,6 +2,7 @@
 // the backup file (every key of this app in localStorage). The page itself is progress-view.ts.
 import { isEvent, resultValue, type EventId, type Result } from './timer.ts';
 import { AVERAGES, rolling } from './stats.ts';
+import { inBackup } from './backup-keys.js';
 
 const DAY = 86_400_000;
 /** Local midnight of the day `ms` falls in. */
@@ -82,9 +83,7 @@ export function activity(times: number[], now: number, weeks: number): { day: nu
 
 export const BACKUP_APP = 'cube';
 export const BACKUP_VERSION = 1;
-/** This app's own keys only (an allowlist: the origin's localStorage may hold other apps' data, e.g. on localhost).
- * Each cube's MAC belongs to this device's Bluetooth pairing: never exported nor replaced. */
-export const inBackup = (key: string) => /^(cube|academy|quiz|cross|practice|progress|paint)-/.test(key) && !key.startsWith('cube-mac:');
+export { inBackup }; // the allowlist lives in backup-keys.js: the account's API checks the same keys
 
 /** The part of Storage used here (localStorage in the page, a fake in the tests). */
 export type StorageLike = Pick<Storage, 'length' | 'key' | 'getItem' | 'setItem' | 'removeItem'>;

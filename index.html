@@ -581,6 +581,12 @@
     .goal-form { align-items: end; }
     .goal-form input { width: 9em; padding: 6px 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); font: 1.1429rem system-ui, sans-serif; } /* 16px: no zoom on focus in iOS */
     .backup-confirm { display: grid; gap: 8px; padding: 10px; border: 1px solid #facc15; border-radius: 8px; }
+    .account-form { align-items: end; }
+    .account-form .library-field { flex: 1 1 200px; }
+    .account-form input, .account-code { width: 100%; min-width: 0; padding: 6px 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); font: 1.1429rem system-ui, sans-serif; } /* 16px: no zoom on focus in iOS */
+    .account-code { width: 7em; letter-spacing: 0.2em; font-family: ui-monospace, monospace; }
+    .account-trap { position: absolute; left: -9999px; }
+    .account-status { margin: 0; min-height: 1.4em; }
     /* viewport-fit=cover (for the tab bar's bottom inset): keep the bar, the panel and the arrows clear of a landscape notch */
     .app-header { left: env(safe-area-inset-left); right: env(safe-area-inset-right); }
     .panel { margin: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); }
@@ -845,6 +851,7 @@
       <details><summary data-i18n="about.qCube"></summary><p data-i18n="about.aCube"></p></details>
       <details><summary data-i18n="about.qIphone"></summary><p data-i18n="about.aIphone"></p><p><a href="/cubo" data-i18n="about.aIphoneLink"></a></p></details>
       <details><summary data-i18n="about.qData"></summary><p data-i18n="about.aData"></p><p><a href="/progreso" data-i18n="about.aDataLink"></a></p></details>
+      <details><summary data-i18n="about.qPrivacy"></summary><p data-i18n="about.aPrivacy"></p></details>
       <details><summary data-i18n="about.qOffline"></summary><p data-i18n="about.aOffline"></p></details>
       <details><summary data-i18n="about.qWho"></summary><p data-i18n="about.aWho"></p></details>
       <details><summary data-i18n="about.qWca"></summary><p data-i18n="about.aWca"></p></details>

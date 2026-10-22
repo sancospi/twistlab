@@ -1,6 +1,7 @@
 // Progreso (/progreso): learning, statistics and progress only. Tiempos (per event, with the daily trend), Práctica (an
 // activity calendar and totals), Aprendizaje (the spaced repetition's state per method and phase, lessons finished),
-// Objetivo (an average under a time, with an estimated date) and the backup of this browser's data.
+// Objetivo (an average under a time, with an estimated date), the optional account (account-view.ts) and the backup of
+// this browser's data.
 // Everything is read from storage on each visit, so it shows what the other screens saved.
 import { lang, loc, t, tp, type MessageKey } from './i18n.ts';
 import { EVENTS, eventOf, formatAverage, formatTime, isEvent, isMo3, type EventId, type Result } from './timer.ts';
@@ -14,6 +15,7 @@ import { isDue, KNOWN_DAYS, learnStatus, learningFor, load, parseStats, save, se
 import { METHODS, allCases } from './academy/methods.ts';
 import { courseFor, parseDone } from './academy/lessons.ts';
 import { parseHistory } from './academy/score.ts';
+import { accountSection } from './account-view.ts';
 import { parseCrossHistory } from './academy/crossScore.ts';
 
 // The other screens' storage keys (persisted, so they never change)
@@ -38,7 +40,7 @@ export function showProgress(root: HTMLElement): void {
     el('h2', { textContent: t('progress.title') }),
     text(t('progress.intro'), 'hint'),
     text(t('pwa.offline'), 'hint'),
-    timesSection(results), practiceSection(results), learningSection(), goalSection(results), backupSection());
+    timesSection(results), practiceSection(results), learningSection(), goalSection(results), accountSection(), backupSection());
 }
 
 // --- Tiempos: one event at a time (the Resolver's, else the first with times) ---

@@ -79,10 +79,11 @@ test('built files: cache first, kept once fetched', async () => {
   assert.deepEqual(fetched, ['/assets/main-abc.js']);
 });
 
-test('left to the browser: analytics, other origins, non-GET', async () => {
+test('left to the browser: analytics, the API, other origins, non-GET', async () => {
   assert.equal(await get('/_vercel/insights/script.js'), undefined);
   assert.equal(await get('https://example.com/x.js'), undefined);
-  assert.equal(await get('/api', 'cors', 'POST'), undefined);
+  assert.equal(await get('/api/progress', 'cors', 'POST'), undefined);
+  assert.equal(await get('/api/me', 'cors'), undefined);
 });
 
 test('a waiting version activates when told to', async () => {

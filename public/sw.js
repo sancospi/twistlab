@@ -17,7 +17,7 @@ self.addEventListener('message', (e) => { if (e.data === 'skip-waiting') self.sk
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
-  if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/_vercel/')) return;
+  if (req.method !== 'GET' || url.origin !== self.location.origin || /^\/(_vercel|api)\//.test(url.pathname)) return; // the account's API: always the network
   if (req.mode === 'navigate') {
     // Network first (every path is index.html: vercel.json), the cached shell offline. A new version waiting takes over
     // now: this page comes from the network, so it's already the new build. ponytail: other tabs still on the old build
