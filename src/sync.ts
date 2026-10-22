@@ -38,8 +38,8 @@ export function hash(s: string | null): string {
 
 // Lists of dated entries ('at', ms), merged as a union: -1 newest first (main.ts), 1 oldest first (score.ts, crossScore.ts)
 const LISTS: Record<string, 1 | -1> = { 'cube-results': -1, 'cube-rounds': -1, 'academy-quiz-history': 1, 'academy-cross-history': 1 };
-// Records by case or course id (store.ts, lessons.ts): merged entry by entry, the newer side's entry winning
-const RECORDS = ['academy-stats', 'academy-learning', 'academy-prefs', 'academy-custom-algs', 'academy-lessons'];
+// Records by case, course or trigger id (store.ts, lessons.ts, triggers.ts): merged entry by entry, the newer side's entry winning
+const RECORDS = ['academy-stats', 'academy-learning', 'academy-prefs', 'academy-custom-algs', 'academy-lessons', 'academy-triggers'];
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const atOf = (x: unknown) => (isObj(x) && typeof x.at === 'number' ? x.at : undefined);

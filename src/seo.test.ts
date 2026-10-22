@@ -16,7 +16,7 @@ test('a page for every case, every method and the library, each path once and ro
   const cases = METHODS.flatMap((m) => allCases(m).map((c) => `/academia/${m.id}/caso/${c.id}`));
   const paths = pages.map((p) => p.path);
   assert.equal(new Set(paths).size, paths.length);
-  for (const p of [...cases, '/algoritmos', '/academia/2x2', '/academia/reconocer-pll', '/academia/auf', ...METHODS.map((m) => `/academia/${m.id}`)]) assert.ok(paths.includes(p), p);
+  for (const p of [...cases, '/algoritmos', '/academia/2x2', '/academia/gatillos', '/academia/reconocer-pll', '/academia/auf', ...METHODS.map((m) => `/academia/${m.id}`)]) assert.ok(paths.includes(p), p);
   for (const p of pages) {
     assert.notEqual(parseRoute(p.path).mod, 'solve', p.path);
     assert.ok(p.title && p.description && p.body.startsWith('<h2>'), p.path);
@@ -30,6 +30,12 @@ test('a case page: its algorithm, recognition, probability and sibling links', (
   assert.match(p.body, /<code>R U R' U R U2 R'<\/code>/);
   assert.match(p.body, /Sale en 1\/54/);
   assert.match(p.body, /href="\/academia\/cfop-completo\/caso\/cfopc-oll-26"/);
+});
+
+test('/academia/gatillos: every trigger with its moves and period', () => {
+  const p = pages.find((x) => x.path === '/academia/gatillos')!;
+  assert.equal(p.title, 'Gatillos · Academia · TwistLab');
+  assert.match(p.body, /<strong>Sexy move<\/strong> <code>R U R' U'<\/code>: .+ Repetido 6 veces seguidas/);
 });
 
 test('/acerca: the title the app sets', () => {

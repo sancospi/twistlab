@@ -2,7 +2,7 @@
 // does it in dev). Links are real <a href>: same-origin clicks are handled here, the rest behave as usual.
 
 export type AcademyPage =
-  | { kind: 'home' } | { kind: 'notation' } | { kind: 'cross' } | { kind: 'bases2x2' } | { kind: 'method'; id: string }
+  | { kind: 'home' } | { kind: 'notation' } | { kind: 'cross' } | { kind: 'bases2x2' } | { kind: 'triggers' } | { kind: 'method'; id: string }
   | { kind: 'lesson'; course: string; id: string } // course: the guide's segment, e.g. /academia/cruz/leccion/que-es
   | { kind: 'library' } // every case of every method, with search: /algoritmos (its own menu entry, drawn by the academy)
   | { kind: 'trainer'; id: Trainer } // a trainer of the Academia's "Entrenadores": /academia/reconocer-pll, /academia/auf
@@ -18,6 +18,7 @@ const NOTATION = 'notacion';
 const ALIASES: Record<string, string> = { '/guia': '/cubo', '/academia/algoritmos': '/algoritmos' };
 const CROSS = 'cruz'; // the white-cross guide: a page of its own, not a method
 const BASES_2X2 = '2x2'; // the 2x2's basics: a guide like the cross
+const TRIGGERS = 'gatillos'; // the triggers (sexy move, Sune…): a page of cards
 const LESSON = 'leccion';
 const LIBRARY = 'algoritmos';
 const CASE = 'caso';
@@ -25,9 +26,9 @@ const PAINT = 'pintar';
 const PROGRESS = 'progreso';
 const ABOUT = 'acerca';
 
-export type GuidePage = Extract<AcademyPage, { kind: 'notation' | 'cross' | 'bases2x2' | 'method' }>;
-const GUIDES = { notation: NOTATION, cross: CROSS, bases2x2: BASES_2X2 } as const;
-/** The guide at /academia/<segment>: the notation, the white cross, the 2x2's basics or a method. */
+export type GuidePage = Extract<AcademyPage, { kind: 'notation' | 'cross' | 'bases2x2' | 'triggers' | 'method' }>;
+const GUIDES = { notation: NOTATION, cross: CROSS, bases2x2: BASES_2X2, triggers: TRIGGERS } as const;
+/** The guide at /academia/<segment>: the notation, the white cross, the 2x2's basics, the triggers or a method. */
 export const guidePage = (segment: string): GuidePage => {
   const kind = (Object.keys(GUIDES) as (keyof typeof GUIDES)[]).find((k) => GUIDES[k] === segment);
   return kind ? { kind } : { kind: 'method', id: segment };

@@ -1,4 +1,4 @@
-// Academia: a home of tiles (the white cross first, one per method, plus Notación), then each on its own route.
+// Academia: a home of tiles (the white cross first, one per method, plus Notación and Gatillos), then each on its own route.
 // A method page starts with the Quiz of the whole method (and how many cases are due today), then shows its phases
 // and groups, each case as a card that opens its page (caseView.ts: Practicar, Quiz, Memoria muscular), with Quiz
 // buttons per group and phase, plus the plan's own quizzes: the same Quiz, only the scope changes.
@@ -18,6 +18,8 @@ import { LL_STEPS, caseState } from './cube.ts';
 import { crossGuide } from './crossGuide.ts';
 import { guideSections, trainerButton } from './crossView.ts';
 import { bases2x2 } from './bases2x2.ts';
+import { triggerGuide } from './triggers.ts';
+import { triggersView } from './triggerView.ts';
 import { courseFor, MOVE_GROUPS, type Course } from './lessons.ts';
 import { lessonList, playLesson, stopLesson } from './lessonView.ts';
 import { libraryView, showCase, stopCase } from './caseView.ts';
@@ -65,6 +67,10 @@ export async function showAcademy(root: HTMLElement, page: AcademyPage): Promise
   if (page.kind === 'home') {
     root.replaceChildren(homeView());
     return t('menu.academy');
+  }
+  if (page.kind === 'triggers') {
+    root.replaceChildren(crumbs(loc(triggerGuide.name)), triggersView(kpuzzle));
+    return inAcademy(loc(triggerGuide.name));
   }
   // A guide with lessons can be read either way: "Ver como: Guía · Lecciones"
   const course = courseFor(guideSegment(page), (c) => preferred(c).alg);
@@ -210,6 +216,11 @@ function homeView(): HTMLElement {
     el('strong', { textContent: t('glossary.title') }),
     text(t('glossary.tileSummary'), 'hint'),
     el('span', { className: 'tile-meta', textContent: t('glossary.tileMeta') }));
+  const triggers = el('a', { className: 'tile', href: academyLink({ kind: 'triggers' }) },
+    el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: "R′ F R F′" }),
+    el('strong', { textContent: loc(triggerGuide.name) }),
+    text(loc(triggerGuide.summary), 'hint'),
+    el('span', { className: 'tile-meta', textContent: tp('triggers.tileCount', triggerGuide.triggers.length) }));
   // no smart cube: paint yours and get its solution (a page of the Cubo screen)
   const paint = el('a', { className: 'tile', href: routePath({ mod: 'cube', page: 'paint' }) },
     el('div', { className: 'tile-strip tile-net', ariaHidden: 'true', innerHTML: netSVG(patternToFacelets(kpuzzle.defaultPattern().applyAlg("R U F' L2"))) }),
@@ -243,7 +254,7 @@ function homeView(): HTMLElement {
   return el('section', { className: 'academy-home' },
     el('h2', { textContent: t('menu.academy') }),
     text(t('academy.homeIntro'), 'prose hint'),
-    group('3x3x3', cross, ...tiles('3x3x3'), notation, paint),
+    group('3x3x3', cross, ...tiles('3x3x3'), notation, triggers, paint),
     group('2x2x2', basics, ...tiles('2x2x2')),
     trainers,
     el('p', { className: 'foot-link' }, el('a', { href: routePath({ mod: 'about' }), textContent: t('about.link') })));

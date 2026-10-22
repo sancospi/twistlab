@@ -1,11 +1,12 @@
-// Build-time pages for crawlers (vite.config.ts writes them into dist/): every case, method and the algorithm library
+// Build-time pages for crawlers (vite.config.ts writes them into dist/): every case, method, the triggers and the algorithm library
 // gets its own index.html, the app's page with its title, description, canonical URL, Open Graph tags and its content
 // as static HTML inside the module's container. The app replaces that content when it boots. Pure: no DOM, no fs.
 import type { KPuzzle } from 'cubing/kpuzzle';
-import { loc, t } from './i18n.ts';
+import { loc, t, tp } from './i18n.ts';
 import { TRAINERS, parseRoute, routePath, type AcademyPage, type Route, type Trainer } from './router.ts';
 import { METHODS, allCases } from './academy/methods.ts';
 import { bases2x2 } from './academy/bases2x2.ts';
+import { period, triggerGuide } from './academy/triggers.ts';
 import type { TextGuide } from './academy/crossGuide.ts';
 import { caseProbability, formatProbability } from './academy/probability.ts';
 import type { Case, Method } from './academy/types.ts';
@@ -78,6 +79,18 @@ function guidePage(g: TextGuide, page: AcademyPage): SeoPage {
   };
 }
 
+/** The triggers: the intro, then each one with its moves, what it does and its period. */
+function triggersPage(kpuzzle: KPuzzle): SeoPage {
+  const g = triggerGuide;
+  return {
+    path: academy({ kind: 'triggers' }),
+    title: inAcademy(loc(g.name)),
+    description: plain(loc(g.summary)),
+    body: `<h2>${esc(loc(g.name))}</h2>${loc(g.intro).split('\n').map((x) => `<p>${esc(plain(x.replace(/^## /, '')))}</p>`).join('')}`
+      + list(g.triggers.map((x) => `<strong>${esc(loc(x.name))}</strong> <code>${esc(x.alg)}</code>: ${esc(plain(loc(x.does)))} ${esc(tp('triggers.period', period(kpuzzle, x.alg)))}`)),
+  };
+}
+
 /** A trainer's page: its name and what it trains (the app draws the trainer itself). */
 function trainerPage(id: Trainer): SeoPage {
   const [title, description] = [t(`trainer.${id}.title`), t(`trainer.${id}.summary`)];
@@ -100,7 +113,7 @@ export function seoPages(kpuzzle: KPuzzle): SeoPage[] {
     path: '/acerca', title: pageTitle(t('about.title')), description: t('seo.aboutDescription'),
     body: `<h2>${esc(t('about.title'))}</h2><p>${esc(t('seo.aboutDescription'))}</p>`,
   };
-  return [libraryPage(), guidePage(bases2x2, { kind: 'bases2x2' }), ...TRAINERS.map(trainerPage), ...METHODS.flatMap((m) => [methodPage(m), ...allCases(m).map((c) => casePage(m, c, kpuzzle))]), about];
+  return [libraryPage(), guidePage(bases2x2, { kind: 'bases2x2' }), triggersPage(kpuzzle), ...TRAINERS.map(trainerPage), ...METHODS.flatMap((m) => [methodPage(m), ...allCases(m).map((c) => casePage(m, c, kpuzzle))]), about];
 }
 
 /** The built index.html as this page: its head tags, and its content in the module's container (shown, not hidden). */
