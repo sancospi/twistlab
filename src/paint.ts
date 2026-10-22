@@ -1,15 +1,25 @@
 // "Pinta tu cubo": a state painted sticker by sticker, checked before it's solved (the screen is paint-view.ts).
 // The state is a 54-char Kociemba string in the USER frame (yellow up, green front), as in diagram.ts: each letter
 // is the face whose colour the sticker has, '.' a sticker not painted yet. Centres are fixed.
-import { SOLVED_FACELETS } from './facelets.ts';
+import type { KPuzzle } from 'cubing/kpuzzle';
+import { patternToFacelets, SOLVED_FACELETS } from './facelets.ts';
 import { PIECES } from './academy/diagram.ts';
-import type { Face } from './notation.ts';
+import { tokenize, type Face } from './notation.ts';
 
 export const BLANK = '.';
 export const CENTERS = [4, 13, 22, 31, 40, 49];
 export const EMPTY = [...SOLVED_FACELETS].map((c, i) => (CENTERS.includes(i) ? c : BLANK)).join('');
 
 /** A painting that can be stored and painted on: 54 stickers, centres in place. */
+/** A scramble as a painting of this net (yellow up): scrambles are done white up, green front (WCA), so its turns are
+ *  seen after z2 (R↔L, U↔D). Null unless it is face turns only: slices and rotations would move the centers. */
+export function scramblePainting(kpuzzle: KPuzzle, scramble: string): string | null {
+  let tokens: string[];
+  try { tokens = tokenize(scramble); } catch { return null; }
+  if (!tokens.length || !tokens.every((m) => /^[URFDLB](2'?|')?$/.test(m))) return null;
+  return patternToFacelets(kpuzzle.defaultPattern().applyAlg(`z2 ${tokens.join(' ')} z2`));
+}
+
 export const isPainting = (s: string): boolean => /^[URFDLB.]{54}$/.test(s) && CENTERS.every((i) => s[i] === SOLVED_FACELETS[i]);
 
 export type Problem =

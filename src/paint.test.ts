@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { patternToFacelets, SOLVED_FACELETS } from './facelets.ts';
-import { EMPTY, isPainting, neighbour, validate } from './paint.ts';
+import { EMPTY, isPainting, neighbour, scramblePainting, validate } from './paint.ts';
 
 const swap = (f: string, ...pairs: [number, number][]) => {
   const a = [...f];
@@ -17,6 +17,14 @@ test('paint: real states pass', async () => {
   for (const alg of ['R', "R U R' U'", "F2 D L' B U2 R2 F' D2 L B'", 'U2 D2 F2 B2 L2 R2']) {
     assert.deepEqual(validate(patternToFacelets(solved.applyAlg(alg))), [], alg);
   }
+});
+
+test('paint: a scramble (white up) painted yellow up', async () => {
+  const kpuzzle = await cube3x3x3.kpuzzle();
+  const as = (alg: string) => patternToFacelets(kpuzzle.defaultPattern().applyAlg(alg));
+  assert.equal(scramblePainting(kpuzzle, "R U' F2"), as("L D' F2"));
+  assert.ok(isPainting(scramblePainting(kpuzzle, "R2 B L' D2 U R’")!));
+  for (const bad of ['', 'M', "R x'", 'Rw', 'hola']) assert.equal(scramblePainting(kpuzzle, bad), null, bad);
 });
 
 test('paint: colours not painted, or not 9 times each', () => {

@@ -15,7 +15,8 @@ import { BSTAGES, beginnerSolve, stepTokens, stepView, type BStep } from './begi
 import { lang, loc, t, tp, type MessageKey } from './i18n.ts';
 import { algView } from './notation-view.ts';
 import { invertTokens } from './notation.ts';
-import { BLANK, CENTERS, EMPTY, isPainting, NET_AT, neighbour, validate, type Problem } from './paint.ts';
+import { cube3x3x3 } from 'cubing/puzzles';
+import { BLANK, CENTERS, EMPTY, isPainting, NET_AT, neighbour, scramblePainting, validate, type Problem } from './paint.ts';
 import { routePath } from './router.ts';
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -69,6 +70,13 @@ function build() {
   btn('paint-reset').onclick = () => setFacelets(SOLVED_FACELETS);
   btn('paint-clear').onclick = () => setFacelets(EMPTY);
   btn('paint-solve').onclick = () => void solve();
+  ($('paint-scramble') as HTMLFormElement).onsubmit = async (e) => {
+    e.preventDefault();
+    const f = scramblePainting(await cube3x3x3.kpuzzle(), ($('paint-scramble-input') as HTMLInputElement).value);
+    if (!f) return status(t('paint.scrambleBad'));
+    setFacelets(f);
+    void solve();
+  };
   btn('paint-prev').onclick = () => (mode === 'guided' ? prevStep() : prev());
   btn('paint-next').onclick = () => (mode === 'guided' ? nextStep() : next());
   btn('paint-all').onclick = playAll;
