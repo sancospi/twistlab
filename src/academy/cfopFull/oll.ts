@@ -30,7 +30,7 @@ function oll(n: number, name: string, recognition: string, alg: string, alts: [n
 const ocll = (code: string, n: number, recognition: string, alg: string, alts: [number, string][], note?: string): Case =>
   oll(n, `OLL ${n}`, `Cruz hecha. ${recognition}`, alg, alts, note, code);
 const inverse = (n: number) => `Es el inverso del OLL ${n}: la mezcla de uno es el algoritmo del otro.`;
-const SUNE_NOTE = 'Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra. Apréndelas primero: aparecen en muchos solves y comparten gatillos con la H.';
+const SUNE_NOTE = 'Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra. Apréndelas primero: salen en muchos solves y comparten gatillos con la H.';
 const UL_NOTE = 'U y L son inversas: la mezcla de la L es el algoritmo de la U. D gira la capa de abajo en sentido horario, mirándola desde abajo.';
 
 // "A los lados" = the yellow stickers on the side faces of the top layer, as drawn (front at the bottom).
@@ -107,43 +107,43 @@ export const ollPhase: Phase = {
   name: es('OLL'),
   description: es(
     [
-      'El OLL deja toda la cara de arriba amarilla **con un solo algoritmo**. Hay 57 casos.',
+      'Deja toda la cara de arriba amarilla **con un solo algoritmo**. 57 casos.',
       '## En 2 pasos o completo',
-      '- **En 2 pasos:** el del CFOP reducido. Primero la cruz amarilla y después las esquinas. Son 9 algoritmos (el Punto es la Línea seguida de la L), pero casi siempre haces 2 seguidos.',
-      '- **Completo:** un algoritmo por caso. Ahorras un paso y una pausa de reconocimiento en cada solve, a cambio de 48 algoritmos nuevos (ya sabes 9: los 7 OCLL, la Línea y la L).',
-      'No hace falta saberlos todos para usarlo: cuando aparezca un caso que aún no sabes, resuélvelo en 2 pasos.',
+      '- **En 2 pasos:** el del CFOP reducido. Cruz amarilla y luego esquinas: 9 algoritmos (el Punto es la Línea seguida de la L).',
+      '- **Completo:** un algoritmo por caso. Ahorras un paso y una pausa de reconocimiento, a cambio de 48 algoritmos nuevos (ya sabes 9: los 7 OCLL, la Línea y la L).',
+      'Si aparece un caso que no sabes, resuélvelo en 2 pasos.',
       '## Empieza por el OCLL',
-      'Los 7 casos con la cruz ya hecha (OCLL) son el paso 2 del OLL en 2 pasos: si vienes del CFOP reducido, ya los sabes. Domínalos antes de seguir.',
+      'Los 7 casos con la cruz ya hecha (OCLL) son el paso 2 del OLL en 2 pasos. Si vienes del CFOP reducido, ya los sabes: domínalos primero.',
       '## Reconocer por la forma',
       '1. Mira las aristas de arriba: cruz, línea, ángulo (la L del OLL en 2 pasos) o ninguna (punto).',
-      '2. Mira qué esquinas tienen el amarillo arriba. Junto con las aristas, dibujan la forma que da el grupo.',
-      '3. Para distinguir los casos de un mismo grupo, mira los amarillos de los lados.',
-      'En cada caso, «A los lados» indica las pegatinas amarillas de las caras laterales de la capa de arriba, tal como se ven en la figura (el frente abajo).',
+      '2. Mira qué esquinas tienen el amarillo arriba. Con las aristas, dibujan la forma que da el grupo.',
+      '3. Dentro del grupo, mira los amarillos de los lados.',
+      '«A los lados» son las pegatinas amarillas de las caras laterales de la capa de arriba, como en la figura (frente abajo).',
     ].join('\n'),
   ),
   diagram: 'top',
   groups: [
-    group('ocll', 'Cruz hecha (OCLL)', 'La cruz amarilla ya está; solo faltan las esquinas. Cuenta las que tienen el amarillo arriba:\n- 0 → H o Pi\n- 1 → Sune o Antisune\n- 2 → U, T o L', [27, 26, 21, 22, 23, 24, 25]),
-    group('t', 'Formas de T', 'Una línea de aristas y las 2 esquinas de uno de sus extremos: completan una fila de 3 que cruza la línea y forman una T. El 45 es la Línea del OLL en 2 pasos.', [45, 33]),
-    group('p', 'Formas de P', 'Dos aristas en ángulo y 2 esquinas que completan una fila de 3 con una de ellas: forman una P. El 44 es la L del OLL en 2 pasos.', [44, 43, 32, 31]),
-    group('c', 'Formas de C', 'Una línea de aristas y las 2 esquinas del lado paralelo a ella, con hueco en medio: forman una C.', [34, 46]),
-    group('w', 'Formas de W', 'Dos aristas en ángulo y 2 esquinas en escalera: forman una W.', [36, 38]),
-    group('cuadrado', 'Cuadrados', 'Un cuadrado de 2×2: dos aristas en ángulo y la esquina entre ellas.', [5, 6]),
-    group('relampago', 'Relámpagos', 'Forma de rayo.\n- **Pequeños (7, 8, 11 y 12):** dos aristas en ángulo y 1 esquina pegada a una de ellas, por fuera del ángulo.\n- **Grandes (39 y 40):** una línea y 2 esquinas en diagonal.', [7, 8, 11, 12, 39, 40]),
-    group('pez', 'Peces', 'Dos aristas en ángulo y la esquina opuesta en diagonal: la cola del pez. En el 35 y el 37 también está arriba la esquina del ángulo.', [9, 10, 35, 37]),
-    group('caballo', 'Saltos de caballo', 'Una línea de aristas y una sola esquina arriba, como el salto del caballo en el ajedrez.', [13, 14, 15, 16]),
+    group('ocll', 'Cruz hecha (OCLL)', 'La cruz amarilla ya está; faltan las esquinas. Cuenta las que tienen el amarillo arriba:\n- 0 → H o Pi\n- 1 → Sune o Antisune\n- 2 → U, T o L', [27, 26, 21, 22, 23, 24, 25]),
+    group('t', 'Formas de T', 'Línea de aristas y las 2 esquinas de un extremo: forman una fila de 3 que cruza la línea. El 45 es la Línea del OLL en 2 pasos.', [45, 33]),
+    group('p', 'Formas de P', 'Dos aristas en ángulo y 2 esquinas que forman una fila de 3 con una de ellas. El 44 es la L del OLL en 2 pasos.', [44, 43, 32, 31]),
+    group('c', 'Formas de C', 'Línea de aristas y las 2 esquinas del lado paralelo, con hueco en medio.', [34, 46]),
+    group('w', 'Formas de W', 'Dos aristas en ángulo y 2 esquinas en escalera.', [36, 38]),
+    group('cuadrado', 'Cuadrados', 'Cuadrado 2×2: dos aristas en ángulo y la esquina entre ellas.', [5, 6]),
+    group('relampago', 'Relámpagos', 'Forma de rayo.\n- **Pequeños (7, 8, 11 y 12):** dos aristas en ángulo y 1 esquina pegada a una, fuera del ángulo.\n- **Grandes (39 y 40):** una línea y 2 esquinas en diagonal.', [7, 8, 11, 12, 39, 40]),
+    group('pez', 'Peces', 'Dos aristas en ángulo y la esquina opuesta en diagonal (la cola). En el 35 y el 37 también está arriba la esquina del ángulo.', [9, 10, 35, 37]),
+    group('caballo', 'Saltos de caballo', 'Línea de aristas y una sola esquina arriba, como el salto del caballo en ajedrez.', [13, 14, 15, 16]),
     group('l', 'L pequeñas', 'Solo dos aristas en ángulo, sin esquinas arriba.', [47, 48, 49, 50, 53, 54]),
     group('linea', 'Líneas', 'Solo una línea de aristas, sin esquinas arriba.', [51, 52, 55, 56]),
     group('esquinas', 'Esquinas listas', 'Las 4 esquinas ya tienen el amarillo arriba; faltan 2 aristas.', [28, 57]),
-    group('raros', 'Raros', 'Dos aristas en ángulo y las 2 esquinas del lado sin arista: una fila con hueco en medio. Son difíciles de reconocer: fíjate en los lados.', [29, 30, 41, 42]),
-    group('punto', 'Puntos', 'Ninguna arista arriba: solo el centro y, a veces, algunas esquinas. Son de los más largos.', [1, 2, 3, 4, 17, 18, 19, 20]),
+    group('raros', 'Raros', 'Dos aristas en ángulo y las 2 esquinas del lado sin arista, con hueco en medio. Difíciles de reconocer: fíjate en los lados.', [29, 30, 41, 42]),
+    group('punto', 'Puntos', 'Ninguna arista arriba: solo el centro y, a veces, esquinas. De los más largos.', [1, 2, 3, 4, 17, 18, 19, 20]),
   ],
   progression: es(
     [
-      'Orden sugerido: **OCLL → T, P y C → W, cuadrados y relámpagos → peces y saltos de caballo → L pequeñas y líneas → esquinas listas y raros → puntos**.',
-      '- Cuando aprendas un caso, aprende también su inverso aunque sea de otro grupo: la mezcla de uno es el algoritmo del otro (5 y 8, 6 y 7, 31 y 40, 33 y 37, 48 y 51, 49 y 50, 28 y 57).',
-      '- Mientras no sepas un caso, resuélvelo en 2 pasos: cruz amarilla y después OCLL.',
-      '- Deja los puntos para el final: son de los más largos y, mientras no los sepas, los resuelves con el Punto del OLL en 2 pasos.',
+      'Orden: **OCLL → T, P y C → W, cuadrados y relámpagos → peces y saltos de caballo → L pequeñas y líneas → esquinas listas y raros → puntos**.',
+      '- Aprende también el inverso de cada caso, aunque sea de otro grupo: la mezcla de uno es el algoritmo del otro (5 y 8, 6 y 7, 31 y 40, 33 y 37, 48 y 51, 49 y 50, 28 y 57).',
+      '- Mientras no sepas un caso, resuélvelo en 2 pasos: cruz amarilla y luego OCLL.',
+      '- Deja los puntos para el final: mientras tanto, usa el Punto del OLL en 2 pasos.',
     ].join('\n'),
   ),
   quizzes: [],

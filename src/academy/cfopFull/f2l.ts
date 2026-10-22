@@ -10,11 +10,11 @@ import { scdbUrl } from '../scdb.ts';
 
 const es = (text: string): Localized => ({ es: text });
 
-const Y_NOTE = 'Empieza con y′: giras todo el cubo y el par se inserta con la mano derecha. Si no quieres rotar, tienes una alternativa sin y′.';
+const Y_NOTE = 'Empieza con y′: giras todo el cubo. Si no quieres rotar, usa la alternativa sin y′.';
 
 /** n = SpeedCubeDB's F2L number; reduced = the same case's code in CFOP reducido. */
 function F2L(n: number, recognition: string, alg: string, setup: string, alts: [number, string][], y = false, reduced?: string): Case {
-  const note = [y ? Y_NOTE : '', reduced ? `Es el caso ${reduced} del CFOP reducido.` : ''].filter(Boolean).join(' ');
+  const note = [y ? Y_NOTE : '', reduced ? `Caso ${reduced} del CFOP reducido.` : ''].filter(Boolean).join(' ');
   const code = String(n).padStart(2, '0');
   return {
     id: `cfopc-f2l-${code}`,
@@ -91,20 +91,24 @@ export const f2lPhase: Phase = {
   name: es('F2L'),
   description: es(
     [
-      'Los **41 casos** de F2L, numerados como en SpeedCubeDB. Todos son para la **ranura adelante-derecha** (par verde-naranja).',
-      'La descripción de cada caso es el estado justo después de la mezcla. Si el algoritmo empieza con `U`, `U\'` o `U2`, ese giro es parte del caso: no lo saltes. En un solve real, ajusta antes con `U` hasta ver el caso como en la figura.',
-      '## Primero, la idea',
-      "Antes de memorizar, entiende la idea: junta la esquina y la arista arriba en un par, colócalo con `U` donde un gatillo de 3 giros lo mete y mételo: `R U R'` o `R U' R'` por la derecha, `F' U' F` o `F' U F` por el frente.",
-      'Casi todos los casos son esa idea encadenada. Aprende el algoritmo de un caso cuando tu solución intuitiva sea larga o te obligue a girar el cubo.',
-      'Los 19 casos del CFOP reducido también están aquí: la nota de cada uno dice qué código tenía allí (A1, B2…).',
+      '**41 casos**, numerados como en SpeedCubeDB. Todos para la **ranura adelante-derecha** (par verde-naranja).',
+      'Cada caso describe el estado justo después de la mezcla.',
+      "Si el algoritmo empieza con `U`, `U'` o `U2`, ese giro es parte del caso: no lo saltes. En un solve real, gira `U` hasta ver el caso como en la figura.",
+      '## La idea',
+      '1. Junta la esquina y la arista arriba en un par.',
+      '2. Colócalo con `U` donde un gatillo de 3 giros lo inserte:',
+      "- Por la derecha: `R U R'` o `R U' R'`.",
+      "- Por el frente: `F' U' F` o `F' U F`.",
+      'Casi todos los casos son esa idea encadenada. Aprende el algoritmo cuando tu solución intuitiva sea larga o te obligue a girar el cubo.',
+      'Los 19 casos del CFOP reducido están aquí: la nota de cada uno da su código (A1, B2…).',
       '## Anticipación',
-      'Mientras insertas un par, busca con la vista el siguiente. Es lo que más baja los tiempos: la meta es no detenerte entre pares.',
-      'Mejor un solve lento sin pausas que uno rápido con pausas.',
+      'Mientras insertas un par, busca el siguiente. Es lo que más baja los tiempos.',
+      'Mejor lento y sin pausas que rápido con pausas.',
       '## Notación nueva',
-      "- `y'` gira todo el cubo como `U'`; `y` como `U`.",
+      "- `y'` gira todo el cubo como `U'`; `y`, como `U`.",
       '- `d` gira las 2 capas de abajo, como `D`; `u`, las 2 de arriba, como `U`.',
-      '- `r` y `f` mueven la cara más la capa del medio.',
-      '- `M` es la capa del medio entre `L` y `R` y gira como `L`; `S`, la del medio entre `F` y `B`, y gira como `F`.',
+      '- `r` y `f`: la cara más la capa del medio.',
+      '- `M` gira como `L`; `S`, como `F`.',
     ].join('\n'),
   ),
   diagram: 'iso',
@@ -112,7 +116,7 @@ export const f2lPhase: Phase = {
     {
       id: 'cfopc-f2l-libres',
       name: es('Pares libres'),
-      description: es('El par ya está armado o a un giro de estarlo: se inserta en 3 o 4 movimientos. **La base de todo lo demás.**'),
+      description: es('El par ya está armado o a un giro de estarlo. Se inserta en 3 o 4 movimientos. **La base de todo lo demás.**'),
       cases: libres,
     },
     {
@@ -120,8 +124,8 @@ export const f2lPhase: Phase = {
       name: es('Piezas separadas'),
       description: es(
         [
-          'La esquina y la arista están arriba pero no se tocan.',
-          "Primero las juntas en un par con un gatillo como `R U R'` o `R U' R'` (`U` solo las coloca), y después insertas el par. En los casos 19 a 22 el blanco mira arriba.",
+          'Esquina y arista arriba, sin tocarse.',
+          "Júntalas en un par con un gatillo (`R U R'` o `R U' R'`; `U` solo las coloca) y luego insértalo. En los casos 19 a 22 el blanco mira arriba.",
         ].join('\n'),
       ),
       cases: separadas,
@@ -129,37 +133,38 @@ export const f2lPhase: Phase = {
     {
       id: 'cfopc-f2l-juntas',
       name: es('Piezas juntas'),
-      description: es('La esquina y la arista se tocan arriba, pero no forman par: hay que deshacerlas y volver a juntarlas bien.'),
+      description: es('Esquina y arista se tocan arriba pero no forman par. Sepáralas y júntalas bien.'),
       cases: juntas,
     },
     {
       id: 'cfopc-f2l-esquina',
       name: es('Esquina en la ranura'),
-      description: es('La esquina está abajo, en su ranura, y la arista arriba. Saca la esquina sin perder la arista de vista.'),
+      description: es('Esquina abajo, en su ranura; arista arriba. Saca la esquina sin perder la arista de vista.'),
       cases: esquina,
     },
     {
       id: 'cfopc-f2l-arista',
       name: es('Arista en la ranura'),
-      description: es('La arista está en su ranura, bien puesta o volteada, y la esquina arriba.'),
+      description: es('Arista en su ranura, bien puesta o volteada; esquina arriba.'),
       cases: arista,
     },
     {
       id: 'cfopc-f2l-ranura',
       name: es('Ambas en la ranura'),
-      description: es('Las dos piezas están en su ranura, pero mal colocadas. Son los casos menos frecuentes y de los más largos: apréndelos al final.'),
+      description: es('Las dos piezas en su ranura, mal colocadas. Los menos frecuentes y de los más largos: déjalos para el final.'),
       cases: ranura,
     },
   ],
   progression: es(
     [
       'Orden: **pares libres → piezas separadas → piezas juntas → esquina en la ranura → arista en la ranura → ambas en la ranura**.',
-      'Sigue ese orden, pero salta los 19 casos que ya aprendiste en el CFOP reducido (su nota lo indica): esos solo repásalos. Los 22 nuevos son los que entrenas.',
+      'Los 19 casos del CFOP reducido solo repásalos (su nota lo indica). Entrena los 22 nuevos.',
       '## Espejo',
-      'Cuando domines un caso en la ranura adelante-derecha, practica el espejo en adelante-izquierda.',
-      "- Cambia cada `R` por `L` y cada `L` por `R` (también `r` y `l`), e invierte todos los giros: `R` pasa a `L'`, `F` a `F'`, `U'` a `U`, `y'` a `y`… Solo `M` no cambia.",
+      'Cuando domines un caso adelante-derecha, practica su espejo adelante-izquierda.',
+      "1. Cambia `R` por `L` y `L` por `R` (también `r` y `l`).",
+      "2. Invierte todos los giros: `R` pasa a `L'`, `F` a `F'`, `U'` a `U`, `y'` a `y`. Solo `M` no cambia.",
       "- Ejemplo: `R U R'` pasa a `L' U' L`.",
-      '## Anticipación',
+      '## Práctica',
       'Haz 5 solves lentos por sesión buscando el siguiente par mientras insertas el actual.',
     ].join('\n'),
   ),

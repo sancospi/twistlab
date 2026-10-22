@@ -6,7 +6,7 @@ import { scdbUrl } from './scdb.ts';
 
 const es = (text: string): Localized => ({ es: text });
 
-const PLAN_B_NOTE = es('Plan B: más fácil de aprender al principio; se hace solo con R, U y F o gatillos conocidos.');
+const PLAN_B_NOTE = es('Plan B: más fácil al principio; solo R, U y F o gatillos conocidos.');
 
 // Extra SpeedCubeDB algorithms (fetched 2026-10-20), [rank, alg], at most 4 per case in the site's order.
 // Each one is the site's text plus the U turn it needs here (a leading y dropped when that is all it took);
@@ -85,8 +85,8 @@ function quiz(id: string, name: string, instructions: Localized, prefix: string,
 }
 
 const Y_NOTE =
-  'Empieza con y′: giras todo el cubo y el par se inserta con la mano derecha. El Plan B hace exactamente lo mismo sin rotar, con F.';
-const R_NOTE = 'Usa r: gira 2 capas a la vez, la cara R más la capa del medio.';
+  'Empieza con y′: giras todo el cubo y el par entra con la mano derecha. El Plan B hace lo mismo sin rotar, con F.';
+const R_NOTE = 'Usa r: 2 capas a la vez (la cara R y la capa del medio).';
 const F2L = (slug: string, recognition: string, alg: string, setup: string, n: string, planB?: string, note?: string): Case =>
   kase({ slug, code: slug.toUpperCase(), recognition, stage: 'f2l', alg, planB, setup, scdb: ['F2L', n], note });
 
@@ -124,14 +124,14 @@ const ollCross = [
   kase({ slug: 'linea', code: 'Línea', recognition: 'Línea amarilla horizontal (izquierda–derecha)', stage: 'oll-cross',
     alg: "F R U R' U' F'", setup: "F U R U' R' F'", scdb: ['OLL', '45'], note: 'Es el OLL 45.' }),
   kase({ slug: 'l', code: 'L', recognition: 'Aristas amarillas adelante y a la derecha', stage: 'oll-cross',
-    alg: "f R U R' U' f'", setup: "f U R U' R' f'", scdb: ['OLL', '44'], note: 'Usa f (2 capas). Es el OLL 44 completo.' }),
+    alg: "f R U R' U' f'", setup: "f U R U' R' f'", scdb: ['OLL', '44'], note: 'Usa f (2 capas). Es el OLL 44.' }),
   kase({ slug: 'punto', code: 'Punto', recognition: 'Solo el centro amarillo', stage: 'oll-cross',
     alg: "F R U R' U' F' f R U R' U' f'", setup: "f U R U' R' f' F U R U' R' F'", scdb: null,
-    note: 'No es un algoritmo nuevo: es la Línea seguida de la L, sin giro en medio.' }),
+    note: 'No es nuevo: es la Línea seguida de la L, sin giro en medio.' }),
 ];
 
-const SUNE_NOTE = 'Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra. Apréndelas primero: aparecen en muchos solves y comparten gatillos con la H.';
-const UL_NOTE = 'U y L son inversas: la mezcla de la L es el algoritmo de la U. D gira la capa de abajo en sentido horario, mirándola desde abajo.';
+const SUNE_NOTE = 'Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra. Apréndelas primero: salen mucho y comparten gatillos con la H.';
+const UL_NOTE = 'U y L son inversas: la mezcla de una es el algoritmo de la otra. D gira la capa de abajo en sentido horario, mirándola desde abajo.';
 const ollCorners = [
   kase({ slug: 'sune', code: 'Sune', recognition: '1 esquina arriba, adelante-izq; la de adelante-der muestra amarillo al frente', stage: 'oll-corners',
     alg: "R U R' U R U2 R'", setup: "R U2 R' U' R U' R'", scdb: ['OLL', '27'], note: SUNE_NOTE }),
@@ -168,17 +168,17 @@ const pllEdges = [
     alg: "M2 U M2 U2 M2 U M2", setup: "M2 U' M2 U2 M2 U' M2", scdb: ['PLL', 'H'], note: M_NOTE }),
   kase({ slug: 'z', code: 'Z-perm', recognition: 'Ningún lado completo; la arista del frente es del color de la izquierda y la de la izquierda del color del frente', stage: 'pll-edges',
     alg: "U M' U' M2 U' M2 U' M' U2 M2", setup: "M2 U2 M U M2 U M2 U M U'", scdb: ['PLL', 'Z'],
-    note: `${M_NOTE} La U inicial es el AUF: así el algoritmo de SpeedCubeDB arranca con las esquinas alineadas.` }),
+    note: `${M_NOTE} La U inicial es el AUF: deja las esquinas alineadas como pide SpeedCubeDB.` }),
 ];
 
 const F2L_QUIZ = es(
-  'Aplica la mezcla con amarillo arriba y verde al frente. Quedan resueltas la cruz y tres ranuras; identifica el caso del par verde-naranja (puede requerir un giro U antes del algoritmo).',
+  'Mezcla con amarillo arriba y verde al frente. Cruz y tres ranuras resueltas: identifica el caso del par verde-naranja (puede pedir un giro U antes).',
 );
 const OLL_QUIZ = es(
-  'Aplica la mezcla con amarillo arriba y verde al frente. Las dos primeras capas quedan resueltas; identifica el caso y gira la capa superior hasta la posición correcta.',
+  'Mezcla con amarillo arriba y verde al frente. Dos primeras capas resueltas: identifica el caso y gira la capa superior hasta la posición correcta.',
 );
 const PLL_QUIZ = es(
-  'Aplica la mezcla con amarillo arriba y verde al frente. La cara amarilla queda completa; identifica el caso del paso correspondiente.',
+  'Mezcla con amarillo arriba y verde al frente. Cara amarilla completa: identifica el caso del paso correspondiente.',
 );
 
 export const cfopReduced: Method = {
@@ -187,65 +187,65 @@ export const cfopReduced: Method = {
   summary: es('Tu primer CFOP: F2L básico (19 casos) y OLL y PLL en 2 pasos (16 casos). 35 algoritmos en 6 semanas.'),
   description: es(
     [
-      'Aprenderás **35 algoritmos en 6 semanas**: 19 casos de F2L, 10 de OLL en 2 pasos y 6 de PLL en 2 pasos. Son 2 o 3 nuevos por sesión.',
+      '**35 algoritmos en 6 semanas:** 19 de F2L, 10 de OLL y 6 de PLL (en 2 pasos). 2 o 3 nuevos por sesión.',
       '## Las 4 etapas de cada algoritmo',
-      'Cada algoritmo pasa por 4 etapas. Solo avanzas a la siguiente cuando cumples su criterio.',
-      "1. **Aprender.** Divide el algoritmo en gatillos (por ejemplo `R U R' U'` o `F R U R' U' F'`) y ejecútalo lento 5 veces mirando la hoja. Criterio para avanzar: lo haces sin mirar la hoja.",
-      '2. **Taladrar.** Mezcla → algoritmo, 20 repeticiones seguidas. Criterio para avanzar: 10 seguidas sin error.',
-      "3. **Reconocer.** Mezcla + un giro extra al azar (`U`, `U'` o `U2`). Identifica el caso y gira la capa hasta dejarlo en posición. Criterio para avanzar: reconoces y ejecutas en menos de 3 s.",
-      '4. **Integrar.** Haz resoluciones completas cronometradas y usa el algoritmo cuando aparezca el caso. Criterio para avanzar: lo usas bien 5 veces en solves reales.',
+      'Pasas a la siguiente solo si cumples su criterio.',
+      "1. **Aprender:** divide el algoritmo en gatillos (`R U R' U'`, `F R U R' U' F'`) y hazlo lento 5 veces con la hoja. Sigue cuando lo hagas sin mirarla.",
+      '2. **Taladrar:** mezcla → algoritmo, 20 veces seguidas. Sigue con 10 seguidas sin error.',
+      "3. **Reconocer:** mezcla + un giro extra al azar (`U`, `U'` o `U2`). Identifica el caso y deja la capa en posición. Sigue si reconoces y ejecutas en menos de 3 s.",
+      '4. **Integrar:** resoluciones completas cronometradas, usando el algoritmo cuando salga el caso. Listo tras usarlo bien 5 veces en solves reales.',
       '## Sesión tipo',
       '30–40 min, 5 días por semana:',
-      '1. **Calentamiento (5 min):** repasa los algoritmos de días anteriores, 3 repeticiones de cada uno.',
-      '2. **Nuevos (15 min):** lleva 2 o 3 algoritmos nuevos por las etapas 1–3.',
+      '1. **Calentamiento (5 min):** 3 repeticiones de cada algoritmo anterior.',
+      '2. **Nuevos (15 min):** 2 o 3 algoritmos por las etapas 1–3.',
       '3. **Solves (15 min):** 12 resoluciones completas en csTimer. Anota tu ao5 y tu ao12.',
       '## Repaso espaciado',
-      'Repasa cada algoritmo nuevo al día siguiente, a los 3 días y a los 7 días. Si fallas en un repaso, vuelve a la etapa 2.',
+      'Repasa cada algoritmo nuevo al día siguiente, a los 3 días y a los 7. Si fallas, vuelve a la etapa 2.',
       '## Regla de oro',
-      'Si un algoritmo te da problemas, no agregues uno nuevo esa sesión: **refuerza el que falla**.',
+      'Si un algoritmo te falla, no agregues otro esa sesión: **refuerza ese**.',
     ].join('\n'),
   ),
   orientation: es(
     [
-      '**Cruz blanca abajo, amarillo arriba y verde al frente.** Así, el naranja queda a la derecha.',
-      'Todas las mezclas parten del cubo resuelto en esa posición.',
+      '**Cruz blanca abajo, amarillo arriba y verde al frente** (naranja a la derecha).',
+      'Todas las mezclas parten del cubo resuelto así.',
     ].join('\n'),
   ),
   notation: es(
     [
       '## Movimientos',
-      '- `R`, `L`, `U`, `D`, `F` y `B` giran una cara en sentido horario, mirándola de frente.',
-      "- Con apóstrofo el giro es antihorario (`R'`); con 2 es media vuelta (`R2`).",
-      '- `r` y `f` mueven 2 capas a la vez: la cara más la capa del medio.',
-      '- `M` es la capa del medio entre `L` y `R`, y gira como `L`.',
-      "- `y'` gira todo el cubo como `U'`. Después de `y'`, la cara naranja queda al frente.",
-      "- **AUF** es el giro de la capa superior (`U`, `U'` o `U2`) que va antes o después de un algoritmo.",
+      '- `R`, `L`, `U`, `D`, `F` y `B`: giro horario de esa cara, mirándola de frente.',
+      "- Apóstrofo = antihorario (`R'`). 2 = media vuelta (`R2`).",
+      '- `r` y `f`: 2 capas a la vez (la cara y la capa del medio).',
+      '- `M`: capa del medio entre `L` y `R`; gira como `L`.',
+      "- `y'`: giras todo el cubo como `U'`; el rojo queda al frente.",
+      "- **AUF**: giro de la capa superior (`U`, `U'` o `U2`) antes o después de un algoritmo.",
       '## Gatillos',
-      "Casi todos los algoritmos se arman con pocos bloques que se repiten, como `R U R' U'`, `R U' R'`, `F R U R' U' F'` o `R' F R F'`.",
-      'Al aprender un algoritmo, búscalos y ejecuta **cada bloque como un solo gesto**.',
-      'Las mezclas solo preparan el caso: no hace falta memorizarlas.',
+      "Los algoritmos se arman con bloques que se repiten: `R U R' U'`, `R U' R'`, `F R U R' U' F'`, `R' F R F'`.",
+      'Ejecuta **cada bloque como un solo gesto**.',
+      'Las mezclas solo preparan el caso: no las memorices.',
       '## Plan B',
-      'Algunos casos traen una segunda opción, más fácil de aprender al principio: se hace solo con `R`, `U` y `F` o con gatillos que ya conoces, aunque no sea la más rápida.',
-      'Úsala mientras dominas la principal, o como respaldo si se te olvida en un solve.',
+      'Algunos casos traen una segunda opción, más fácil al principio: solo `R`, `U` y `F` o gatillos que ya conoces. No es la más rápida.',
+      'Úsala mientras dominas la principal, o si olvidas la principal en un solve.',
       '## Figuras',
-      '- **F2L:** ves el cubo desde arriba-adelante-derecha. Lo que no importa está en gris.',
-      '- **OLL y PLL:** ves la cara amarilla desde arriba, con el frente abajo. Las barritas alrededor son las pegatinas laterales de la capa superior.',
+      '- **F2L:** cubo visto desde arriba-adelante-derecha. En gris, lo que no importa.',
+      '- **OLL y PLL:** cara amarilla vista desde arriba, con el frente abajo. Las barritas son las pegatinas laterales de la capa superior.',
       '- **PLL:** las flechas indican a dónde va cada pieza.',
     ].join('\n'),
   ),
   schedule: es(
     [
-      'Con 5 sesiones de 30–40 min por semana, terminas el CFOP reducido en 6 semanas.',
-      '¿Vas más rápido? Adelanta. ¿Un bloque no cumple su criterio? Repite la semana.',
-      '- **Semana 1 (8 nuevos):** diagnóstico F2L + bloques A y B. Foco: cruz en 8 movimientos o menos, planeada en la inspección. Para pasar: ao12 de base anotado; A y B sin mirar la hoja.',
-      '- **Semana 2 (5 nuevos):** OLL cruz (Línea, L y Punto: 3) + F2L bloque C (2). Foco: reconocer la forma amarilla antes de terminar el F2L. Para pasar: cruz amarilla en menos de 3 s.',
-      '- **Semana 3 (8 nuevos):** OLL esquinas (Sune, Antisune, H y Pi: 4) + F2L bloque D (4). Foco: contar esquinas amarillas sin girar el cubo. Para pasar: los 4 casos reconocidos en menos de 2 s.',
-      '- **Semana 4 (8 nuevos):** OLL esquinas (U, L y T: 3) + F2L bloque E (5). Foco: solves con OLL en 2 pasos completo. Para pasar: ningún solve con OLL de principiante.',
-      '- **Semana 5 (4 nuevos):** PLL esquinas (T-perm y Y-perm: 2) + aristas (Ua y Ub: 2). Foco: buscar faros girando solo la capa superior. Para pasar: esquinas reconocidas en menos de 3 s.',
-      '- **Semana 6 (2 nuevos):** PLL aristas (H y Z). Foco: repaso general y 50 solves en la semana. Para pasar: ao12 al menos 20 % mejor que el de la semana 1.',
+      '5 sesiones de 30–40 min por semana: 6 semanas.',
+      'Si vas rápido, adelanta. Si no cumples el criterio, repite la semana.',
+      '- **Semana 1 (8 nuevos):** diagnóstico F2L + bloques A y B. Foco: cruz en 8 movimientos o menos, planeada en la inspección. Pasa con: ao12 de base anotado; A y B sin mirar la hoja.',
+      '- **Semana 2 (5 nuevos):** OLL cruz (Línea, L y Punto) + F2L bloque C (2). Foco: reconocer la forma amarilla antes de terminar el F2L. Pasa con: cruz amarilla en menos de 3 s.',
+      '- **Semana 3 (8 nuevos):** OLL esquinas (Sune, Antisune, H y Pi) + F2L bloque D (4). Foco: contar esquinas amarillas sin girar el cubo. Pasa con: los 4 casos reconocidos en menos de 2 s.',
+      '- **Semana 4 (8 nuevos):** OLL esquinas (U, L y T) + F2L bloque E (5). Foco: solves con OLL en 2 pasos completo. Pasa con: ningún solve con OLL de principiante.',
+      '- **Semana 5 (4 nuevos):** PLL esquinas (T-perm y Y-perm) + aristas (Ua y Ub). Foco: buscar faros girando solo la capa superior. Pasa con: esquinas reconocidas en menos de 3 s.',
+      '- **Semana 6 (2 nuevos):** PLL aristas (H y Z). Foco: repaso general y 50 solves en la semana. Pasa con: ao12 al menos 20 % mejor que el de la semana 1.',
       '## Metas al terminar la semana 6',
-      'Por etapa: cruz en menos de 4 s, F2L en menos de 25 s, OLL en menos de 7 s y PLL en menos de 7 s.',
-      'Mide cada etapa una vez por semana con 5 solves lentos, cronometrados por partes.',
+      'Metas: cruz en menos de 4 s, F2L en menos de 25 s, OLL en menos de 7 s y PLL en menos de 7 s.',
+      'Mídelas una vez por semana: 5 solves lentos, cronometrados por partes.',
     ].join('\n'),
   ),
   phases: [
@@ -255,9 +255,9 @@ export const cfopReduced: Method = {
       description: es(
         [
           'Todos los casos son para la **ranura adelante-derecha** (par verde-naranja).',
-          'El primer día, haz cada mezcla y marca los casos que ya dominas. Solo entrenas los que falten.',
-          'La descripción de cada caso es el estado justo después de la mezcla.',
-          "- B4, D2 y D4 empiezan con `y'`: giras todo el cubo y el par se inserta con la mano derecha. Su Plan B hace exactamente lo mismo sin rotar, con `F`.",
+          'El primer día, haz cada mezcla y marca los casos que ya dominas. Entrena solo los que falten.',
+          'Cada caso describe el estado justo después de la mezcla.',
+          "- B4, D2 y D4 empiezan con `y'`: giras todo el cubo y el par entra con la mano derecha. Su Plan B hace lo mismo sin rotar, con `F`.",
           '- B2 y C2 usan `r` (2 capas).',
         ].join('\n'),
       ),
@@ -273,11 +273,11 @@ export const cfopReduced: Method = {
         [
           'Orden: **A → B → C → D → E**.',
           '## Espejo',
-          'Cuando domines un caso en la ranura adelante-derecha, practica el espejo en adelante-izquierda.',
+          'Cuando domines un caso en adelante-derecha, practica su espejo en adelante-izquierda.',
           "- Cambia `R` por `L'`, `F` por `F'`, `U` por `U'`, `r` por `l'` e `y'` por `y`. `M` no cambia.",
           "- Ejemplo: `R U R'` pasa a `L' U' L`.",
           '## Anticipación',
-          'Haz 5 solves lentos por sesión buscando el siguiente par mientras insertas el actual.',
+          '5 solves lentos por sesión, buscando el siguiente par mientras insertas el actual.',
         ].join('\n'),
       ),
       quizzes: [
@@ -325,7 +325,7 @@ export const cfopReduced: Method = {
         [
           '1. Haz la cruz amarilla (3 casos).',
           '2. Orienta las esquinas (7 casos).',
-          'En toda esta fase **solo importa el amarillo de arriba**: ignora los colores laterales salvo donde se indica.',
+          'Aquí **solo importa el amarillo de arriba**: ignora los colores laterales salvo donde se indique.',
         ].join('\n'),
       ),
       diagram: 'top',
@@ -340,9 +340,9 @@ export const cfopReduced: Method = {
       ],
       progression: es(
         [
-          '- **Cruz:** Línea y L el mismo día; Punto al día siguiente.',
+          '- **Cruz:** Línea y L el mismo día; Punto al siguiente.',
           '- **Esquinas:** Sune y Antisune → H y Pi → U, L y T. Aprende U y L juntas: son inversas.',
-          'Empieza por **Sune y Antisune**: aparecen en muchos solves y comparten gatillos con la H.',
+          'Empieza por **Sune y Antisune**: salen mucho y comparten gatillos con la H.',
         ].join('\n'),
       ),
       quizzes: [
@@ -372,7 +372,7 @@ export const cfopReduced: Method = {
         [
           '1. Permuta las esquinas (2 casos).',
           '2. Permuta las aristas (4 casos).',
-          'La clave es buscar **faros**: dos esquinas del mismo color en una cara lateral.',
+          'Busca **faros**: dos esquinas del mismo color en una cara lateral.',
         ].join('\n'),
       ),
       diagram: 'top',
@@ -381,16 +381,16 @@ export const cfopReduced: Method = {
           id: 'pll-corners',
           name: es('Paso 1 — Esquinas'),
           description: es(
-            'Mira las esquinas de las 4 caras laterales.\nSi los 4 lados tienen faros, las esquinas ya están: gira la capa superior hasta alinearlas y pasa al paso 2.',
+            'Mira las esquinas de las 4 caras laterales.\nSi los 4 lados tienen faros, ya están: alinéalas con la capa superior y pasa al paso 2.',
           ),
           cases: pllCorners,
         },
-        { id: 'pll-edges', name: es('Paso 2 — Aristas'), description: es('Con las esquinas ya alineadas con sus centros, mira las aristas.'), cases: pllEdges },
+        { id: 'pll-edges', name: es('Paso 2 — Aristas'), description: es('Con las esquinas alineadas con sus centros, mira las aristas.'), cases: pllEdges },
       ],
       progression: es(
         [
           'Orden: **T-perm → Y-perm → Ua y Ub juntos → H → Z**.',
-          'T-perm va primero porque aparece en 2 de cada 3 solves. Y-perm aparece en 1 de cada 6; en el otro 1 de cada 6, las esquinas ya están.',
+          'T-perm primero: sale en 2 de cada 3 solves. Y-perm sale en 1 de cada 6; en el otro 1 de cada 6 las esquinas ya están.',
         ].join('\n'),
       ),
       quizzes: [
