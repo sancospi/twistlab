@@ -7,6 +7,7 @@ import { TwistyPlayer } from 'cubing/twisty';
 import { randomScrambleForEvent } from 'cubing/scramble';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
+import type { Puzzle } from './types.ts';
 import { describe, nextStep, PathGuide } from '../guide.ts';
 import { YELLOW_UP, centerMoves, compact, explainMove, invertTokens, turnCount } from '../notation.ts';
 import { formatTime, INSPECTION_MS } from '../timer.ts';
@@ -19,7 +20,7 @@ import {
   type CrossAttempt, type CrossMode, type CrossSession,
 } from './crossScore.ts';
 import { cube, type CubeListener } from './link.ts';
-import { el } from './practice.ts';
+import { el, setPuzzle } from './practice.ts';
 import { load, save, setting } from './store.ts';
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -330,12 +331,14 @@ function clockText(): string {
 let viewerPlayer: TwistyPlayer | null = null;
 let autoplay = 0;
 /** Shows `alg` played from `setup` (user frame), yellow up, with controls. */
-export function show3D(title: string, setup: string, alg: string): void {
+export function show3D(title: string, setup: string, alg: string, puzzle: Puzzle = '3x3x3'): void {
   $('cross-viewer-title').textContent = title;
+  viewer.dataset.puzzle = puzzle; // for the move tooltips
   $('cross-viewer-alg').replaceChildren(algView(alg));
   viewer.showModal(); // before the player: a 3D view set up at zero size stays blank
   viewerPlayer ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start' });
   if (!viewerPlayer.isConnected) $('cross-viewer-player').append(viewerPlayer);
+  setPuzzle(viewerPlayer, puzzle);
   viewerPlayer.experimentalSetupAlg = `z2 ${setup}`;
   viewerPlayer.alg = alg;
   viewerPlayer.jumpToStart();

@@ -6,7 +6,7 @@ import { IDENTITY, centerMoves, invertTokens, mirrorTokens, tokenize } from '../
 import { caseState } from './cube.ts';
 import { aufFor } from './score.ts';
 import { isDue, learnStatus, type Learning } from './store.ts';
-import type { Case, Group, Method, Phase, Stage } from './types.ts';
+import { puzzleOf, type Case, type Group, type Method, type Phase, type Puzzle, type Stage } from './types.ts';
 
 /** The first of `among` that `tokens` solves (with an AUF before, like every algorithm here). */
 const solvedBy = (kpuzzle: KPuzzle, tokens: string[], among: Case[]): Case | undefined =>
@@ -32,24 +32,28 @@ export function mirrorCase(kpuzzle: KPuzzle, c: Case, alg: string, among: Case[]
 
 // --- Library: search and filters ---
 
-export type CaseSet = 'f2l' | 'oll' | 'pll' | 'beginner';
+export type CaseSet = 'f2l' | 'oll' | 'pll' | 'pbl' | 'beginner';
 export type CaseStatus = 'new' | 'learning' | 'known' | 'due';
-export const SETS: CaseSet[] = ['f2l', 'oll', 'pll', 'beginner'];
+export const SETS: CaseSet[] = ['f2l', 'oll', 'pll', 'pbl', 'beginner'];
+export const PUZZLES: Puzzle[] = ['3x3x3', '2x2x2'];
 export const STATUSES: CaseStatus[] = ['new', 'learning', 'known', 'due'];
 
 /** The set a case's algorithm belongs to, by what it solves (the beginner's yellow cross is the OLL's first look). */
 export function caseSet(stage: Stage): CaseSet {
   switch (stage) {
     case 'f2l': return 'f2l';
-    case 'oll-cross': case 'oll-corners': return 'oll';
+    case 'oll-cross': case 'oll-corners': case '2x2-oll': return 'oll';
+    case '2x2-pbl': return 'pbl';
     case 'pll-corners': case 'pll-edges': return 'pll';
-    case 'first-layer': case 'second-layer': case 'll-edges': case 'll-corners-placed': case 'll-corners-twist': return 'beginner';
+    case 'first-layer': case 'second-layer': case 'll-edges': case 'll-corners-placed': case 'll-corners-twist':
+    case '2x2-first-layer': case '2x2-first-face': case '2x2-ll-corners': return 'beginner';
     default: { const unlisted: never = stage; return unlisted; } // a new Stage: pick its set here (tsc fails until then)
   }
 }
 
 export interface LibraryFilter {
   query: string;
+  puzzle: Puzzle | '';
   set: CaseSet | '';
   status: CaseStatus | '';
 }
@@ -64,6 +68,7 @@ const algText = (s: string) => s.replace(/[′’‘´`]/g, "'").replace(/\s+/g,
  *  unfinished), or else every word the code exactly or the start of a word of the name or recognition text (a word
  *  of 1-2 letters, a whole word). `algs`: the case's algorithms, the user's own included. */
 export function matches(c: Case, algs: string[], f: LibraryFilter, learning: Learning | undefined, now: number): boolean {
+  if (f.puzzle && puzzleOf(c.stage) !== f.puzzle) return false;
   if (f.set && caseSet(c.stage) !== f.set) return false;
   if (f.status && (f.status === 'due' ? !isDue(learning, now) : learnStatus(learning) !== f.status)) return false;
   const q = fold(f.query);

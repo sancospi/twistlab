@@ -66,6 +66,9 @@ let caption: HTMLElement | null = null;
 let loop = 0;
 let first = 0; // the first replay, slightly delayed
 
+let shownPuzzle = '3x3x3';
+
+/** The tooltip's cube is the page's: a container marks a 2x2 with data-puzzle="2x2x2" (academy pages, dialogs). */
 function showMove(anchor: HTMLElement, token: string, frame: NotationFrame) {
   // cubing/twisty on the first tap: the Resolver shows its scramble (moves are tappable) before loading it
   if (!player) return void import('cubing/twisty').then(({ TwistyPlayer }) => {
@@ -73,6 +76,8 @@ function showMove(anchor: HTMLElement, token: string, frame: NotationFrame) {
     showMove(anchor, token, frame);
   });
   const p = player;
+  const puzzle = anchor.closest<HTMLElement>('[data-puzzle]')?.dataset.puzzle === '2x2x2' ? '2x2x2' : '3x3x3';
+  if (puzzle !== shownPuzzle) p.puzzle = shownPuzzle = puzzle; // setting it reloads the model: only on a change
   const { what, how } = explainMove(token);
   const cam = moveCamera(token);
   p.experimentalSetupAlg = frame === 'yellow-up' ? 'z2' : '';

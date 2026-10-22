@@ -5,6 +5,8 @@ import type { KPuzzle } from 'cubing/kpuzzle';
 import { loc, t } from './i18n.ts';
 import { parseRoute, routePath, type AcademyPage, type Route } from './router.ts';
 import { METHODS, allCases } from './academy/methods.ts';
+import { bases2x2 } from './academy/bases2x2.ts';
+import type { TextGuide } from './academy/crossGuide.ts';
 import { caseProbability, formatProbability } from './academy/probability.ts';
 import type { Case, Method } from './academy/types.ts';
 
@@ -65,6 +67,17 @@ function methodPage(m: Method): SeoPage {
   };
 }
 
+/** A guide page (the 2x2's basics): its intro and its lessons' titles. */
+function guidePage(g: TextGuide, page: AcademyPage): SeoPage {
+  return {
+    path: academy(page),
+    title: inAcademy(loc(g.name)),
+    description: plain(loc(g.summary)),
+    body: `<h2>${esc(loc(g.name))}</h2>${loc(g.intro).split('\n').map((x) => `<p>${esc(plain(x))}</p>`).join('')}`
+      + (g.lessons.length ? list(g.lessons.map((l) => esc(loc(l.title)))) : ''),
+  };
+}
+
 function libraryPage(): SeoPage {
   return {
     path: academy({ kind: 'library' }),
@@ -81,7 +94,7 @@ export function seoPages(kpuzzle: KPuzzle): SeoPage[] {
     path: '/acerca', title: pageTitle(t('about.title')), description: t('seo.aboutDescription'),
     body: `<h2>${esc(t('about.title'))}</h2><p>${esc(t('seo.aboutDescription'))}</p>`,
   };
-  return [libraryPage(), ...METHODS.flatMap((m) => [methodPage(m), ...allCases(m).map((c) => casePage(m, c, kpuzzle))]), about];
+  return [libraryPage(), guidePage(bases2x2, { kind: 'bases2x2' }), ...METHODS.flatMap((m) => [methodPage(m), ...allCases(m).map((c) => casePage(m, c, kpuzzle))]), about];
 }
 
 /** The built index.html as this page: its head tags, and its content in the module's container (shown, not hidden). */

@@ -19,11 +19,11 @@ import { algView } from '../notation-view.ts';
 import { inlineText } from '../rich-text-view.ts';
 import { loc, t, tp, type MessageKey } from '../i18n.ts';
 import { caseState, goalReached, llFaceOf, practiceSpec, quizPattern, type QuizSpec } from './cube.ts';
-import { isoSVG, maskFor, topSVG, type DiagramOpts } from './diagram.ts';
+import { caseDiagram, type DiagramOpts } from './diagram.ts';
 import { StepFollower } from './follow.ts';
 import { cube, type CubeListener } from './link.ts';
 import { addCustom, average, byChoice, preferred, recordRep, removeCustom, save, setPreferred, setting, statsFor, STREAK_GOAL, variants, type Rep } from './store.ts';
-import type { AlgSource, AlgVariant, Case, Stage } from './types.ts';
+import { puzzleOf, type AlgSource, type AlgVariant, type Case, type Puzzle, type Stage } from './types.ts';
 import { checkCustomAlg } from './customAlg.ts';
 import { fingertricks, type FingerHint } from '../fingertricks.ts';
 import { caseProbability, formatProbability, phaseOf } from './probability.ts';
@@ -51,10 +51,25 @@ export const MASKS: Record<Stage, string> = {
   'll-edges': 'EDGES:DDDD----DDDD,CORNERS:DDDDIIII,CENTERS:------',
   'll-corners-placed': 'EDGES:DDDD----DDDD,CORNERS:DDDD----,CENTERS:------',
   'll-corners-twist': 'EDGES:DDDD----DDDD,CORNERS:DDDD----,CENTERS:------',
+  // the 2x2 player has corners only
+  '2x2-first-layer': 'CORNERS:----IIII',
+  '2x2-first-face': 'CORNERS:OOOOIIII', // only the white stickers
+  '2x2-oll': 'CORNERS:DDDDOOOO',
+  '2x2-pbl': 'CORNERS:--------',
+  '2x2-ll-corners': 'CORNERS:DDDD----',
 };
+
+const puzzles = new WeakMap<TwistyPlayer, Puzzle>(); // every player here starts as a 3x3
+/** Sets a player's puzzle, only when it changes: setting it reloads the model, and it can't be read back. */
+export function setPuzzle(p: TwistyPlayer, puzzle: Puzzle): void {
+  if ((puzzles.get(p) ?? '3x3x3') === puzzle) return;
+  p.puzzle = puzzle;
+  puzzles.set(p, puzzle);
+}
 
 /** Sets a player up: `alg` from the state `setup` leads to (user frame: yellow up, green front), the stage's pieces in color. */
 export function loadCase(p: TwistyPlayer, stage: Stage, setup: string[], alg: string[]): void {
+  setPuzzle(p, puzzleOf(stage));
   p.experimentalSetupAlg = ['z2', ...setup].join(' '); // the player starts white up: z2 is the plan's yellow up
   p.alg = alg.join(' ');
   p.experimentalStickeringMaskOrbits = MASKS[stage];
@@ -110,8 +125,7 @@ export class Animation {
 /** The case's flat figure, as the academy draws it: iso for the first layers and F2L, top view for the last layer, with
  *  the PLL arrows when `arrows` (never in a recognition question: they'd give it away). `user`: the state, user frame. */
 export function caseSVG(c: Case, user: KPattern, opts: DiagramOpts = {}): string {
-  const mask = maskFor(c.stage);
-  return (phaseOf(c.id)?.diagram === 'iso' ? isoSVG : topSVG)(patternToFacelets(user), mask, { ...opts, arrows: !!opts.arrows && mask === 'pll' });
+  return caseDiagram(phaseOf(c.id)?.diagram ?? 'top', c.stage, patternToFacelets(user), opts);
 }
 
 /** The algorithm with its triggers as labelled groups; every move stays tappable. */
@@ -149,6 +163,9 @@ let onQuiz: () => void = () => {};
 let timerAt = 0; // > 0 while the no-cube clock runs
 let timerRaf = 0;
 
+/** The synced smart cube, if the case is of its puzzle (it's a 3x3: a 2x2 case is practised on the hand clock). */
+const linked = () => (puzzleOf(kase.stage) === '3x3x3' ? cube.pattern() : null);
+
 const guide = new PathGuide(() => cube.pattern(), () => {
   if (mode === 'scramble' && guide.reached()) beginSolve(); // an empty plan: already at the case
   render();
@@ -161,13 +178,14 @@ export async function openPractice(c: Case, onChange: (c: Case) => void, quiz: (
   kpuzzle ??= await cube3x3x3.kpuzzle();
   if (startTab) save('practice-tab', (tab = startTab));
   kase = c;
+  dialog.dataset.puzzle = puzzleOf(c.stage); // for the move tooltips
   onUpdate = onChange;
   onQuiz = quiz;
   lastRep = null;
   customInput.value = customStatus.textContent = '';
   anim.set(false); // the figure is the default; the animation is asked for
   renderInfo();
-  cube.listener = listener;
+  cube.listener = puzzleOf(c.stage) === '3x3x3' ? listener : null;
   dialog.showModal();
   choose(preferred(c));
 }
@@ -210,8 +228,8 @@ function newRep() {
 function start() {
   stopTimer();
   showContent();
-  if (cube.pattern() && tab === 'practice') return startScramble();
-  if (cube.pattern() && tab === 'drill') {
+  if (linked() && tab === 'practice') return startScramble();
+  if (linked() && tab === 'drill') {
     guide.stop();
     beginSolve();
     return render();
@@ -339,7 +357,7 @@ const clockLabel = el('small', { className: 'hint' });
 $('practice-clock').replaceChildren(clockTime, el('br'), clockLabel);
 $('practice-clock').onclick = toggleTimer;
 dialog.addEventListener('keydown', (e) => {
-  if (e.code !== 'Space' || tab === 'quiz' || cube.pattern() || (e.target as Element).closest?.('button, input, select, summary, a')) return;
+  if (e.code !== 'Space' || tab === 'quiz' || linked() || (e.target as Element).closest?.('button, input, select, summary, a')) return;
   e.preventDefault(); // a focused button presses itself; elsewhere Space is the clock
   if (!e.repeat) toggleTimer();
 });
@@ -474,15 +492,15 @@ export const moreAlgs = (n: number, items: Node[]): HTMLDetailsElement =>
 /** The helper of what's on screen: what to do now, how it ends, what comes next. */
 const helpKey = (): MessageKey =>
   tab === 'quiz' ? 'practice.testHint'
-  : tab === 'drill' ? (cube.pattern() ? 'practice.drillHint' : 'practice.timerHint')
+  : tab === 'drill' ? (linked() ? 'practice.drillHint' : 'practice.timerHint')
   : mode === 'scramble' ? 'practice.scrambleHint' : mode === 'solve' ? 'practice.solveHint' : mode === 'result' ? 'practice.resultHint' : 'practice.staticHint';
 
 function render() {
   if (!dialog.open) return;
   for (const b of tabButtons) b.setAttribute('aria-pressed', String(b.dataset.tab === tab));
   const guided = mode !== 'static';
-  const timer = tab !== 'quiz' && !cube.pattern();
-  $('practice-help').textContent = t(helpKey());
+  const timer = tab !== 'quiz' && !linked();
+  $('practice-help').textContent = t(helpKey()) + (cube.pattern() && !linked() ? ` ${t('practice.no2x2Cube')}` : '');
   $('practice-test').hidden = tab !== 'quiz';
   $('practice-static').hidden = !timer; // with a cube, the guidance lists the moves
   $('practice-timer').hidden = !timer;

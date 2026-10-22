@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { METHODS } from './methods.ts';
 import { caseProbability, formatProbability, stageCounts } from './probability.ts';
-import type { Stage } from './types.ts';
+import type { Case, Phase, Stage } from './types.ts';
 
 const kpuzzle = await cube3x3x3.kpuzzle();
 const p = (id: string) => caseProbability(id, kpuzzle);
@@ -67,4 +67,32 @@ test('formatProbability: always a reduced fraction', () => {
   assert.equal(formatProbability(4 / 27), '4/27');
   assert.equal(formatProbability(2 / 3), '2/3');
   assert.equal(formatProbability(8 / 216), '1/27');
+});
+
+test('2x2 (Ortega): OLL and PBL odds, known values', () => {
+  const phase2 = (id: string, stage: Stage, algs: Record<string, string>): Phase => ({
+    id, name: { es: id }, diagram: 'top', quizzes: [], groups: [{ id: `${id}-g`, name: { es: id }, cases: Object.entries(algs).map(([code, alg]): Case => ({
+      id: `${id}-${code}`, code, name: { es: code }, recognition: { es: '' }, stage, algs: [{ id: 'main', alg, source: 'community' }], setup: '', scdb: null,
+    })) }],
+  });
+  const counts = (ph: Phase, stage: Stage) => {
+    const c = stageCounts(ph, stage, kpuzzle)!;
+    assert.ok(c, ph.id);
+    return { total: c.total, skip: c.skip, ...Object.fromEntries([...c.byCase].map(([id, n]) => [id.slice(ph.id.length + 1), n])) };
+  };
+  // OLL: 27 twists of the top layer; skip 1/27, H 2/27, the rest 4/27
+  const oll = phase2('fixture-2x2-oll', '2x2-oll', {
+    sune: "R U R' U R U2 R'", antisune: "R U2 R' U' R U' R'", h: "R2 U2 R U2 R2", pi: "F R U R' U' R U R' U' F'",
+    u: "F R U R' U' F'", t: "R U R' U' R' F R F'", l: "F R' F' R U R U' R'",
+  });
+  assert.deepEqual(counts(oll, '2x2-oll'), { total: 27, skip: 1, sune: 4, antisune: 4, h: 2, pi: 4, u: 4, t: 4, l: 4 });
+  // PBL: 4! × 4! layers; with x2 a bottom-only case is a top one. Skip 1/36, adj-adj 4/9, adj-diag 2/9, diag-diag 1/36,
+  // one adjacent swap (T) 2/9, one diagonal (Y) 1/18
+  const pbl = phase2('fixture-2x2-pbl', '2x2-pbl', {
+    adjadj: "R2 U' B2 U2 R2 U' R2", adjdiag: "R U' R F2 R' U R'", diagdiag: "R2 F2 R2",
+    t: "R U R' U' R' F R2 U' R' U' R U R' F'", y: "F R U' R' U' R U R' F' R U R' U' R' F R F'",
+  });
+  assert.deepEqual(counts(pbl, '2x2-pbl'), { total: 576, skip: 16, adjadj: 256, adjdiag: 128, diagdiag: 16, t: 128, y: 32 });
+  // one PBL case short: no honest number
+  assert.equal(stageCounts({ ...pbl, id: 'fixture-2x2-pbl-short', groups: [{ ...pbl.groups[0], cases: pbl.groups[0].cases.slice(1) }] }, '2x2-pbl', kpuzzle), null);
 });

@@ -28,12 +28,17 @@ export interface CrossLevel {
   goal: { overOptimal: number; seconds: number }; // to pass, on average: at most this many extra turns, executed within this time (planning: within inspection)
 }
 
-export interface CrossGuide {
-  id: 'cruz';
+/** A guide page: an intro, then lessons with examples (La cruz blanca; Bases del 2x2, bases2x2.ts). */
+export interface TextGuide {
+  id: string; // its URL segment
   name: Localized;
-  summary: Localized;
+  summary: Localized; // its tile on the Academia home
   intro: Localized;
   lessons: CrossLesson[];
+}
+
+export interface CrossGuide extends TextGuide {
+  id: 'cruz';
   levels: CrossLevel[];
 }
 

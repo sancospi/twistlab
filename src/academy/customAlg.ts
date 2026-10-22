@@ -3,7 +3,7 @@ import type { KPuzzle } from 'cubing/kpuzzle';
 import { IDENTITY, invertTokens, tokenize } from '../notation.ts';
 import { caseState } from './cube.ts';
 import { aufFor } from './score.ts';
-import type { Case } from './types.ts';
+import { puzzleOf, type Case } from './types.ts';
 
 export type CustomCheck =
   | { kind: 'bad-token'; token: string } // not notation we can read
@@ -19,8 +19,9 @@ export function checkCustomAlg(kpuzzle: KPuzzle, c: Case, phaseCases: Case[], ty
   const text = typed.replace(/´/g, "'").replace(/[()[\]]/g, ' ');
   const bad = text.trim().split(/\s+/).filter(Boolean).find((word) => {
     try {
-      tokenize(word);
-      return false;
+      // a 2x2 has no middle layer: no slices, and a wide turn is the whole cube (cubing.js's 2x2 rejects both)
+      const moves = tokenize(word);
+      return puzzleOf(c.stage) === '2x2x2' && moves.some((m) => !/^[URFDLBxyz]/.test(m));
     } catch {
       return true;
     }

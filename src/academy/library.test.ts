@@ -30,7 +30,7 @@ test('inverse and mirror cases, found in the simulator', async () => {
 test('library: search by code, name, recognition or algorithm; filters by set and status', () => {
   const sune = get('cfopc-oll-27'), t = get('cfopc-pll-t'), lightning = get('cfopc-oll-07'), a1 = get('cfop-f2l-a1');
   const now = Date.parse('2026-10-21T12:00:00');
-  const f = (query: string, more: Partial<LibraryFilter> = {}): LibraryFilter => ({ query, set: '', status: '', ...more });
+  const f = (query: string, more: Partial<LibraryFilter> = {}): LibraryFilter => ({ query, puzzle: '', set: '', status: '', ...more });
   const ok = (c: Case, filter: LibraryFilter, learning?: Learning) => matches(c, c.algs.map((v) => v.alg), filter, learning, now);
   assert.ok(ok(sune, f('')));
   assert.ok(ok(sune, f('sune')));
@@ -61,10 +61,16 @@ test('library: filter by method, group by set across methods', () => {
   assert.ok(one.length && one.every((e) => e.method === METHODS[1]));
   assert.deepEqual(libraryEntries(METHODS, 'nope'), []);
   const sets = bySet(all);
-  assert.deepEqual(sets.map((s) => s.set), ['f2l', 'oll', 'pll', 'beginner']);
+  assert.deepEqual(sets.map((s) => s.set).filter((s) => s !== 'pbl'), ['f2l', 'oll', 'pll', 'beginner']); // pbl: once Ortega has cases
   const oll = sets.find((s) => s.set === 'oll')!.entries;
-  assert.deepEqual([...new Set(oll.map((e) => e.method.id))], ['principiante', 'cfop-reducido', 'cfop-completo'], 'every method, in order');
+  assert.deepEqual([...new Set(oll.map((e) => e.method.id))].slice(0, 3), ['principiante', 'cfop-reducido', 'cfop-completo'], 'every method, in order');
   assert.ok(oll.some((e) => e.c.id === 'prin-cruz-linea'), "the beginner's yellow cross is OLL");
   assert.equal(sets.reduce((n, s) => n + s.entries.length, 0), all.length, 'each case once per method');
   assert.deepEqual(bySet(libraryEntries(METHODS, 'principiante')).map((s) => s.set), ['oll', 'beginner'], 'no empty sets');
+  // the cube filter: 2x2 cases only, or 3x3 ones
+  const f = (puzzle: LibraryFilter['puzzle']): LibraryFilter => ({ query: '', puzzle, set: '', status: '' });
+  const sune = findCase('cfop-oll-sune')!;
+  assert.ok(matches(sune, [], f('3x3x3'), undefined, 0) && !matches(sune, [], f('2x2x2'), undefined, 0));
+  assert.equal(caseSet('2x2-pbl'), 'pbl');
+  assert.equal(caseSet('2x2-oll'), 'oll');
 });

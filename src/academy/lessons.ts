@@ -5,8 +5,11 @@ import { loc, t, type MessageKey } from '../i18n.ts';
 import { explainMove, invertTokens, tokenize } from '../notation.ts';
 import { beginner } from './beginner.ts';
 import { cfopReduced } from './cfop.ts';
-import { crossGuide } from './crossGuide.ts';
-import type { Case, Method, Phase, Stage } from './types.ts';
+import { bases2x2 } from './bases2x2.ts';
+import { beginner2x2 } from './beginner2x2.ts';
+import { crossGuide, type TextGuide } from './crossGuide.ts';
+import { ortega } from './ortega.ts';
+import type { Case, Method, Phase, Puzzle, Stage } from './types.ts';
 
 export type LessonStep =
   | { kind: 'text'; title?: string; text: string } // text: rich text (rich-text.ts)
@@ -25,6 +28,7 @@ export interface Course {
   id: string; // the guide's URL segment: lessons live at /academia/<id>/leccion/<lesson id>
   title: string;
   lessons: Lesson[];
+  puzzle?: Puzzle; // its cube steps' (default 3x3x3)
 }
 
 /** The glossary's moves, by kind (view.ts lists them; the Notación lessons teach them). */
@@ -114,10 +118,10 @@ function notationLessons(): Lesson[] {
   });
 }
 
-// --- La cruz blanca: each lesson's text, then its examples on the cube (the scramble, then the solution) ---
+// --- La cruz blanca, Bases del 2x2: each lesson's text, then its examples on the cube (the scramble, then the solution) ---
 
-function crossLessons(): Lesson[] {
-  return crossGuide.lessons.map((l) => ({
+function guideLessons(g: TextGuide): Lesson[] {
+  return g.lessons.map((l) => ({
     id: l.id,
     title: loc(l.title),
     steps: [
@@ -169,6 +173,7 @@ function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
     };
   };
   return [hold, ...m.phases.flatMap((phase): Lesson[] => {
+    if (!phase.groups.length && !phase.description) return []; // a phase still being written
     const desc = phase.description ? loc(phase.description) : '';
     const cases = phase.groups.flatMap((g) => g.cases);
     const id = m === beginner ? phase.id.replace(/^prin-/, '') : phase.id; // the beginner's ids predate other methods' lessons
@@ -181,9 +186,10 @@ function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
 /** The lessons of a guide (by its URL segment), or null when it has none (yet). */
 export function courseFor(id: string, algOf: (c: Case) => string = (c) => c.algs[0].alg): Course | null {
   if (id === 'notacion') return { id, title: t('glossary.title'), lessons: notationLessons() };
-  if (id === crossGuide.id) return { id, title: t('cross.title'), lessons: crossLessons() };
-  const m = [beginner, cfopReduced].find((x) => x.id === id); // the full CFOP is a reference: no lessons
-  if (m) return { id, title: loc(m.name), lessons: methodLessons(m, algOf) };
+  if (id === crossGuide.id) return { id, title: t('cross.title'), lessons: guideLessons(crossGuide) };
+  if (id === bases2x2.id) return bases2x2.lessons.length ? { id, title: loc(bases2x2.name), lessons: guideLessons(bases2x2), puzzle: '2x2x2' } : null;
+  const m = [beginner, cfopReduced, beginner2x2, ortega].find((x) => x.id === id); // the full CFOP is a reference: no lessons
+  if (m) return { id, title: loc(m.name), lessons: methodLessons(m, algOf), ...(m.puzzle ? { puzzle: m.puzzle } : {}) };
   return null;
 }
 

@@ -11,11 +11,11 @@ import { prose } from '../rich-text-view.ts';
 import { t, tp } from '../i18n.ts';
 import { guidePage, navigate, routePath } from '../router.ts';
 import { caseState } from './cube.ts';
-import { isoSVG, maskFor, topSVG } from './diagram.ts';
+import { caseDiagram } from './diagram.ts';
 import { StepFollower } from './follow.ts';
 import { minutes, nextLesson, parseDone, type Course, type Lesson, type LessonStep } from './lessons.ts';
 import { cube, type CubeListener } from './link.ts';
-import { el, MASKS } from './practice.ts';
+import { el, MASKS, setPuzzle } from './practice.ts';
 import { load, save } from './store.ts';
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -30,7 +30,8 @@ const next = $('lesson-next') as HTMLButtonElement;
 const DONE_KEY = 'academy-lessons';
 const MAX_UNDO = 4; // as in practice: past this, start the moves again
 const REDO_MS = 1500; // as in practice: how long "too many mistakes" stays up
-const FULL = 'EDGES:------------,CORNERS:--------,CENTERS:------'; // every sticker in color
+const FULL = { '3x3x3': 'EDGES:------------,CORNERS:--------,CENTERS:------', '2x2x2': 'CORNERS:--------' }; // every sticker in color
+const puzzle = () => course.puzzle ?? '3x3x3';
 
 const lessonPath = (course: string, id: string) => routePath({ mod: 'academy', page: { kind: 'lesson', course, id } });
 const guidePath = (course: string) => routePath({ mod: 'academy', page: guidePage(course) });
@@ -83,6 +84,8 @@ let redoUntil = 0;
 // holding it as it is (Notación: r, then u).
 let held: Frame = YELLOW_UP;
 let onCube = false; // the last way picked: the next cube step starts with it
+/** The synced smart cube, if the course is of its puzzle (it's a 3x3: a 2x2 course shows the moves only). */
+const smart = () => (puzzle() === '3x3x3' ? cube.pattern() : null);
 
 /** Shows the lesson (from its first step) in the static card; view.ts has put the crumbs above it. */
 export function playLesson(c: Course, l: Lesson, k: KPuzzle): void {
@@ -92,6 +95,7 @@ export function playLesson(c: Course, l: Lesson, k: KPuzzle): void {
   index = right = asked = 0;
   held = YELLOW_UP;
   section.hidden = false;
+  section.dataset.puzzle = puzzle(); // for the move tooltips
   $('lesson-title').textContent = l.title;
   show();
 }
@@ -151,10 +155,11 @@ function show() {
 const heading = (title?: string) => (title ? [el('h3', { textContent: title })] : []);
 
 /** The 3D cube at `setup` (yellow up), ready to play `alg`; with `move`, the camera faces the turning layer. */
-function cubeAt(setup: string, alg: string, mask = FULL, move?: string) {
+function cubeAt(setup: string, alg: string, mask = FULL[puzzle()], move?: string) {
   stage.hidden = false; // before the player: a 3D view set up at zero size stays blank
   player ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start', hintFacelets: 'none' });
   if (!player.isConnected) stage.append(player);
+  setPuzzle(player, puzzle());
   const cam = move ? moveCamera(move) : { latitude: 30, longitude: 30 };
   player.cameraLatitude = cam.latitude;
   player.cameraLongitude = cam.longitude;
@@ -177,7 +182,7 @@ function playOnce(delay = 0) {
 
 function cubeStep(s: Extract<LessonStep, { kind: 'cube' }>) {
   textBox.replaceChildren(...heading(s.title), prose(s.text));
-  cubeAt(s.setup, s.alg, s.stage ? MASKS[s.stage] : FULL, tokenize(s.alg).length === 1 ? s.alg : undefined);
+  cubeAt(s.setup, s.alg, s.stage ? MASKS[s.stage] : FULL[puzzle()], tokenize(s.alg).length === 1 ? s.alg : undefined);
   const area = el('div', { className: 'lesson-do', ariaLive: 'polite' }); // the next move and corrections, as in practice
   const virtual = el('button', { type: 'button', textContent: t('lesson.virtual') });
   const mine = el('button', { type: 'button', textContent: t('lesson.onCube') });
@@ -198,7 +203,7 @@ function cubeStep(s: Extract<LessonStep, { kind: 'cube' }>) {
     doIt(s, area);
   };
   body.replaceChildren(el('div', { className: 'row lesson-ways', role: 'group', ariaLabel: t('lesson.how') }, virtual, mine), area);
-  (cube.pattern() || onCube ? mine : virtual).click(); // a synced cube is followed right away; else it plays once
+  (smart() || onCube ? mine : virtual).click(); // a synced cube is followed right away; else it plays once
 }
 
 function stopFollowing() {
@@ -216,9 +221,9 @@ function doIt(s: Extract<LessonStep, { kind: 'cube' }>, area: HTMLElement) {
     el('dd', {}, algView(followed.slice(setup.length), mark && { mark: (i) => mark(i + setup.length) })));
   const steps = expand(followed, held).steps;
   const canFollow = steps.some((x) => x.moves.length); // just a rotation: the cube can't see those
-  if (!cube.pattern() || !canFollow) {
+  if (!smart() || !canFollow) {
     stopFollowing();
-    if (canFollow) { // not synced yet (or disconnected): follow once it syncs
+    if (canFollow && puzzle() === '3x3x3') { // not synced yet (or disconnected): follow once it syncs
       cube.listener = listener;
       renderFollow = () => void (cube.pattern() && doIt(s, area));
     }
@@ -305,7 +310,7 @@ function choices(options: { label: string; right: boolean }[], wrongText: string
 
 function moveStep(s: Extract<LessonStep, { kind: 'move' }>) {
   textBox.replaceChildren(el('h3', { textContent: t('lesson.whichMove') }), el('p', { className: 'hint', textContent: t('lesson.whichMoveHint') }));
-  cubeAt('', s.move, FULL, s.move);
+  cubeAt('', s.move, FULL[puzzle()], s.move);
   playOnce(600); // the start first, then the move
   const { how } = explainMove(s.move);
   body.replaceChildren(
@@ -315,8 +320,7 @@ function moveStep(s: Extract<LessonStep, { kind: 'move' }>) {
 
 function caseStep(s: Extract<LessonStep, { kind: 'case' }>) {
   const pic = el('div', { className: 'quiz-diagram' });
-  const draw = s.diagram === 'iso' ? isoSVG : topSVG;
-  pic.innerHTML = draw(patternToFacelets(caseState(kpuzzle, s.alg, IDENTITY)), maskFor(s.stage), { size: 180, title: t('quiz.question') });
+  pic.innerHTML = caseDiagram(s.diagram, s.stage, patternToFacelets(caseState(kpuzzle, s.alg, IDENTITY)), { size: 180, title: t('quiz.question') });
   textBox.replaceChildren(el('h3', { textContent: t('quiz.question') }), pic);
   const answer = s.choices.find((c) => c.id === s.caseId)!.label;
   body.replaceChildren(choices(s.choices.map((c) => ({ label: c.label, right: c.id === s.caseId })), t('lesson.wrongCase', { name: answer })));

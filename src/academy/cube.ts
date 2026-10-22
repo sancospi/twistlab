@@ -1,11 +1,12 @@
 // Cube states for the academy: where a case starts, whether a stage's goal is met, and random quiz states.
 // Everything works on KPatterns with fixed centers, so wide moves, slices and rotations are just face turns
 // (via notation.ts) and the last layer is simply "the pieces of the face whose center is yellow".
-import { KPattern, type KPuzzle } from 'cubing/kpuzzle';
-import { experimentalSolve3x3x3IgnoringCenters } from 'cubing/search';
+import { KPattern, type KPuzzle, type KTransformation } from 'cubing/kpuzzle';
+import { cube2x2x2 } from 'cubing/puzzles';
+import { experimentalSolve2x2x2, experimentalSolve3x3x3IgnoringCenters } from 'cubing/search';
 import { IDENTITY, centerMoves, expand, htm, invertTokens, mapMove, merge, tokenize, type Face, type Frame } from '../notation.ts';
 import { METHODS, allCases } from './methods.ts';
-import type { AlgVariant, Case, Stage } from './types.ts';
+import { is2x2, type AlgVariant, type Case, type Puzzle, type Stage, type Stage2x2 } from './types.ts';
 
 // cubing.js 3x3x3 orbit slot order; orientation 0 = the piece's U/D (or F/B) sticker on the slot's U/D (F/B) face.
 const EDGES = 'UF UR UB UL DF DR DB DL FR FL BR BL'.split(' ');
@@ -46,8 +47,55 @@ function seenAfter(p: KPattern, rot: string): KPattern {
   return KPattern.fromTransformation(r.invert().applyTransformation(p.experimentalToTransformation()!).applyTransformation(r));
 }
 
+// --- 2x2: the corners of a 3x3 state, up to a turn of the whole cube ---
+
+// A whole-cube turn as face turns, on corners: x = R L', y = U D', z = F B' (no centers on a 2x2).
+const ROTATIONS = ['', 'x', 'x2', "x'", 'z', "z'"].flatMap((r) => ['', 'y', 'y2', "y'"].map((y) => `${r} ${y}`.trim()));
+const asFaceTurns = (rot: string) => rot.replace(/([xyz])(2|')?/g, (_, a: 'x' | 'y' | 'z', s = '') => {
+  const [p, q] = { x: 'RL', y: 'UD', z: 'FB' }[a];
+  return `${p}${s} ${q}${s === '2' ? '2' : s ? '' : "'"}`;
+});
+const DLB = 6; // CORNERS slot (and piece) DLB: white-blue-red in the user frame
+const holds = new WeakMap<KPuzzle, Map<string, { t: KTransformation; moves: string[] }>>();
+/** The whole-cube turn (as face turns) that brings the DLB piece home, white down, by where it is now. */
+function holdFor(p: KPattern) {
+  let table = holds.get(p.kpuzzle);
+  if (!table) {
+    table = new Map();
+    for (const rot of ROTATIONS) {
+      const moves = tokenize(asFaceTurns(rot));
+      const t = p.kpuzzle.algToTransformation(moves.join(' '));
+      const { pieces, orientation } = p.kpuzzle.defaultPattern().applyTransformation(t.invert()).patternData.CORNERS;
+      const at = pieces.indexOf(DLB);
+      table.set(`${at} ${orientation[at]}`, { t, moves });
+    }
+    holds.set(p.kpuzzle, table);
+  }
+  const { pieces, orientation } = p.patternData.CORNERS;
+  const at = pieces.indexOf(DLB);
+  return table.get(`${at} ${orientation[at]}`)!;
+}
+/** A 2x2 state held the one way its goals are checked: DLB piece home (so white down, yellow up, green front). */
+export const held2x2 = (p: KPattern): KPattern => p.applyTransformation(holdFor(p).t);
+
+const D_SLOTS = [4, 5, 6, 7];
+function goal2x2(stage: Stage2x2, q: KPattern): boolean {
+  const { pieces, orientation } = q.patternData.CORNERS;
+  const oriented = orientation.every((o) => o === 0);
+  const firstLayer = D_SLOTS.every((i) => pieces[i] === i && orientation[i] === 0); // DLB home: ADF is a whole-cube turn
+  switch (stage) {
+    case '2x2-first-layer': return firstLayer;
+    case '2x2-first-face': return D_SLOTS.every((i) => pieces[i] >= 4 && orientation[i] === 0);
+    case '2x2-oll': return oriented && D_SLOTS.every((i) => pieces[i] >= 4); // white down too, not just twisted right
+    case '2x2-pbl':
+    case '2x2-ll-corners':
+      return oriented && firstLayer && llTurns(q, 'U').some((x) => x.patternData.CORNERS.pieces.slice(0, 4).every((c, i) => c === i));
+  }
+}
+
 /** Whether a case of `stage` is done; llFace = 'U' in the user frame, YELLOW_UP.U on the cube, any face color neutral. */
 export function goalReached(stage: Stage, p: KPattern, llFace: Face): boolean {
+  if (is2x2(stage)) return goal2x2(stage, held2x2(llFace === 'U' ? p : seenAfter(p, TO_U[llFace] ?? 'x2')));
   const rot = TO_U[llFace];
   if (rot) return goalReached(stage, seenAfter(p, rot), 'U');
   if (stage === 'first-layer') return pieces(p, OPPOSITE[llFace], true).every((x) => x.home && x.oriented);
@@ -100,6 +148,7 @@ const pick = <T>(rng: Rng, xs: T[]): T => xs[Math.floor(rng() * xs.length)];
 // Random quiz states are products of U turns and other cases' algorithms (as center turns). A pool may only hold
 // algorithms that keep its stage's goal: every goal is a group of states, so then any product keeps it too.
 // quizPool filters by goal, since a stage may hold algorithms that don't (cube.test.ts checks pools aren't emptied).
+const LL2: Stage[] = ['2x2-oll', '2x2-pbl', '2x2-ll-corners'];
 const LL: Stage[] = ['oll-cross', 'oll-corners', 'pll-corners', 'pll-edges', 'll-edges', 'll-corners-placed', 'll-corners-twist'];
 export const POOL_STAGES: Record<Stage, Stage[]> = {
   'first-layer': ['second-layer', ...LL], // none of them touches the first layer
@@ -112,10 +161,19 @@ export const POOL_STAGES: Record<Stage, Stage[]> = {
   'll-edges': ['ll-corners-placed', 'll-corners-twist'], // corners only
   'll-corners-placed': ['ll-corners-twist'], // twists only
   'll-corners-twist': [],
+  '2x2-first-layer': LL2,
+  '2x2-first-face': LL2,
+  '2x2-oll': ['2x2-pbl', '2x2-ll-corners'], // the ones that keep the first layer too (POOL_KEEPS)
+  '2x2-pbl': [],
+  '2x2-ll-corners': [],
 };
+// ponytail: one pool per stage, so the 2x2 OLL quiz keeps the first layer solved: right for the beginner's OLL, and
+// Ortega's doesn't care. Mix in Ortega's bottom permutations here if its quiz should show them.
+const POOL_KEEPS: Partial<Record<Stage, Stage>> = { '2x2-oll': '2x2-first-layer' };
 const COUNTS: Record<Stage, number[]> = {
   'first-layer': [3, 4], 'second-layer': [3, 4], f2l: [3, 4], 'oll-cross': [2, 3], 'oll-corners': [2, 3], 'pll-corners': [0, 1],
   'pll-edges': [0], 'll-edges': [2, 3], 'll-corners-placed': [0, 1], 'll-corners-twist': [0],
+  '2x2-first-layer': [2, 3], '2x2-first-face': [2, 3], '2x2-oll': [1, 2], '2x2-pbl': [0], '2x2-ll-corners': [0],
 };
 const poolAlgs = (stages: Stage[]) =>
   METHODS.flatMap(allCases).filter((c) => stages.includes(c.stage)).flatMap((c) => c.algs.map((v) => centerMoves(v.alg, IDENTITY)));
@@ -126,7 +184,11 @@ export function quizPool(stage: Stage, kpuzzle: KPuzzle) {
   let pool = pools.get(stage);
   if (!pool) {
     const solved = kpuzzle.defaultPattern();
-    const algs = poolAlgs(POOL_STAGES[stage]).filter((a) => goalReached(stage, solved.applyAlg(a.join(' ')), 'U'));
+    const keep = POOL_KEEPS[stage];
+    const algs = poolAlgs(POOL_STAGES[stage])
+      // 2x2: held back DLB home, so the next one starts from the same grip (goals hold up to a whole-cube turn, products don't)
+      .map((a) => (is2x2(stage) ? [...a, ...holdFor(solved.applyAlg(a.join(' '))).moves] : a))
+      .filter((a) => [stage, ...(keep ? [keep] : [])].every((s) => goalReached(s, solved.applyAlg(a.join(' ')), 'U')));
     pools.set(stage, (pool = { algs, count: COUNTS[stage] }));
   }
   return pool;
@@ -185,9 +247,13 @@ export function specsFor(order: Case[], seed: number, kpuzzle: KPuzzle): QuizSpe
 }
 
 /** A scramble from solved to `p` found by the solver (a random-state scramble): unlike the merged setup it doesn't
- *  end in the case's algorithm backwards. `p` has its centers home, so the scramble is face turns only. */
-export async function randomStateScramble(p: KPattern): Promise<string[]> {
-  return merge((await experimentalSolve3x3x3IgnoringCenters(p)).invert().toString().split(' ').filter(Boolean)); // merge: "R2'" is "R2"
+ *  end in the case's algorithm backwards. `p` has its centers home, so the scramble is face turns only. A 2x2: the
+ *  corners of `p` exactly (U, F, L and R turns), so the cube ends held as the diagram shows it. */
+export async function randomStateScramble(p: KPattern, puzzle: Puzzle = '3x3x3'): Promise<string[]> {
+  const solution = puzzle === '2x2x2'
+    ? await experimentalSolve2x2x2(new KPattern(await cube2x2x2.kpuzzle(), { CORNERS: p.patternData.CORNERS }))
+    : await experimentalSolve3x3x3IgnoringCenters(p);
+  return merge(solution.invert().toString().split(' ').filter(Boolean)); // merge: "R2'" is "R2"
 }
 
 /** The quiz state on a cube held in `frame` (YELLOW_UP for the GAN cube, IDENTITY for diagrams). */

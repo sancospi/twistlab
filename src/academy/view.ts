@@ -16,17 +16,18 @@ import { loc, t, tp } from '../i18n.ts';
 import { guidePage, guideSegment, routePath, type AcademyPage, type GuidePage } from '../router.ts';
 import { LL_STEPS, caseState } from './cube.ts';
 import { crossGuide } from './crossGuide.ts';
-import { crossSections, trainerButton } from './crossView.ts';
+import { guideSections, trainerButton } from './crossView.ts';
+import { bases2x2 } from './bases2x2.ts';
 import { courseFor, MOVE_GROUPS, type Course } from './lessons.ts';
 import { lessonList, playLesson, stopLesson } from './lessonView.ts';
 import { libraryView, showCase, stopCase } from './caseView.ts';
-import { isoSVG, maskFor, netSVG, topSVG } from './diagram.ts';
+import { caseDiagram, netSVG } from './diagram.ts';
 import { METHODS, allCases } from './methods.ts';
 import { el } from './practice.ts';
 import { caseLabel, lastResult, openQuiz, percent, scopeId, type QuizScope } from './quiz.ts';
 import { caseProbability, formatProbability } from './probability.ts';
 import { isDue, learningFor, preferred, save, setting, statsFor } from './store.ts';
-import type { Case, Group, Method, Phase } from './types.ts';
+import { puzzleOf, type Case, type Group, type Method, type Phase, type Puzzle } from './types.ts';
 export { stopCase, stopLesson }; // for main.ts, which loads the academy with its first page
 
 let kpuzzle: KPuzzle;
@@ -36,6 +37,7 @@ const academyLink = (page: AcademyPage) => routePath({ mod: 'academy', page });
 /** Renders one Academia page; returns its title (for the document title), e.g. "CFOP reducido · Academia". */
 export async function showAcademy(root: HTMLElement, page: AcademyPage): Promise<string> {
   kpuzzle ??= await cube3x3x3.kpuzzle();
+  delete root.dataset.puzzle; // a 3x3 page, unless set below (the move tooltips read it)
   if (page.kind !== 'case') stopCase();
   if (page.kind === 'lesson') return lessonPage(root, page.course, page.id);
   stopLesson();
@@ -56,24 +58,28 @@ export async function showAcademy(root: HTMLElement, page: AcademyPage): Promise
     root.replaceChildren(...head(t('glossary.title')), asLessons ? lessonList(course) : notationView());
     return inAcademy(t('glossary.title'));
   }
-  if (page.kind === 'cross') {
+  if (page.kind === 'cross' || page.kind === 'bases2x2') {
+    const cross = page.kind === 'cross';
+    if (!cross) root.dataset.puzzle = '2x2x2';
+    const title = cross ? t('cross.title') : loc(bases2x2.name);
     if (asLessons) {
-      root.replaceChildren(...head(t('cross.title')), trainerButton(), lessonList(course));
-      return inAcademy(t('cross.title'));
+      root.replaceChildren(...head(title), ...(cross ? [trainerButton()] : []), lessonList(course));
+      return inAcademy(title);
     }
-    const sections = crossSections();
-    const nav = el('nav', { className: 'academy-nav', ariaLabel: t('cross.nav') },
+    const sections = cross ? guideSections() : guideSections(bases2x2, '2x2x2');
+    const nav = el('nav', { className: 'academy-nav', ariaLabel: t(cross ? 'cross.nav' : 'bases2x2.nav') },
       ...sections.map((s) => el('a', { href: `#${s.id}`, textContent: s.querySelector('h2')!.textContent! })));
-    root.replaceChildren(...head(t('cross.title')),
+    root.replaceChildren(...head(title),
       el('div', { className: 'academy-layout' }, nav, el('div', { className: 'academy-body' }, ...sections)));
     followPhase(root, nav);
-    return inAcademy(t('cross.title'));
+    return inAcademy(title);
   }
   const m = METHODS.find((x) => x.id === page.id);
   if (!m) {
     root.replaceChildren(crumbs(t('academy.notFound')), text(t('academy.notFoundHint'), 'hint'));
     return inAcademy(t('academy.notFound'));
   }
+  if (m.puzzle) root.dataset.puzzle = m.puzzle;
   if (asLessons) {
     root.replaceChildren(...head(loc(m.name)), ...methodTop(m), lessonList(course));
     return inAcademy(loc(m.name));
@@ -129,6 +135,7 @@ function casePage(root: HTMLElement, methodId: string, id: string): string {
       el('p', {}, el('a', { href: academyLink({ kind: 'library' }), textContent: t('library.title') })));
     return inAcademy(t('case.notFound'));
   }
+  root.dataset.puzzle = puzzleOf(c.stage);
   root.replaceChildren(crumbs(caseLabel(c), { kind: 'method', id: m.id }, loc(m.name)), showCase(m, c, kpuzzle));
   return inAcademy(caseLabel(c));
 }
@@ -162,7 +169,7 @@ const crumbs = (current: string, parent?: GuidePage, parentName = '') =>
 // --- Home: one tile per method (what it covers, how far along you are), and the notation ---
 
 function homeView(): HTMLElement {
-  const tiles = METHODS.map((m) => {
+  const tiles = (puzzle: Puzzle) => METHODS.filter((m) => (m.puzzle ?? '3x3x3') === puzzle).map((m) => {
     const cases = allCases(m);
     const practiced = cases.filter((c) => statsFor(c.id)).length;
     // a taste of each phase: its first case's diagram
@@ -170,8 +177,7 @@ function homeView(): HTMLElement {
     strip.innerHTML = m.phases.map((phase) => {
       const c = phase.groups.flatMap((g) => g.cases)[0];
       if (!c) return ''; // a phase still being written
-      const draw = phase.diagram === 'iso' ? isoSVG : topSVG;
-      return draw(patternToFacelets(caseState(kpuzzle, c.algs[0].alg, IDENTITY)), maskFor(c.stage), { size: 64 });
+      return caseDiagram(phase.diagram, c.stage, patternToFacelets(caseState(kpuzzle, c.algs[0].alg, IDENTITY)), { size: 64 });
     }).join('');
     return el('a', { className: 'tile', href: academyLink({ kind: 'method', id: m.id }) },
       strip,
@@ -198,10 +204,20 @@ function homeView(): HTMLElement {
     el('strong', { textContent: loc(crossGuide.name) }),
     text(loc(crossGuide.summary), 'hint'),
     el('span', { className: 'tile-meta', textContent: [tp('cross.tileLessons', crossGuide.lessons.length), tp('cross.tileLevels', crossGuide.levels.length)].join(' · ') }));
+  // the 2x2 starts with its basics, as the 3x3 with the cross
+  const basics = el('a', { className: 'tile', href: academyLink({ kind: 'bases2x2' }) },
+    el('div', { className: 'tile-strip', ariaHidden: 'true', innerHTML: caseDiagram('iso', '2x2-pbl', patternToFacelets(kpuzzle.defaultPattern()), { size: 64 }) }),
+    el('span', { className: 'tile-badge', textContent: t('cross.firstStep') }),
+    el('strong', { textContent: loc(bases2x2.name) }),
+    text(loc(bases2x2.summary), 'hint'),
+    el('span', { className: 'tile-meta', textContent: tp('cross.tileLessons', bases2x2.lessons.length) }));
+  const group = (puzzle: Puzzle, ...items: HTMLElement[]) => el('section', { className: 'academy-puzzle', ariaLabel: t(`library.puzzle.${puzzle}`) },
+    el('h3', { textContent: t(`library.puzzle.${puzzle}`) }), el('div', { className: 'tiles' }, ...items));
   return el('section', { className: 'academy-home' },
     el('h2', { textContent: t('menu.academy') }),
     text(t('academy.homeIntro'), 'prose hint'),
-    el('div', { className: 'tiles' }, cross, ...tiles, notation, paint),
+    group('3x3x3', cross, ...tiles('3x3x3'), notation, paint),
+    group('2x2x2', basics, ...tiles('2x2x2')),
     el('p', { className: 'foot-link' }, el('a', { href: routePath({ mod: 'about' }), textContent: t('about.link') })));
 }
 
@@ -284,7 +300,9 @@ function methodView(m: Method): Node[] {
 /** The method's trainer and the link to the cross that comes before it: on top of the guide and of its lessons. */
 const methodTop = (m: Method): HTMLElement[] => [
   ...(allCases(m).length ? [trainView(m)] : []),
-  el('p', { className: 'hint' }, el('a', { href: academyLink({ kind: 'cross' }), textContent: t('cross.before') })),
+  el('p', { className: 'hint' }, m.puzzle === '2x2x2'
+    ? el('a', { href: academyLink({ kind: 'bases2x2' }), textContent: t('bases2x2.before') })
+    : el('a', { href: academyLink({ kind: 'cross' }), textContent: t('cross.before') })),
 ];
 
 function phaseView(phase: Phase): HTMLElement {
@@ -332,10 +350,7 @@ function card(phase: Phase, c: Case): HTMLAnchorElement {
   const link = el('a', { className: 'card', href: academyLink({ kind: 'case', method: m.id, id: c.id }) });
   const p = caseProbability(c.id, kpuzzle);
   const alg = preferred(c).alg;
-  const facelets = patternToFacelets(caseState(kpuzzle, alg, IDENTITY));
-  const draw = phase.diagram === 'iso' ? isoSVG : topSVG;
-  const mask = maskFor(c.stage);
-  link.innerHTML = draw(facelets, mask, { size: 84, title: t('academy.diagram', { code: c.code }), arrows: mask === 'pll' });
+  link.innerHTML = caseDiagram(phase.diagram, c.stage, patternToFacelets(caseState(kpuzzle, alg, IDENTITY)), { size: 84, title: t('academy.diagram', { code: c.code }), arrows: true });
   const s = statsFor(c.id);
   link.append(
     el('strong', { textContent: c.code }),

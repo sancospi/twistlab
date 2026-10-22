@@ -12,7 +12,10 @@ test('routes: each screen has its path, and paths round-trip', () => {
     { mod: 'academy', page: { kind: 'home' } },
     { mod: 'academy', page: { kind: 'notation' } },
     { mod: 'academy', page: { kind: 'cross' } },
+    { mod: 'academy', page: { kind: 'bases2x2' } },
     { mod: 'academy', page: { kind: 'method', id: 'cfop-reducido' } },
+    { mod: 'academy', page: { kind: 'method', id: 'ortega' } },
+    { mod: 'academy', page: { kind: 'lesson', course: '2x2', id: 'que-es' } },
     { mod: 'academy', page: { kind: 'lesson', course: 'cruz', id: 'que-es' } },
     { mod: 'academy', page: { kind: 'lesson', course: 'notacion', id: 'caras' } },
     { mod: 'academy', page: { kind: 'lesson', course: 'principiante', id: 'capa1' } },
@@ -24,6 +27,8 @@ test('routes: each screen has its path, and paths round-trip', () => {
   assert.equal(routePath({ mod: 'academy', page: { kind: 'notation' } }), '/academia/notacion');
   assert.equal(routePath({ mod: 'academy', page: { kind: 'cross' } }), '/academia/cruz');
   assert.deepEqual(parseRoute('/academia/cruz/'), { mod: 'academy', page: { kind: 'cross' } });
+  assert.equal(routePath({ mod: 'academy', page: { kind: 'bases2x2' } }), '/academia/2x2');
+  assert.deepEqual(guidePage('2x2'), { kind: 'bases2x2' });
 });
 
 test('routes: trailing slashes, the old /resolver and unknown paths', () => {

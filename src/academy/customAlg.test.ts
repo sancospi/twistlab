@@ -22,6 +22,10 @@ test('checkCustomAlg: bad token, solves (any AUF, any primes), backwards, anothe
   assert.deepEqual(checkCustomAlg(kpuzzle, findCase('cfop-oll-h')!, oll, "R U R' U R U2 R'"), { kind: 'other', case: sune });
   assert.equal((check("F R U R' U' F'") as { case: { code: string } }).case.code, 'Línea'); // another step of the phase counts too
   assert.deepEqual(check("R U R' U'"), { kind: 'none' });
+  // a 2x2 case: face turns and rotations only
+  const sune2 = { ...sune, id: 'fixture-2x2-sune', stage: '2x2-oll' as const };
+  assert.deepEqual(checkCustomAlg(kpuzzle, sune2, [sune2], "y R U2 R' U' R U' R' y'"), { kind: 'inverse', alg: "y R U R' U R U2 R' y'" });
+  assert.deepEqual(checkCustomAlg(kpuzzle, sune2, [sune2], "r U R' U R U2 r'"), { kind: 'bad-token', token: 'r' });
 });
 
 test('custom algorithms: storage is validated; data algorithms never use the custom source', () => {

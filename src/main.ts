@@ -841,7 +841,7 @@ let academy: typeof import('./academy/view.ts') | undefined; // loaded by the fi
 // One canonical URL per screen (crawlers run this script; /resolver and the like point to /)
 const canonical = document.querySelector<HTMLLinkElement>('link[rel=canonical]') // the build's static pages bring theirs (src/seo.ts)
   ?? document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'canonical' }));
-async function onRoute(r: Route) {
+async function onRoute(r: Route, scroll: number | null = null) {
   const id = ++routeId;
   document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => d.close()); // back/forward leaves any modal
   const menu = $('header-menu');
@@ -859,7 +859,7 @@ async function onRoute(r: Route) {
   canonical.href = `https://twistlab.app${routePath(r)}`;
   if (painting) void import('./paint-view.ts').then((m) => id === routeId && m.showPaint());
   if (r.mod === 'progress') void import('./progress-view.ts').then((m) => id === routeId && m.showProgress($('mod-progress'))); // read again on every visit: the other screens may have saved
-  if (painting || r.mod === 'progress' || r.mod === 'about') document.querySelector('.panel')!.scrollTop = 0;
+  if (painting || r.mod === 'progress' || r.mod === 'about') panelEl().scrollTop = scroll ?? 0;
   if (r.mod !== 'academy') {
     academy?.stopCase();
     academy?.stopLesson(); // a lesson left for another module lets go of the cube and its 3D player
@@ -872,10 +872,12 @@ async function onRoute(r: Route) {
   if (id !== routeId) return; // a newer route won while the puzzle was loading
   document.title = pageTitle(title);
   const target = location.hash && document.getElementById(location.hash.slice(1));
-  if (target) target.scrollIntoView();
-  else document.querySelector('.panel')!.scrollTop = 0; // a new page starts at the top
+  if (scroll !== null) panelEl().scrollTop = scroll; // Back: where you were (e.g. down a method's case list)
+  else if (target) target.scrollIntoView();
+  else panelEl().scrollTop = 0; // a new page starts at the top
 }
-startRouter((r) => void onRoute(r));
+const panelEl = () => document.querySelector<HTMLElement>('.panel')!;
+startRouter((r, scroll) => void onRoute(r, scroll), () => panelEl().scrollTop);
 
 $('reset-state').onclick = async () => {
   await conn?.sendCubeCommand({ type: 'REQUEST_RESET' });

@@ -58,7 +58,7 @@ function inlineNodes(inline: Inline[], terms = true): Node[] {
 export const inlineText = (s: string): Node[] => inlineNodes(parseInline(s.replace(/\s*\n\s*/g, ' ')));
 
 /** The formatted text as DOM nodes. */
-export function richText(s: string): Node[] {
+export function richText(s: string, heading: 'h3' | 'h4' = 'h4'): Node[] {
   return parseBlocks(s).map((b) => {
     if ('items' in b) {
       const list = document.createElement(b.kind);
@@ -69,16 +69,17 @@ export function richText(s: string): Node[] {
       }
       return list;
     }
-    const el = document.createElement(b.kind === 'h' ? 'h4' : 'p');
+    const el = document.createElement(b.kind === 'h' ? heading : 'p');
     el.append(...inlineNodes(b.inline, b.kind !== 'h'));
     return el;
   });
 }
 
 /** A block of guide text: a <div> with the formatted content (class for spacing/width). */
-export function prose(s: string, className = 'prose'): HTMLElement {
+/** `heading`: the level of its '## ' subheadings (h3 right under a page section's h2). */
+export function prose(s: string, className = 'prose', heading: 'h3' | 'h4' = 'h4'): HTMLElement {
   const div = document.createElement('div');
   div.className = className;
-  div.append(...richText(s));
+  div.append(...richText(s, heading));
   return div;
 }

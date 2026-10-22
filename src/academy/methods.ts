@@ -3,11 +3,13 @@ import type { Case, Method } from './types.ts';
 import { beginner } from './beginner.ts';
 import { cfopReduced } from './cfop.ts';
 import { cfopFull } from './cfopFull.ts';
+import { beginner2x2 } from './beginner2x2.ts';
+import { ortega } from './ortega.ts';
 
 export { scdbUrl } from './scdb.ts';
 
-/** In the order of the Academia home's tiles. */
-export const METHODS: Method[] = [beginner, cfopReduced, cfopFull];
+/** In the order of the Academia home's tiles (grouped by puzzle there). */
+export const METHODS: Method[] = [beginner, cfopReduced, cfopFull, beginner2x2, ortega];
 
 export function allCases(method: Method): Case[] {
   return method.phases.flatMap((p) => p.groups.flatMap((g) => g.cases));

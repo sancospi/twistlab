@@ -125,7 +125,7 @@
     .prose p { margin: 0 0 .6em; }
     .prose p:last-child, .prose ul:last-child, .prose ol:last-child { margin-bottom: 0; }
     .prose ul, .prose ol { margin: 0 0 .7em; padding-left: 1.3em; display: grid; gap: .3em; }
-    .prose h4 { margin: .9em 0 .35em; font-size: 0.9286rem; color: var(--fg); letter-spacing: .02em; }
+    .prose h3, .prose h4 { margin: .9em 0 .35em; font-size: 0.9286rem; color: var(--fg); letter-spacing: .02em; }
     .prose strong { color: var(--fg); }
     .prose .alg { white-space: nowrap; }
     /* Permanent top bar: title, modules, cube connection and status; collapses into ☰ on phones */
@@ -263,6 +263,8 @@
     .crumbs a { color: var(--fg); }
     .academy-home { display: grid; gap: 12px; }
     .academy-home h2 { margin: 0; }
+    .academy-puzzle { display: grid; gap: 8px; }
+    .academy-puzzle h3 { margin: 8px 0 0; }
     .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 16px; }
     .tile { display: grid; gap: 8px; align-content: start; padding: 16px; border-radius: 12px; background: #11141b; border: 1px solid #2a3142; color: var(--fg); text-decoration: none; }
     .tile:hover, .tile:focus-visible { border-color: var(--accent); background: #151924; }
@@ -433,6 +435,7 @@
     .case-alg { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: #11141b; }
     .case-alg.chosen { outline: 2px solid var(--accent); }
     .case-alg:focus-visible { outline: 2px solid var(--fg); }
+    .case-setup { display: flex; gap: 10px; align-items: baseline; margin: 0 0 8px; } .case-setup dt { color: var(--muted); } .case-setup dd { margin: 0; font-family: ui-monospace, monospace; }
     .case-moves { font-size: 1.4286rem; line-height: 2.2; }
     /* alternatives stay quiet next to the chosen algorithm; "Usar este" makes one the chosen (big) one */
     /* compact: the moves on one line, then source · chips · Ver dedos · Usar este on another */

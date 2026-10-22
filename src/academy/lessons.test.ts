@@ -70,7 +70,8 @@ test('lessons: every guide with lessons builds them from its own data', () => {
   const cases = beginner.phases.flatMap((p) => p.groups.flatMap((g) => g.cases));
   const shown = courseFor(beginner.id, (c) => `${c.algs[0].alg} U U'`)!.lessons.flatMap((l) => l.steps).filter((s) => s.kind === 'cube' && s.stage);
   assert.equal(shown.length, cases.length);
-  assert.ok(shown.every((s) => s.kind === 'cube' && s.alg.endsWith("U U'")));
+  assert.ok(shown.every((s) => s.kind === 'cube' && s.alg.endsWith("U U'")));  // the 2x2's lessons play on a 2x2
+  for (const id of ['principiante-2x2', 'ortega']) assert.equal(courseFor(id)?.puzzle, '2x2x2');
 });
 
 test('lessons: progress is validated and the next lesson is the first not done', () => {

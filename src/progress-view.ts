@@ -132,7 +132,7 @@ function learningSection(): HTMLElement {
       return [el('div', { className: 'learn-row' }, el('strong', { textContent: loc(p.name) }), bar, text(t('progress.counts', n), 'hint'))];
     })));
   const done = parseDone(load(LESSONS_KEY));
-  const courses = ['notacion', 'cruz', ...METHODS.map((m) => m.id)].map((id) => courseFor(id)).filter((c) => c !== null);
+  const courses = ['notacion', 'cruz', '2x2', ...METHODS.map((m) => m.id)].map((id) => courseFor(id)).filter((c) => c !== null);
   const lessons = courses.map((c) => {
     const n = c.lessons.filter((l) => done[c.id]?.includes(l.id)).length;
     return el('label', { className: 'learn-row' }, el('strong', { textContent: c.title }),

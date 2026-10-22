@@ -12,9 +12,9 @@ import { inlineText } from '../rich-text-view.ts';
 import { lang, loc, t, tp, type MessageKey } from '../i18n.ts';
 import { routePath } from '../router.ts';
 import { formatTime } from '../timer.ts';
-import { caseState } from './cube.ts';
-import { isoSVG, maskFor, topSVG } from './diagram.ts';
-import { bySet, GROUP_BYS, inverseCase, libraryEntries, matches, mirrorCase, SETS, STATUSES, type CaseStatus, type LibraryFilter } from './library.ts';
+import { caseState, practiceSpec } from './cube.ts';
+import { caseDiagram } from './diagram.ts';
+import { bySet, GROUP_BYS, inverseCase, libraryEntries, matches, mirrorCase, PUZZLES, SETS, STATUSES, type CaseStatus, type LibraryFilter } from './library.ts';
 import { METHODS } from './methods.ts';
 import { Animation, el, fingersView, loadCase, moreAlgs, movesView, openPractice, sourceLabel } from './practice.ts';
 import { caseProbability, formatProbability } from './probability.ts';
@@ -41,11 +41,8 @@ const groupPath = (m: Method, g: Group) => `${routePath({ mod: 'academy', page: 
 const text = (s: string, className = '') => el('p', { textContent: s, className });
 const rich = (s: string, className = '') => el('p', { className }, ...inlineText(s)); // data text: its terms tappable
 
-function diagram(phase: Phase, c: Case, size: number, title = ''): string {
-  const mask = maskFor(c.stage);
-  const facelets = patternToFacelets(caseState(kpuzzle, preferred(c).alg, IDENTITY));
-  return (phase.diagram === 'iso' ? isoSVG : topSVG)(facelets, mask, { size, title, arrows: mask === 'pll' && size >= 84 });
-}
+const diagram = (phase: Phase, c: Case, size: number, title = ''): string =>
+  caseDiagram(phase.diagram, c.stage, patternToFacelets(caseState(kpuzzle, preferred(c).alg, IDENTITY)), { size, title, arrows: size >= 84 });
 
 const statusOf = (caseId: string): CaseStatus => {
   const l = learningFor(caseId);
@@ -105,7 +102,10 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
     const [, second, ...more] = byChoice(all, v);
     const withTriggers = all.some((x) => triggerSegments(tokenize(x.alg)).some((s) => s.trigger));
     algs.replaceChildren(
-      el('h3', { textContent: t('case.chosen') }), algCard(v, true),
+      el('h3', { textContent: t('case.chosen') }),
+      // the scramble right above the algorithm it is practised with: the chosen one backwards
+      el('dl', { className: 'case-setup' }, el('dt', { textContent: t('practice.setup') }), el('dd', {}, algView(practiceSpec(c, v.alg).moves))),
+      algCard(v, true),
       ...(second ? [el('h3', { textContent: t('case.alternatives') }), algCard(second, false)] : []),
       ...(more.length ? [moreAlgs(more.length, more.map((x) => algCard(x, false)))] : []),
       ...(withTriggers ? [text(t('case.triggersHint'), 'hint')] : []));
@@ -150,7 +150,6 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
     el('h3', { textContent: t('case.recognition') }),
     rich(loc(c.recognition)),
     ...(c.note ? [rich(loc(c.note), 'hint')] : []),
-    el('dl', {}, el('dt', { textContent: t('practice.setup') }), el('dd', {}, algView(c.setup))),
     ...(c.scdb ? [el('p', {}, el('a', { href: c.scdb.url, target: '_blank', rel: 'noopener', textContent: t('practice.scdb') }))] : []));
   const siblings = group.cases.filter((x) => x !== c);
   const others = !siblings.length ? [] : [el('section', { className: 'case-section' },
@@ -190,19 +189,20 @@ export function libraryView(kp: KPuzzle): HTMLElement {
   kpuzzle = kp;
   // the filters live in the URL: Back from a case's page comes back to the same list
   const params = new URLSearchParams(location.search);
-  const filter: LibraryFilter = { query: params.get('q') ?? '', set: pick(params.get('set'), SETS), status: pick(params.get('estado'), STATUSES) };
+  const filter: LibraryFilter = { query: params.get('q') ?? '', puzzle: pick(params.get('cubo'), PUZZLES), set: pick(params.get('set'), SETS), status: pick(params.get('estado'), STATUSES) };
   const search = el('input', { type: 'search', value: filter.query, placeholder: t('library.searchPlaceholder'), autocomplete: 'off', spellcheck: false });
   const select = (values: readonly string[], value: string, name: (v: string) => string) =>
     Object.assign(el('select', {}, ...['', ...values].map((v) => el('option', { value: v, textContent: name(v) }))), { value });
   const method = select(METHODS.map((m) => m.id), pick(params.get('metodo'), METHODS.map((m) => m.id)),
     (v) => (v ? loc(METHODS.find((m) => m.id === v)!.name) : t('library.allMethods')));
+  const puzzle = select(PUZZLES, filter.puzzle ?? '', (v) => t(v ? `library.puzzle.${v}` as MessageKey : 'library.allPuzzles'));
   const set = select(SETS, filter.set, (v) => (v ? t(`library.set.${v}` as MessageKey) : t('library.allSets')));
   const status = select(STATUSES, filter.status, (v) => (v ? t(`library.status.${v}` as MessageKey) : t('library.allStatuses')));
   // '' is the default, by method: no "Todos" option here
   const groupBy = select(GROUP_BYS.slice(1), pick(params.get('agrupar'), GROUP_BYS.slice(1)), (v) => t(`library.groupBy.${v || GROUP_BYS[0]}` as MessageKey));
   const field = (label: string, input: HTMLElement) => el('label', { className: 'library-field' }, el('span', { className: 'hint', textContent: label }), input);
   const form = el('form', { className: 'library-filters', role: 'search', onsubmit: (e: SubmitEvent) => e.preventDefault() },
-    field(t('library.search'), search), field(t('library.method'), method), field(t('library.set'), set), field(t('library.status'), status),
+    field(t('library.search'), search), field(t('library.puzzle'), puzzle), field(t('library.method'), method), field(t('library.set'), set), field(t('library.status'), status),
     field(t('library.groupBy'), groupBy));
   const count = el('p', { className: 'hint', ariaLive: 'polite' });
   const list = el('div', { className: 'library-list' });
@@ -231,7 +231,7 @@ export function libraryView(kp: KPuzzle): HTMLElement {
   };
 
   const apply = () => {
-    Object.assign(filter, { query: search.value, set: set.value, status: status.value });
+    Object.assign(filter, { query: search.value, puzzle: puzzle.value, set: set.value, status: status.value });
     const now = Date.now();
     let n = 0;
     for (const x of cards) {
@@ -240,11 +240,11 @@ export function libraryView(kp: KPuzzle): HTMLElement {
     }
     list.querySelectorAll<HTMLElement>('.library-group, .library-phase, .library-method').forEach((s) => (s.hidden = !s.querySelector('.mini-case:not([hidden])')));
     count.textContent = n ? tp('library.count', n) : t('library.none');
-    const q = new URLSearchParams(Object.entries({ q: filter.query.trim(), metodo: method.value, set: filter.set, estado: filter.status, agrupar: groupBy.value })
+    const q = new URLSearchParams(Object.entries({ q: filter.query.trim(), cubo: filter.puzzle, metodo: method.value, set: filter.set, estado: filter.status, agrupar: groupBy.value })
       .filter(([, v]) => v));
     history.replaceState(history.state, '', location.pathname + (q.size ? `?${q}` : ''));
   };
-  search.oninput = set.onchange = status.onchange = apply;
+  search.oninput = puzzle.onchange = set.onchange = status.onchange = apply;
   method.onchange = groupBy.onchange = () => (build(), apply());
   build();
   apply();

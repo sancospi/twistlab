@@ -1,9 +1,11 @@
 // Case diagrams as SVG strings: isometric (F2L) and top view (OLL/PLL), like the plan's figures.
 // Input is a 54-char Kociemba string in the USER frame (yellow up, green front), so letters are user faces.
-import type { Stage } from './types.ts';
+import { puzzleOf, type Stage } from './types.ts';
 
-export type Mask = 'first-layer' | 'f2l' | 'oll-cross' | 'oll' | 'll-edges' | 'pll' | 'full';
+export type Mask = 'first-layer' | 'first-face' | 'f2l' | 'oll-cross' | 'oll' | 'll-edges' | 'pll' | 'full';
 export interface DiagramOpts {
+  n?: 2 | 3; // a 2x2 or a 3x3 (default)
+  bottom?: boolean; // top view: the D layer too, beside the U layer (2x2 PBL)
   size?: number; // rendered width in px
   title?: string; // accessible name; callers pass an already translated string
   arrows?: boolean; // top view: PLL arrows (not in recognition questions, where they'd give the answer away)
@@ -28,6 +30,10 @@ export const PIECES = [
 ];
 
 export function maskFor(stage: Stage): Mask {
+  if (stage === '2x2-first-layer') return 'first-layer';
+  if (stage === '2x2-first-face') return 'first-face';
+  if (stage === '2x2-oll') return 'oll';
+  if (stage === '2x2-pbl' || stage === '2x2-ll-corners') return 'pll';
   if (stage === 'first-layer' || stage === 'f2l' || stage === 'oll-cross' || stage === 'll-edges') return stage; // oll-cross: edges only, as in the plan
   if (stage === 'second-layer') return 'f2l';
   return stage === 'oll-corners' ? 'oll' : 'pll'; // pll-*, ll-corners-*: every sticker counts
@@ -44,6 +50,8 @@ function maskedSet(facelets: string, mask: Mask): Set<number> {
     // f2l: grey the last-layer (yellow) pieces; first-layer: grey every piece that isn't white
     const hidden = (piece: number[]) => (mask === 'f2l' ? piece.some((i) => facelets[i] === 'U') : !piece.some((i) => facelets[i] === 'D'));
     for (const piece of PIECES) if (hidden(piece)) piece.forEach((i) => out.add(i));
+  } else if (mask === 'first-face') {
+    for (let i = 0; i < 54; i++) if (facelets[i] !== 'D') out.add(i); // only the white stickers
   } else if (mask === 'll-edges') {
     // last-layer corners (whole pieces, wherever they are) don't matter yet
     for (const corner of PIECES.slice(0, 8)) if (corner.some((i) => facelets[i] === 'U')) corner.forEach((i) => out.add(i));
@@ -73,14 +81,18 @@ const ISO_FACES: [number, V3, V3, V3][] = [
   [9, [3, 3, 3], [0, 0, -1], [0, -1, 0]], // R: top row first, F on the left
 ];
 
+/** Kociemba column/row 0..2 of cell `c` of an n×n face (a 2x2 face is the 3x3's corner stickers). */
+const at3 = (n: number, c: number) => (c * 2) / (n - 1);
+
 export function isoSVG(facelets: string, mask: Mask, opts: DiagramOpts = {}): string {
   const grey = maskedSet(facelets, mask);
+  const n = opts.n ?? 3, step = 3 / n;
   const at = (o: V3, c: V3, r: V3, i: number, j: number): V3 =>
-    [o[0] + c[0] * j + r[0] * i, o[1] + c[1] * j + r[1] * i, o[2] + c[2] * j + r[2] * i];
+    [o[0] + (c[0] * j + r[0] * i) * step, o[1] + (c[1] * j + r[1] * i) * step, o[2] + (c[2] * j + r[2] * i) * step];
   let body = '';
   for (const [first, o, c, r] of ISO_FACES) {
-    for (let k = 0; k < 9; k++) {
-      const i = Math.floor(k / 3), j = k % 3, idx = first + k;
+    for (let k = 0; k < n * n; k++) {
+      const i = Math.floor(k / n), j = k % n, idx = first + at3(n, i) * 3 + at3(n, j);
       const pts = [at(o, c, r, i, j), at(o, c, r, i, j + 1), at(o, c, r, i + 1, j + 1), at(o, c, r, i + 1, j)];
       const fill = grey.has(idx) ? GREY : (opts.colors ?? COLORS)[facelets[idx]];
       body += `<polygon data-facelet="${idx}" points="${pts.map(project).join(' ')}" fill="${fill}"/>`;
@@ -90,60 +102,75 @@ export function isoSVG(facelets: string, mask: Mask, opts: DiagramOpts = {}): st
     `<g stroke="${PLASTIC}" stroke-width="1.2" stroke-linejoin="round">${body}</g>`);
 }
 
-// Top view: U face plus the top-layer side stickers as bars, placed by the U sticker they touch.
-// Each entry: facelet index, x, y (in cells; U occupies [0,3]^2 with B at the top), horizontal?
+// Top view: a layer seen from above (B at the top), its side stickers as bars placed by the sticker they touch.
+// The U layer; for a 2x2 PBL also the D layer, seen from above through the cube (so its arrows line up with U's).
 const BAR = 0.3, GAP = 0.15;
-const TOP_BARS: [number, number, number, boolean][] = [
-  ...[0, 1, 2].map((c): [number, number, number, boolean] => [47 - c, c, -GAP - BAR, true]), // B, seen from behind
-  ...[0, 1, 2].map((c): [number, number, number, boolean] => [18 + c, c, 3 + GAP, true]), // F
-  ...[0, 1, 2].map((r): [number, number, number, boolean] => [36 + r, -GAP - BAR, r, false]), // L: back first
-  ...[0, 1, 2].map((r): [number, number, number, boolean] => [11 - r, 3 + GAP, r, false]), // R: front first
-];
+type Bar = [number, number, 'B' | 'F' | 'L' | 'R']; // facelet index, its cell's column (B, F) or row (L, R), side
+interface LayerView { cells: [number, number, number][]; bars: Bar[]; slots: [number, number[]][] } // slots: cell facelet, side facelets
 
-export function topSVG(facelets: string, mask: Mask, opts: DiagramOpts = {}): string {
-  const grey = maskedSet(facelets, mask);
-  const fill = (idx: number) => (grey.has(idx) ? GREY : (opts.colors ?? COLORS)[facelets[idx]]);
-  const s = 10, pad = 0.12 * s, inset = 0.08 * s;
-  let body = `<rect x="${-pad}" y="${-pad}" width="${3 * s + 2 * pad}" height="${3 * s + 2 * pad}" rx="2" fill="${PLASTIC}"/>`;
-  for (let k = 0; k < 9; k++) {
-    const x = (k % 3) * s + inset, y = Math.floor(k / 3) * s + inset;
-    body += `<rect data-facelet="${k}" x="${r2(x)}" y="${r2(y)}" width="${s - 2 * inset}" height="${s - 2 * inset}" rx="1.2" fill="${fill(k)}"/>`;
-  }
-  for (const [idx, cx, cy, horizontal] of TOP_BARS) {
-    const [w, h] = horizontal ? [s - 2 * 1.5, BAR * s] : [BAR * s, s - 2 * 1.5];
-    const x = horizontal ? cx * s + 1.5 : cx * s, y = horizontal ? cy * s : cy * s + 1.5;
-    // masked bars fade instead of disappearing, so the layout never shifts between cases
-    const fade = grey.has(idx) ? ' fill-opacity="0.35"' : '';
-    body += `<rect data-facelet="${idx}" x="${r2(x)}" y="${r2(y)}" width="${w}" height="${h}" rx="1" fill="${fill(idx)}"${fade} stroke="${PLASTIC}" stroke-width="0.5"/>`;
-  }
-  if (opts.arrows) body += arrowsSVG(llArrows(facelets), s);
-  const m = (GAP + BAR) * s + 1;
-  return svg([-m, -m, 3 * s + 2 * m, 3 * s + 2 * m], opts, body);
+// Per layer: the facelet of cell (row, col) and of the B, F, L, R bars at col / row c (Kociemba 0..2).
+const LAYERS = {
+  U: { cell: (i: number, j: number) => i * 3 + j, B: (c: number) => 47 - c, F: (c: number) => 18 + c, L: (r: number) => 36 + r, R: (r: number) => 11 - r },
+  D: { cell: (i: number, j: number) => 27 + (2 - i) * 3 + j, B: (c: number) => 53 - c, F: (c: number) => 24 + c, L: (r: number) => 42 + r, R: (r: number) => 17 - r },
+};
+
+function layerView(n: number, layer: 'U' | 'D'): LayerView {
+  const f = LAYERS[layer], ks = [...Array(n).keys()], a = (c: number) => at3(n, c);
+  const bars = (['B', 'F', 'L', 'R'] as const).flatMap((side) => ks.map((c): Bar => [f[side](a(c)), c, side])); // B seen from behind; L, R back first
+  const cells = ks.flatMap((i) => ks.map((j): [number, number, number] => [f.cell(a(i), a(j)), j, i]));
+  const slots = cells.map(([idx, j, i]): [number, number[]] => [idx, [
+    ...(i === 0 ? [f.B(a(j))] : []), ...(i === n - 1 ? [f.F(a(j))] : []), ...(j === 0 ? [f.L(a(i))] : []), ...(j === n - 1 ? [f.R(a(i))] : []),
+  ]]).filter(([, sides]) => sides.length); // not the center
+  return { cells, bars, slots };
 }
 
-// Top-layer slots: U facelet, then its side facelets. A piece's side colors name its home slot.
-const LL_SLOTS: [number, number[]][] = [
-  [0, [36, 47]], [2, [45, 11]], [6, [18, 38]], [8, [9, 20]], [1, [46]], [3, [37]], [5, [10]], [7, [19]],
-];
+export function topSVG(facelets: string, mask: Mask, opts: DiagramOpts = {}): string {
+  const n = opts.n ?? 3;
+  const panel = (view: LayerView, dx: number) => {
+    const grey = maskedSet(facelets, mask);
+    const fill = (idx: number) => (grey.has(idx) ? GREY : (opts.colors ?? COLORS)[facelets[idx]]);
+    const s = 30 / n, pad = 1.2, inset = 0.08 * s, trim = 0.15 * s;
+    let body = `<rect x="${-pad}" y="${-pad}" width="${30 + 2 * pad}" height="${30 + 2 * pad}" rx="2" fill="${PLASTIC}"/>`;
+    for (const [idx, x, y] of view.cells) {
+      body += `<rect data-facelet="${idx}" x="${r2(x * s + inset)}" y="${r2(y * s + inset)}" width="${r2(s - 2 * inset)}" height="${r2(s - 2 * inset)}" rx="1.2" fill="${fill(idx)}"/>`;
+    }
+    for (const [idx, c, side] of view.bars) {
+      const out = side === 'B' || side === 'L' ? -(GAP + BAR) * 10 : 30 + GAP * 10, along = c * s + trim;
+      const [x, y, w, h] = side === 'B' || side === 'F' ? [along, out, s - 2 * trim, BAR * 10] : [out, along, BAR * 10, s - 2 * trim];
+      // masked bars fade instead of disappearing, so the layout never shifts between cases
+      const fade = grey.has(idx) ? ' fill-opacity="0.35"' : '';
+      body += `<rect data-facelet="${idx}" x="${r2(x)}" y="${r2(y)}" width="${r2(w)}" height="${r2(h)}" rx="1" fill="${fill(idx)}"${fade} stroke="${PLASTIC}" stroke-width="0.5"/>`;
+    }
+    if (opts.arrows) body += arrowsSVG(llArrows(facelets, view), view, s);
+    return dx ? `<g transform="translate(${dx} 0)">${body}</g>` : body;
+  };
+  const m = (GAP + BAR) * 10 + 1;
+  const width = 30 + 2 * m;
+  if (!opts.bottom) return svg([-m, -m, width, width], opts, panel(layerView(n, 'U'), 0));
+  return svg([-m, -m, 2 * width, width], opts, panel(layerView(n, 'U'), 0) + panel(layerView(n, 'D'), width));
+}
+
 const FACE_OF = 'URFDLB'; // Kociemba face order: facelet i belongs to FACE_OF[i / 9]
 const colorsKey = (letters: string[]) => [...letters].sort().join('');
-const HOME = new Map(LL_SLOTS.map(([u, side]) => [colorsKey(side.map((i) => FACE_OF[Math.floor(i / 9)])), u]));
 
-/** PLL arrows as [from, to] U facelets: each top-layer piece goes home (where the algorithm takes it). */
-export function llArrows(facelets: string): [number, number][] {
+/** PLL/PBL arrows as [from, to] facelets of a layer: each of its pieces goes home (where the algorithm takes it). Its
+ *  side colors name its home slot. */
+export function llArrows(facelets: string, view = layerView(3, 'U')): [number, number][] {
+  const home = new Map(view.slots.map(([idx, sides]) => [colorsKey(sides.map((i) => FACE_OF[Math.floor(i / 9)])), idx]));
   const out: [number, number][] = [];
-  for (const [u, side] of LL_SLOTS) {
-    const to = HOME.get(colorsKey(side.map((i) => facelets[i])));
-    if (to !== undefined && to !== u) out.push([u, to]);
+  for (const [idx, sides] of view.slots) {
+    const to = home.get(colorsKey(sides.map((i) => facelets[i])));
+    if (to !== undefined && to !== idx) out.push([idx, to]);
   }
   return out;
 }
 
 // Lines between sticker centers, a head at the target; a swap is one line with two heads.
-function arrowsSVG(moves: [number, number][], s: number): string {
-  const at = (k: number) => [((k % 3) + 0.5) * s, (Math.floor(k / 3) + 0.5) * s];
+function arrowsSVG(moves: [number, number][], view: LayerView, s: number): string {
+  const cell = new Map(view.cells.map(([idx, x, y]) => [idx, [(x + 0.5) * s, (y + 0.5) * s]]));
+  const at = (k: number) => cell.get(k)!;
   const head = (x: number, y: number, ux: number, uy: number) => {
-    const h = 0.32 * s, w = 0.2 * s;
+    const h = 3.2, w = 2;
     return `<polygon points="${[[x, y], [x - ux * h - uy * w, y - uy * h + ux * w], [x - ux * h + uy * w, y - uy * h - ux * w]].map((p) => p.map(r2).join(',')).join(' ')}"/>`;
   };
   let out = '';
@@ -151,11 +178,19 @@ function arrowsSVG(moves: [number, number][], s: number): string {
     const swap = moves.some(([c, d]) => c === b && d === a);
     if (swap && a > b) continue;
     const [x1, y1] = at(a), [x2, y2] = at(b);
-    const len = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / len, uy = (y2 - y1) / len, trim = 0.22 * s;
+    const len = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / len, uy = (y2 - y1) / len, trim = 2.2;
     const [sx, sy, ex, ey] = [x1 + ux * trim, y1 + uy * trim, x2 - ux * trim, y2 - uy * trim];
     out += `<line x1="${r2(sx)}" y1="${r2(sy)}" x2="${r2(ex)}" y2="${r2(ey)}"/>${head(ex, ey, ux, uy)}${swap ? head(sx, sy, -ux, -uy) : ''}`;
   }
   return out && `<g class="arrows" stroke="${ARROW}" stroke-width="0.9" fill="${ARROW}" stroke-linejoin="round">${out}</g>`;
+}
+
+/** A case's figure as the academy draws it: `view` is its phase's ('iso' for the first layers and F2L, 'top' for the
+ *  last layer), the puzzle and mask come from its stage; `arrows`: PLL/PBL arrows if the stage has them. */
+export function caseDiagram(view: 'iso' | 'top', stage: Stage, facelets: string, opts: DiagramOpts = {}): string {
+  const mask = maskFor(stage);
+  const o = { ...opts, n: puzzleOf(stage) === '2x2x2' ? 2 : 3, arrows: !!opts.arrows && mask === 'pll', bottom: stage === '2x2-pbl' } as const;
+  return (view === 'iso' ? isoSVG : topSVG)(facelets, mask, o);
 }
 
 // Full net (cross layout, as on scramble sheets): U above F; L, F, R, B in a row; D below F. Each face in

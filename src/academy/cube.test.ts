@@ -29,6 +29,12 @@ const FIXTURES = ([
   ['ll-edges', "R U R' U R U2 R' U"], // swaps two yellow edges
   ['ll-corners-placed', "U R U' L' U R' U' L"], // cycles three corners
   ['ll-corners-twist', "R' D' R D R' D' R D U R' D' R D R' D' R D R' D' R D R' D' R D U'"], // two corners twisted
+  // the 2x2 (until its methods have cases)
+  ['2x2-first-layer', "R U R' U'"],
+  ['2x2-first-face', "R U R'"],
+  ['2x2-oll', "R U R' U R U2 R'"], // Sune
+  ['2x2-pbl', "R U R' U' R' F R2 U' R' U' R U R' F'"], // T: the top layer only, so it keeps the first layer
+  ['2x2-ll-corners', "F R U' R' U' R U R' F' R U R' U' R' F R F'"], // Y
 ] as const).map(([stage, alg], i) => fixture(stage, alg, i));
 const cases = [...METHODS.flatMap(allCases), ...FIXTURES];
 
@@ -178,6 +184,18 @@ test('goalReached: the beginner stages, on hand-made states', () => {
   assert.equal(goals(edit((d) => { d.EDGES.orientation[0] = d.EDGES.orientation[1] = 1; }), 'D'), '00000');
 });
 
+test('goalReached: the 2x2 stages, up to a whole-cube turn, edges ignored', () => {
+  const g = (p: KPattern) => (['2x2-first-layer', '2x2-first-face', '2x2-oll', '2x2-pbl', '2x2-ll-corners'] as const).map((s) => +goalReached(s, p, 'U')).join('');
+  for (const turn of ['U', 'D', "D'", 'x', 'y2', "z'", "L R'", 'U D2']) assert.equal(g(user(turn)), '11111', turn); // AUF, ADF, rotations
+  assert.equal(g(user('R')), '00000');
+  for (const alg of ['R2', 'R2 U2', 'F2 U R2']) assert.equal(g(user(alg)), '00000', alg); // twisted right, but the layers mixed
+  assert.equal(g(edit((d) => swap(d.EDGES.pieces, 0, 1))), '11111');
+  assert.equal(g(edit((d) => swap(d.CORNERS.pieces, 4, 5))), '01100'); // the white face, not the first layer
+  assert.equal(g(edit((d) => { d.CORNERS.orientation[0] = 1; d.CORNERS.orientation[1] = 2; })), '11000');
+  assert.equal(g(edit((d) => swap(d.CORNERS.pieces, 0, 1))), '11100'); // a PBL
+  assert.equal(g(user("R2 U' B2 U2 R2 U' R2")), '01100'); // both layers: B moves the back corners, held back by the DLB corner
+});
+
 test('quiz pools: every pooled algorithm keeps its stage goal (goals are groups of states, so their products do too)', () => {
   const broken: string[] = [];
   const keeps = (stage: Stage, alg: string[] | string) =>
@@ -191,7 +209,7 @@ test('quiz pools: every pooled algorithm keeps its stage goal (goals are groups 
   for (const stage of ALL_STAGES) assert.ok(!POOL_STAGES[stage].includes(stage), stage);
   for (const stage of ['first-layer', 'f2l', 'oll-cross', 'oll-corners', 'pll-corners'] as const) assert.ok(quizPool(stage, kpuzzle).algs.length > 0, stage);
   // what a pool leaves out really would break it: twists undo OLL, an F2L insert undoes the first layer
-  assert.ok(!keeps('oll-corners', FIXTURES.at(-1)!.algs[0].alg) && !keeps('first-layer', "U R U' R'"));
+  assert.ok(!keeps('oll-corners', FIXTURES.find((f) => f.stage === 'll-corners-twist')!.algs[0].alg) && !keeps('first-layer', "U R U' R'"));
 });
 
 test('specsFor: a random state of each case, in the given order, deterministic per seed', () => {
@@ -223,6 +241,15 @@ test('randomStateScramble: leads to the quiz state in face turns, not by the set
       assert.ok(!endsInSetup(scramble, c.setup), id);
       assert.ok(endsInSetup(spec.moves, c.setup), `${id}: the old merged scramble gives the case away`); // the check can fail
     }
+  }
+});
+
+test('randomStateScramble: a 2x2 state exactly, in U F L R turns (the 2x2 solver)', async () => {
+  for (const c of FIXTURES.filter((x) => x.stage.startsWith('2x2'))) {
+    const p = quizPattern(kpuzzle, makeQuizItems([c], 1, 5, kpuzzle)[0], IDENTITY);
+    const scramble = await randomStateScramble(p, '2x2x2');
+    assert.deepEqual(solved.applyAlg(scramble.join(' ')).patternData.CORNERS, p.patternData.CORNERS, c.id);
+    for (const m of scramble) assert.match(m, /^[UFLR](2|')?$/);
   }
 });
 

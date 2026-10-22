@@ -16,7 +16,7 @@ test('a page for every case, every method and the library, each path once and ro
   const cases = METHODS.flatMap((m) => allCases(m).map((c) => `/academia/${m.id}/caso/${c.id}`));
   const paths = pages.map((p) => p.path);
   assert.equal(new Set(paths).size, paths.length);
-  for (const p of [...cases, '/algoritmos', ...METHODS.map((m) => `/academia/${m.id}`)]) assert.ok(paths.includes(p), p);
+  for (const p of [...cases, '/algoritmos', '/academia/2x2', ...METHODS.map((m) => `/academia/${m.id}`)]) assert.ok(paths.includes(p), p);
   for (const p of pages) {
     assert.notEqual(parseRoute(p.path).mod, 'solve', p.path);
     assert.ok(p.title && p.description && p.body.startsWith('<h2>'), p.path);

@@ -33,7 +33,7 @@ import {
   addSession, aufFor, autoGrade, byCase, isStuck, lastSession, parseHistory, referenceHtm, review, score, selectCases, solutionFor, spacedTiers,
   toRetry, weightedOrder, type Attempt, type Issue, type Order, type QuizMode, type Selection, type SessionRecord,
 } from './score.ts';
-import type { Case, OfficialQuiz, Phase } from './types.ts';
+import { puzzleOf, type Case, type OfficialQuiz, type Phase } from './types.ts';
 
 export type QuizScope =
   | { kind: 'cases'; id: string; cases: Case[]; title: string; answers?: Case[] } // answers: default `cases`
@@ -167,7 +167,9 @@ dialog.addEventListener('close', () => {
 
 /** The case the quiz was opened from (its scope answers among its group). */
 const oneCase = (): Case | null => (scope.kind === 'cases' && scope.cases.length === 1 && scopeCases(scope).length > 1 ? scope.cases[0] : null);
-const executionNext = () => !!cube.pattern(); // with a cube the quiz is solved on it
+/** The smart cube is a 3x3: a 2x2 quiz is solved on a normal cube (the hand clock). */
+const smartScope = () => scopeCases(scope).every((c) => puzzleOf(c.stage) === '3x3x3');
+const executionNext = () => !!cube.pattern() && smartScope(); // with a cube the quiz is solved on it
 const selectContext = () => ({
   one: oneCase(), picked, learning: learningFor, now: Date.now(), timeKey: executionNext() ? 'solveMs' as const : 'recognitionMs' as const,
 });
@@ -248,7 +250,7 @@ function prefetch(i: number) {
   item.scramble = null;
   // wait for the solver however long its first load takes ("Preparando la mezcla…"): the merged setup is 45–120 turns,
   // so it's only the last resort when the solver fails outright
-  void randomStateScramble(item.user).catch(() => null).then((moves) => {
+  void randomStateScramble(item.user, puzzleOf(item.c.stage)).catch(() => null).then((moves) => {
     item.scramble = (moves ?? item.spec.moves).join(' ');
     item.random = !!moves;
     // patched in place: re-rendering the question would drop the focus and a tap in progress on an answer
@@ -478,6 +480,7 @@ const solution = (item: Item): string => solutionFor(item.c, preferred(item.c).a
 
 function render() {
   if (!dialog.open) return;
+  dialog.dataset.puzzle = items.length ? puzzleOf(items[0].c.stage) : '3x3x3'; // for the move tooltips: a quiz is of one puzzle
   const view = { setup: renderSetup, clock: renderClock, scramble: renderScramble, solve: renderSolve, done: renderDone, explain: renderExplain, results: renderResults }[screen];
   const focused = body.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.action : undefined;
   const same = screen === rendered;
@@ -531,7 +534,7 @@ const ORDER_LABEL: Record<Order, [MessageKey, MessageKey]> = {
 };
 
 function renderSetup(): Node[] {
-  const execution = !!cube.pattern();
+  const execution = executionNext();
   const out: Node[] = [];
   let n: number; // items
   if (scope.kind === 'official') {
@@ -566,6 +569,7 @@ function renderSetup(): Node[] {
       summary);
   }
   out.push(p(t(execution ? 'quiz.howCube' : 'quiz.howNoCube')));
+  if (cube.pattern() && !execution) out.push(p(t('practice.no2x2Cube'), 'hint'));
   const box = el('input', { type: 'checkbox', checked: neutral });
   box.dataset.action = 'neutral';
   box.onchange = () => save('quiz-neutral', (neutral = box.checked));

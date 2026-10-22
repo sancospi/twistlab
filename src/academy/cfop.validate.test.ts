@@ -5,10 +5,14 @@ import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern } from 'cubing/kpuzzle';
 import { IDENTITY, centerMoves, tokenize } from '../notation.ts';
-import { caseState, goalReached } from './cube.ts';
+import { caseState, goalReached, held2x2 } from './cube.ts';
+import { bases2x2 } from './bases2x2.ts';
+import { beginner2x2 } from './beginner2x2.ts';
 import { cfopFull } from './cfopFull.ts';
+import { ortega } from './ortega.ts';
+import { stageCounts } from './probability.ts';
 import { METHODS, allCases, findCase } from './methods.ts';
-import type { Case } from './types.ts';
+import { puzzleOf, type Case } from './types.ts';
 
 const kpuzzle = await cube3x3x3.kpuzzle();
 const solved = kpuzzle.defaultPattern();
@@ -17,6 +21,8 @@ const cases = METHODS.flatMap(allCases);
 const AUFS = ['', 'U ', "U' ", 'U2 '];
 // Supported notation tokens, ASCII primes only (no ′ or ’)
 const NOTATION = /^(?:[URFDLBrludfbMESxyz](?:2'?|')?)(?: [URFDLBrludfbMESxyz](?:2'?|')?)*$/;
+// The 2x2: face turns and rotations only (no slices; a wide move is the whole cube there, and cubing.js's 2x2 rejects it)
+const NOTATION_2X2 = /^(?:[URFDLBxyz](?:2'?|')?)(?: [URFDLBxyz](?:2'?|')?)*$/;
 
 // A U turn before the alg is the AUF; one after (last layer) is already allowed by goalReached itself.
 const solves = (c: Case, alg: string, from = caseState(kpuzzle, c.algs[0].alg, IDENTITY)) =>
@@ -28,7 +34,11 @@ test('all methods: case ids unique across methods; phase and group ids too (page
   const sections = METHODS.flatMap((m) => m.phases.flatMap((p) => [p.id, ...p.groups.map((g) => g.id)]));
   assert.deepEqual(dupes([...sections, ...cases.map((c) => c.id)]), []);
   assert.deepEqual(dupes(METHODS.map((m) => m.id)), []);
-  assert.deepEqual(METHODS.map((m) => m.id), ['principiante', 'cfop-reducido', 'cfop-completo']);
+  assert.deepEqual(METHODS.map((m) => m.id), ['principiante', 'cfop-reducido', 'cfop-completo', 'principiante-2x2', 'ortega']);
+});
+
+test('all methods: every case is of its method\'s puzzle', () => {
+  for (const m of METHODS) for (const c of allCases(m)) assert.equal(puzzleOf(c.stage), m.puzzle ?? '3x3x3', `${m.id}: ${c.id} (${c.stage})`);
 });
 
 test('all methods: setups and algorithms tokenize in clean notation, setup = main alg undone (centers fixed)', () => {
@@ -37,9 +47,11 @@ test('all methods: setups and algorithms tokenize in clean notation, setup = mai
     assert.equal(new Set(c.algs.map((v) => v.id)).size, c.algs.length, c.id);
     for (const s of [c.setup, ...c.algs.map((v) => v.alg)]) {
       assert.doesNotThrow(() => tokenize(s), c.id);
-      assert.match(s, NOTATION, c.id);
+      assert.match(s, puzzleOf(c.stage) === '2x2x2' ? NOTATION_2X2 : NOTATION, c.id);
     }
-    assert.ok(user(c.setup).isIdentical(caseState(kpuzzle, c.algs[0].alg, IDENTITY)), c.id);
+    const [a, b] = [user(c.setup), caseState(kpuzzle, c.algs[0].alg, IDENTITY)];
+    // a 2x2 has corners only: the setup may move the 3x3's edges another way
+    assert.ok(puzzleOf(c.stage) === '2x2x2' ? JSON.stringify(a.patternData.CORNERS) === JSON.stringify(b.patternData.CORNERS) : a.isIdentical(b), c.id);
   }
 });
 
@@ -168,4 +180,62 @@ test('cfop completo coverage keys tell cases apart (fixtures)', () => {
   };
   distinct(['f2l'], f2lKey);
   distinct(['pll-corners', 'pll-edges'], pllKey);
+});
+
+// --- The 2x2 ---
+
+test('bases del 2x2: examples in 2x2 notation', () => {
+  for (const l of bases2x2.lessons) for (const x of l.examples ?? []) for (const alg of [x.setup, x.solution]) assert.match(alg, NOTATION_2X2, `${l.id}: ${alg}`);
+});
+
+test('principiante 2x2: the yellow face and the top corners keep the first layer', () => {
+  for (const c of allCases(beginner2x2).filter((x) => x.stage !== '2x2-first-layer')) {
+    const from = user(c.setup);
+    assert.ok(goalReached('2x2-first-layer', from, 'U'), `${c.id}: the first layer isn't solved`);
+    for (const v of c.algs) assert.ok(AUFS.some((auf) => goalReached('2x2-first-layer', from.applyAlg(centerMoves(auf + v.alg, IDENTITY).join(' ')), 'U')), `${c.id} ${v.id}`);
+  }
+});
+
+/** A 2x2 state as its goals see it (held DLB home), as text. */
+const held = (c: Case, before: string, after: string) => held2x2(at(c, before, after)).patternData.CORNERS;
+const UD_TURNS = U_TURNS.flatMap((u) => U_TURNS.map((d) => `${u} ${d.replace('U', 'D')}`.trim()));
+
+/** Ortega OLL: the top layer's twists, up to a U turn; the white face done. */
+function oll2Key(c: Case): string {
+  assert.ok(goalReached('2x2-first-face', at(c, ''), 'U'), `${c.id}: the white face is not done`);
+  return canonical(U_TURNS.map((u) => held(c, '', u).orientation.slice(0, 4).join('')));
+}
+
+/** Ortega PBL: both layers' permutation, up to U and D turns before (conjugation) and after; all oriented. */
+function pblKey(c: Case): string {
+  assert.ok(goalReached('2x2-oll', at(c, ''), 'U'), `${c.id}: OLL is not solved`);
+  return canonical(UD_TURNS.flatMap((before) => UD_TURNS.map((after) => held(c, before, after).pieces.join(''))));
+}
+
+for (const [phase, total, key] of [[ortega.phases[1], 7, oll2Key], [ortega.phases[2], 5, pblKey]] as const) {
+  const own = phase.groups.flatMap((g) => g.cases);
+  test(`ortega: ${phase.id} has exactly ${total} cases, none repeated, and they solve every state`, { todo: !own.length && 'no cases yet' }, () => {
+    const seen = new Map<string, string>();
+    const dupes: string[] = [];
+    for (const c of own) {
+      const k = key(c);
+      if (seen.has(k)) dupes.push(`${c.id} = ${seen.get(k)}`);
+      seen.set(k, c.id);
+    }
+    assert.deepEqual(dupes, []);
+    assert.equal(own.length, total);
+    assert.ok(stageCounts(phase, own[0].stage, kpuzzle), `${phase.id}: some state is solved by none of its cases`); // with AUF, ADF, x2
+  });
+}
+
+test('2x2 coverage keys tell cases apart (fixtures)', () => {
+  const k = (fn: (c: Case) => string, setup: string) => fn({ id: setup, setup } as Case);
+  const sune = "R U2 R' U' R U' R'", antisune = "R U R' U R U2 R'";
+  assert.equal(k(oll2Key, sune), k(oll2Key, `U ${sune} U'`));
+  assert.notEqual(k(oll2Key, sune), k(oll2Key, antisune));
+  assert.throws(() => k(oll2Key, 'R'), /white face/);
+  const adjadj = "R2 U' B2 U2 R2 U' R2", diagdiag = 'R2 F2 R2';
+  assert.equal(k(pblKey, adjadj), k(pblKey, `U D' ${adjadj} D2 U`));
+  assert.equal(k(pblKey, adjadj), k(pblKey, `y ${adjadj} y'`)); // a whole-cube turn is no other case
+  assert.notEqual(k(pblKey, adjadj), k(pblKey, diagdiag));
 });
