@@ -45,7 +45,6 @@ const status = $('quiz-status'); // persistent live region: #quiz-body is rebuil
 const PER_CASE = [3, 5, 10, 20];
 const SELECTIONS: Selection[] = ['one', 'pick', 'due', 'learning', 'known', 'slow', 'all'];
 const ORDERS: Order[] = ['uniform', 'probability', 'spaced'];
-const KEYS = '123456789abcdefghijklmnopqrstuvwxyz'; // answer shortcuts, in button order
 const HISTORY_KEY = 'academy-quiz-history';
 
 export const scopeId = (s: QuizScope): string => (s.kind === 'cases' ? s.id : s.quiz.id);
@@ -63,23 +62,12 @@ const history = (): SessionRecord[] => parseHistory(load(HISTORY_KEY));
 export const lastResult = (id: string): SessionRecord | undefined => lastSession(history(), id);
 export const percent = (x: number): string => new Intl.NumberFormat(lang, { style: 'percent' }).format(x);
 
-const phaseOf = (c: Case): Phase | undefined =>
-  METHODS.flatMap((m) => m.phases).find((p) => p.groups.some((g) => g.cases.includes(c)));
-
 /** The quiz of one case, answered among its group's cases. */
 const caseScope = (c: Case): QuizScope => {
   const group = METHODS.flatMap((m) => m.phases).flatMap((p) => p.groups).find((g) => g.cases.includes(c));
   // titled by the group: its cases come up too (Uno solo narrows it to this one)
   return { kind: 'cases', id: c.id, cases: [c], title: group ? t('academy.quizOf', { name: loc(group.name) }) : caseLabel(c), answers: group?.cases };
 };
-
-/** Answers for an item: the scope's cases of its phase (a whole method would be too many buttons). */
-function answersFor(item: Item): Case[] {
-  const all = scopeCases(scope);
-  const phase = phaseOf(item.c);
-  const same = all.filter((c) => phaseOf(c) === phase);
-  return same.length ? same : all;
-}
 
 interface Item {
   spec: QuizSpec;
@@ -103,8 +91,8 @@ interface Feedback {
 
 // ask (Reconoce) → clock (Resuelve) without a cube, scramble (Mezcla) → solve (Resuelve) with one; then done, or
 // explain after a mistake
-type Screen = 'setup' | 'ask' | 'clock' | 'scramble' | 'solve' | 'done' | 'explain' | 'results';
-type Why = 'wrong' | 'stuck' | 'fail'; // why the explanation is up
+type Screen = 'setup' | 'clock' | 'scramble' | 'solve' | 'done' | 'explain' | 'results';
+type Why = 'stuck' | 'fail'; // why the explanation is up
 let kpuzzle: KPuzzle;
 let scope: QuizScope;
 let onClose: () => void = () => {};
@@ -115,7 +103,6 @@ let rendered: Screen | null = null; // the screen last drawn, to keep the focus 
 let items: Item[] = [];
 let index = 0;
 let attempts: Attempt[] = [];
-let chosen: string | null = null; // recognition: the case picked for the current item
 let shownAt = 0; // the item became answerable / solvable
 let firstMoveAt = 0;
 let fromClock = false; // the explanation follows a failed solve on the hand clock: Reintentar goes back to it
@@ -124,7 +111,7 @@ let done: string[] = []; // quarter turns while solving the current item
 let assisted = false;
 let clockAt = 0; // without a cube: > 0 while the solve clock runs
 let clockMs: number | null = null; // ...its time, once stopped
-let why: Why = 'wrong';
+let why: Why = 'stuck';
 let showNet = setting('quiz-net', false); // the scramble's 2D net, to check the cube by eye (kept across items)
 let neutral = setting('quiz-neutral', false); // color neutral: each item held a random way (another color on top)
 let selection: Selection = 'all'; // which cases (setup), see openQuiz
@@ -258,7 +245,6 @@ function gradeItem(item: Item, g: Grade, time?: Parameters<typeof recordGrade>[2
 }
 
 function startItem() {
-  chosen = null;
   assisted = false;
   done = [];
   firstMoveAt = 0;
@@ -271,8 +257,10 @@ function startItem() {
     screen = 'scramble';
     void guide.start(quizPattern(kpuzzle, items[index].spec, onCube(items[index]))); // cube frame: yellow is the cube's D
   } else {
-    screen = 'ask';
+    // without a cube: the scramble, you start the clock and solve it on your cube (no "which case is it?")
+    screen = 'clock';
     shownAt = performance.now();
+    attempts.push({ caseId: items[index].c.id, correct: true, recognitionMs: 0 });
   }
   render();
 }
@@ -284,25 +272,12 @@ function beginSolve() {
   requestAnimationFrame(tick);
 }
 
-/** Recognition: right, solve it on your cube (clock); wrong, the explanation. */
-function answer(caseId: string) {
-  if (screen !== 'ask') return;
-  chosen = caseId;
-  const item = items[index];
-  attempts.push({ caseId: item.c.id, correct: caseId === item.c.id, recognitionMs: performance.now() - shownAt });
-  if (caseId === item.c.id) {
-    screen = 'clock';
-    return render();
-  }
-  gradeItem(item, 'fail');
-  explain('wrong');
-}
-
 /** Without a cube, the solve clock: started and stopped by hand (tap or Space); stopped, the user says how it went. */
 function toggleClock() {
   if (screen !== 'clock' || clockMs !== null) return;
   if (!clockAt) {
     clockAt = performance.now();
+    attempts.at(-1)!.recognitionMs = clockAt - shownAt; // looking at the scramble and planning, before the clock
     requestAnimationFrame(tick);
   } else {
     clockMs = performance.now() - clockAt;
@@ -312,18 +287,21 @@ function toggleClock() {
   render();
 }
 
-/** Recognition, after the solve: "¿Lo resolviste bien?" — well: the result; failed: the explanation. */
-function selfGrade(g: 'good' | 'fail') {
+/** Without a cube, after the solve: Siguiente (solved: graded good, the time recorded), Ver respuesta (graded failed,
+ *  explained) or Reintentar (the same scramble again, not graded). */
+function solvedByHand() {
   const item = items[index];
-  gradeItem(item, g, { key: 'recognitionMs', ms: attempts.at(-1)!.recognitionMs });
+  if (!retried) gradeItem(item, 'good', { key: 'recognitionMs', ms: attempts.at(-1)!.recognitionMs });
   const n = htm(centerMoves(solution(item), IDENTITY)); // ponytail: no cube, so the moves are the algorithm's
-  if (g === 'good') recordRep(item.c.id, { ms: clockMs!, moves: n, htm: n, clean: true });
-  if (g === 'fail') {
-    attempts.at(-1)!.correct = false;
-    return explain('fail');
-  }
-  feedback = { item, grade: g, issue: null, extra: 0 };
-  screen = 'done';
+  recordRep(item.c.id, { ms: clockMs!, moves: n, htm: n, clean: true });
+  logs.push({ item, n: index + 1, done, skipped: false, assisted: false });
+  next();
+}
+
+function retryClock() {
+  retried = true;
+  clockAt = 0;
+  clockMs = null;
   render();
 }
 
@@ -332,7 +310,6 @@ function stuck() {
   const item = items[index];
   guide.stop();
   if (screen === 'clock') attempts.at(-1)!.correct = false;
-  if (screen === 'ask') attempts.push({ caseId: item.c.id, correct: false, recognitionMs: performance.now() - shownAt });
   if (screen === 'solve') {
     assisted = true;
     attempts.push({ caseId: item.c.id, correct: false, recognitionMs: (firstMoveAt || performance.now()) - shownAt });
@@ -383,7 +360,8 @@ function skip() {
   guide.stop();
   const item = items[index];
   if (screen === 'solve') gradeItem(item, 'fail');
-  if (screen !== 'clock') attempts.push({ caseId: item.c.id, correct: false, recognitionMs: screen === 'solve' || screen === 'ask' ? performance.now() - shownAt : 0 });
+  if (screen === 'clock') attempts.at(-1)!.correct = false;
+  else attempts.push({ caseId: item.c.id, correct: false, recognitionMs: screen === 'solve' ? performance.now() - shownAt : 0 });
   logs.push({ item, n: index + 1, done, skipped: true, assisted });
   next();
 }
@@ -457,12 +435,6 @@ document.addEventListener('keydown', (e) => {
     if (!e.repeat) toggleClock();
     return;
   }
-  if (screen !== 'ask') return;
-  const i = KEYS.indexOf(e.key.toLowerCase());
-  const cases = answersFor(items[index]);
-  if (i < 0 || i >= cases.length) return;
-  e.preventDefault();
-  answer(cases[i].id);
 });
 
 // --- Rendering ---
@@ -484,7 +456,7 @@ const solution = (item: Item): string => solutionFor(item.c, preferred(item.c).a
 
 function render() {
   if (!dialog.open) return;
-  const view = { setup: renderSetup, ask: renderAsk, clock: renderClock, scramble: renderScramble, solve: renderSolve, done: renderDone, explain: renderExplain, results: renderResults }[screen];
+  const view = { setup: renderSetup, clock: renderClock, scramble: renderScramble, solve: renderSolve, done: renderDone, explain: renderExplain, results: renderResults }[screen];
   const focused = body.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.action : undefined;
   const same = screen === rendered;
   rendered = screen;
@@ -505,8 +477,7 @@ function statusText(): string {
   const where = items.length ? t('quiz.progress', { n: index + 1, total: items.length }) : '';
   const item = items[index];
   switch (screen) {
-    case 'ask': return `${where}. ${neutral ? `${holdText(item)} ` : ''}${t('quiz.question')}`;
-    case 'clock': return `${t('quiz.correct')} ${caseLabel(item.c)}. ${t(clockMs !== null ? 'quiz.gradeAsk' : clockAt ? 'practice.timerStop' : 'practice.timerStart')}`;
+    case 'clock': return `${where}. ${neutral && !clockAt && clockMs === null ? `${holdText(item)} ` : ''}${t(clockMs !== null ? 'quiz.helpClockDone' : clockAt ? 'practice.timerStop' : 'quiz.helpClock')}`;
     case 'scramble': return [nextMove() ?? '', scrambleDesc(), neutral && item ? holdText(item, 'neutral.holdAfter') : ''].join(' ').trim();
     case 'solve': return `${where}. ${t('quiz.helpSolve')}${neutral ? ` ${holdText(item, 'neutral.holdSolve')}` : ''}`; // not the clock: it would talk every frame
     case 'done': return `${feedbackText(feedback!)} ${t('quiz.time', { time: formatTime(itemTime()) })}`;
@@ -652,44 +623,32 @@ function diagram(item: Item, size = 180, arrows = false): HTMLElement {
 
 /** Step indicator: 1 Reconoce (no cube) or Mezcla (cube) · 2 Resuelve. */
 const steps = (current: 1 | 2) => el('ol', { className: 'steps', ariaLabel: t('practice.steps') },
-  ...[t(mode === 'execution' ? 'practice.stepScramble' : 'quiz.stepRecognize'), t('practice.stepSolve')].map((text, i) =>
+  ...[t('practice.stepScramble'), t('practice.stepSolve')].map((text, i) =>
     el('li', { textContent: text, ...(i + 1 === current ? { ariaCurrent: 'step' } : {}) })));
 
 /** "Me atasqué" (or "No lo sé" on the question): the explanation. */
 const stuckButton = (label: MessageKey = 'quiz.stuck') => action('stuck', t(label), stuck);
 
-/** Paso 1 without a cube: which case is it? */
-function renderAsk(): Node[] {
-  const item = items[index];
-  return [
-    progress(), steps(1), p(t('quiz.helpAsk'), 'hint'), ...holdHint(item), diagram(item), ...itemScramble(),
-    el('p', {}, el('strong', { textContent: t('quiz.question') })),
-    el('div', { className: 'answers', role: 'group', ariaLabel: t('quiz.answers') }, ...answersFor(item).map((c, i) =>
-      el('button', { type: 'button', onclick: () => answer(c.id) }, ...(i < KEYS.length ? [el('kbd', { textContent: KEYS[i] })] : []), c.code))),
-    el('div', { className: 'row' }, action('skip', t('quiz.skip'), skip), stuckButton('quiz.dontKnow')),
-  ];
-}
-
-/** Paso 2 without a cube: solve it on your cube against a clock started and stopped by hand, then say how it went. */
+/** Without a cube: the scramble (figure without arrows: the case isn't named), a clock you start and stop by hand,
+ *  then Siguiente, Reintentar or Ver respuesta. */
 function renderClock(): Node[] {
   const item = items[index];
   const stopped = clockMs !== null;
-  // stopped, it's no longer a button: the focus moves on to "Bien"
+  // stopped, it's no longer a button: the focus moves on to "Siguiente"
   const clock = stopped ? el('div', { className: 'practice-clock', textContent: formatTime(clockMs!) })
     : el('button', { type: 'button', className: `practice-clock${clockAt ? ' running' : ''}`, onclick: toggleClock },
       el('span', { id: 'quiz-clock', textContent: formatTime(clockAt ? performance.now() - clockAt : 0) }), el('br'),
       el('small', { className: 'hint', textContent: t(clockAt ? 'practice.timerStop' : 'practice.timerStart') }));
   if (!stopped) Object.assign(clock.dataset, { action: 'clock', focus: '' });
   const out: Node[] = [
-    progress(), steps(2), p(t(stopped ? 'quiz.gradeAsk' : 'quiz.helpClock'), 'hint'),
-    p(`${t('quiz.correct')} ${caseLabel(item.c)} · ${t('quiz.recognized', { time: formatTime(attempts.at(-1)!.recognitionMs) })}`, 'ok'),
-    ...holdHint(item), diagram(item, 120, true), ...itemScramble(), clock,
+    progress(), steps(clockAt || stopped ? 2 : 1), p(t(stopped ? 'quiz.helpClockDone' : 'quiz.helpClock'), 'hint'),
+    ...holdHint(item), diagram(item), ...itemScramble(), clock,
   ];
-  if (!stopped) return [...out, el('div', { className: 'row' }, action('skip', t('quiz.skip'), skip), stuckButton())];
-  const good = action('good', t('quiz.gradeGood'), () => selfGrade('good'));
-  good.className = 'primary';
-  good.dataset.focus = '';
-  return [...out, el('div', { className: 'row' }, good, action('fail', t('quiz.gradeFail'), () => selfGrade('fail')))];
+  if (!stopped) return [...out, el('div', { className: 'row' }, action('skip', t('quiz.skip'), skip), stuckButton('quiz.showAnswer'))];
+  const go = action('next', t(index + 1 < items.length ? 'quiz.next' : 'quiz.finish'), solvedByHand);
+  go.className = 'primary';
+  go.dataset.focus = '';
+  return [...out, el('div', { className: 'row' }, go, action('retry', t('quiz.retryItem'), retryClock), stuckButton('quiz.showAnswer'))];
 }
 
 /** The item's time: on the cube, first turn to solved; without one, the hand clock. */
@@ -738,7 +697,7 @@ function renderDone(): Node[] {
   ];
 }
 
-const whyText = () => (why === 'wrong' ? t('quiz.wrong', { chosen: findCase(chosen!)?.code ?? '' }) : t(why === 'stuck' ? 'quiz.whyStuck' : 'quiz.whyFail'));
+const whyText = () => t(why === 'stuck' ? 'quiz.whyStuck' : 'quiz.whyFail');
 
 /** After a mistake: the case explained (figure, algorithm with its triggers, how to recognise it, fingers, animation on
  *  demand); Reintentar (the same item) or Siguiente. */
