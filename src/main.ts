@@ -863,6 +863,7 @@ async function onRoute(r: Route, scroll: number | null = null) {
   if (r.mod !== 'academy') {
     academy?.stopCase();
     academy?.stopLesson(); // a lesson left for another module lets go of the cube and its 3D player
+    academy?.stopTrainers();
     document.title = r.mod === 'solve' ? t('app.title') : pageTitle(t(painting ? 'paint.title' : r.mod === 'progress' ? 'nav.progress' : r.mod === 'about' ? 'about.title' : 'menu.cube'));
     return;
   }

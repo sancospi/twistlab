@@ -41,8 +41,9 @@ const groupPath = (m: Method, g: Group) => `${routePath({ mod: 'academy', page: 
 const text = (s: string, className = '') => el('p', { textContent: s, className });
 const rich = (s: string, className = '') => el('p', { className }, ...inlineText(s)); // data text: its terms tappable
 
+// the case's own state (its main algorithm undone): the recognition text describes it, whichever algorithm is chosen
 const diagram = (phase: Phase, c: Case, size: number, title = ''): string =>
-  caseDiagram(phase.diagram, c.stage, patternToFacelets(caseState(kpuzzle, preferred(c).alg, IDENTITY)), { size, title, arrows: size >= 84 });
+  caseDiagram(phase.diagram, c.stage, patternToFacelets(caseState(kpuzzle, c.algs[0].alg, IDENTITY)), { size, title, arrows: size >= 84 });
 
 const statusOf = (caseId: string): CaseStatus => {
   const l = learningFor(caseId);

@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
+import { KPattern } from 'cubing/kpuzzle';
 import { SOLVED_FACELETS, patternToFacelets } from '../facelets.ts';
-import { IDENTITY, centerMoves } from '../notation.ts';
+import { IDENTITY, centerMoves, expand } from '../notation.ts';
 import { caseState } from './cube.ts';
-import { isoSVG, llArrows, maskFor, topSVG, netSVG } from './diagram.ts';
-import { findCase } from './methods.ts';
+import { caseDiagram, isoSVG, llArrows, maskFor, topSVG, netSVG, turned, twoSidesSVG } from './diagram.ts';
+import { METHODS, allCases, findCase } from './methods.ts';
+import { phaseOf } from './probability.ts';
 
 const YELLOW = '#ffd60a', GREEN = '#22c55e', WHITE = '#f5f5f5', ORANGE = '#ff8a1f', GREY = '#9ca3af';
 
@@ -198,4 +200,79 @@ test('netSVG: every face in its place of the cross, every sticker coloured', asy
   assert.ok(l3.x < f1.x && l3.y === f1.y);
   assert.ok(r1.x > f1.x && r1.y === f1.y && b1.x > r1.x && b1.y === r1.y);
   assert.equal(d1.x, f1.x); assert.ok(d1.y > f1.y);
+});
+
+test('turned: the whole cube seen after x or y, every sticker its own color (checked against cubing.js)', async () => {
+  const kpuzzle = await cube3x3x3.kpuzzle();
+  const p = kpuzzle.defaultPattern().applyAlg("R U F' L2 D B' R2 U'");
+  for (const rot of ['x', 'y'] as const) {
+    // cubing.js: the state conjugated by the turn (centers home again), its letters named by the turned frame
+    const r = kpuzzle.algToTransformation(rot);
+    const seen = KPattern.fromTransformation(r.invert().applyTransformation(p.experimentalToTransformation()!).applyTransformation(r));
+    const frame = expand(rot, IDENTITY).frame;
+    const expected = [...patternToFacelets(seen)].map((x) => frame[x as keyof typeof frame]).join('');
+    assert.equal(turned(patternToFacelets(p), rot), expected, rot);
+    assert.equal(turned(turned(patternToFacelets(p), rot, 3), rot), patternToFacelets(p));
+  }
+  assert.equal(turned(SOLVED_FACELETS, 'y', 2).slice(18, 27), 'B'.repeat(9));
+});
+
+test('f2l iso: a back-slot pair turns the view to its slot; every front-right case stays seen from the front', async () => {
+  const kpuzzle = await cube3x3x3.kpuzzle();
+  const f = (alg: string) => patternToFacelets(caseState(kpuzzle, alg, IDENTITY));
+  const front = (alg: string) => caseDiagram('iso', 'f2l', f(alg)) === isoSVG(f(alg), 'f2l');
+  for (const c of METHODS.flatMap(allCases).filter((x) => x.stage === 'f2l' && !x.id.startsWith('f2la-'))) assert.ok(front(c.algs[0].alg), c.id);
+  const back = (alg: string, times: number) => assert.equal(caseDiagram('iso', 'f2l', f(alg)), isoSVG(turned(f(alg), 'y', times), 'f2l'), alg);
+  back("R' U' R", 1); // back-right: seen from there (R and B in view)
+  back("L U L'", 2); // back-left
+  back("L' U' L", 3); // front-left
+});
+
+test('Roux masks and views: blocks, CMLL corners, LSE edges; held by the blocks whatever the M slice', async () => {
+  const kpuzzle = await cube3x3x3.kpuzzle();
+  assert.deepEqual((['coll', 'roux-fb', 'roux-sb', 'cmll', 'lse-eo', 'lse-ulur', 'lse-4c'] as const).map(maskFor), ['coll', 'roux-fb', 'roux-sb', 'cmll', 'lse', 'lse', 'lse']);
+  const grey = (svg: string) => [...stickers(svg)].filter(([, s]) => s.fill === GREY).map(([i]) => i).sort((a, b) => a - b);
+  // CMLL top view: only the 4 corners (and their bars) in color
+  const cmllTop = stickers(topSVG(SOLVED_FACELETS, 'cmll'));
+  for (const [i, s] of cmllTop) assert.equal(s.fill !== GREY, [0, 2, 6, 8, 9, 11, 18, 20, 36, 38, 45, 47].includes(i), `cmll ${i}`);
+  // SB iso: the right block and the R center; FB (seen from the front-left): the left block and the L center
+  assert.deepEqual(grey(isoSVG(SOLVED_FACELETS, 'roux-sb')), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 18, 19, 20, 22, 25]);
+  assert.deepEqual(grey(caseDiagram('iso', 'roux-fb', SOLVED_FACELETS)).filter((i) => i >= 18 && i < 27), [18, 19, 20]); // the L face in front
+  // LSE: the blocks grey, the M slice's edges and centers in color
+  const lse = stickers(isoSVG(SOLVED_FACELETS, 'lse'));
+  for (const i of [21, 24, 23, 26, 12, 13, 14, 15, 16, 17]) assert.equal(lse.get(i)!.fill, GREY, `lse ${i}`);
+  for (const i of [1, 4, 19, 22, 25]) assert.notEqual(lse.get(i)!.fill, GREY, `lse ${i}`);
+  // M2 on a solved cube (centers home: the blocks turned R2 L2) is drawn held by its blocks: white down, yellow center down
+  const m2 = patternToFacelets(kpuzzle.defaultPattern().applyAlg(centerMoves('M2', IDENTITY).join(' ')));
+  const drawn = stickers(caseDiagram('iso', 'lse-4c', m2));
+  assert.equal(drawn.get(0)!.fill, YELLOW); // a top corner
+  assert.equal(drawn.get(4)!.fill, WHITE); // the U center: the M slice is off by M2
+  assert.equal(drawn.get(25)!.fill, '#2563eb'); // DF: the DB edge's blue
+});
+
+test('COLL and CMLL arrows: corners only, twisted ones too', async () => {
+  const kpuzzle = await cube3x3x3.kpuzzle();
+  const f = (alg: string) => patternToFacelets(caseState(kpuzzle, alg, IDENTITY));
+  // a corner 3-cycle with an edge 3-cycle (A-perm then U-perm): only the corners' arrows
+  const both = f("x R' U R' D2 R U' R' D2 R2 x' M2 U M U2 M' U M2");
+  assert.equal(llArrows(both).length, 6);
+  assert.equal(llArrows(both, undefined, true).length, 3);
+  assert.equal(caseDiagram('top', 'coll', both, { arrows: true }).match(/<line/g)?.length, 3);
+  // Niklas (as set up here) moves all 4 corners, the one at ULB twisted (blue on top): it gets its arrow too
+  const niklas = f("R U' L' U R' U' L");
+  assert.equal(niklas[0], 'B');
+  assert.deepEqual(llArrows(niklas, undefined, true).map(([from]) => from).sort((a, b) => a - b), [0, 2, 6, 8]);
+});
+
+test('twoSidesSVG: only the front and right top rows in color', () => {
+  const s = stickers(twoSidesSVG(SOLVED_FACELETS));
+  for (const [i, x] of s) assert.equal(x.fill !== GREY, [9, 10, 11, 18, 19, 20].includes(i), `facelet ${i}`);
+});
+
+test('every case figure draws (each phase\'s view and stage)', async () => {
+  const kpuzzle = await cube3x3x3.kpuzzle();
+  for (const c of METHODS.flatMap(allCases)) {
+    const svg = caseDiagram(phaseOf(c.id)!.diagram, c.stage, patternToFacelets(caseState(kpuzzle, c.algs[0].alg, IDENTITY)), { arrows: true });
+    assert.match(svg, /^<svg /, c.id);
+  }
 });

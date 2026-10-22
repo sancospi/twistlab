@@ -61,7 +61,7 @@ test('library: filter by method, group by set across methods', () => {
   assert.ok(one.length && one.every((e) => e.method === METHODS[1]));
   assert.deepEqual(libraryEntries(METHODS, 'nope'), []);
   const sets = bySet(all);
-  assert.deepEqual(sets.map((s) => s.set).filter((s) => s !== 'pbl'), ['f2l', 'oll', 'pll', 'beginner']); // pbl: once Ortega has cases
+  assert.deepEqual(sets.map((s) => s.set).filter((s) => s !== 'pbl'), ['f2l', 'oll', 'pll', 'coll', 'roux', 'cmll', 'lse', 'beginner']); // pbl: once Ortega has cases
   const oll = sets.find((s) => s.set === 'oll')!.entries;
   assert.deepEqual([...new Set(oll.map((e) => e.method.id))].slice(0, 3), ['principiante', 'cfop-reducido', 'cfop-completo'], 'every method, in order');
   assert.ok(oll.some((e) => e.c.id === 'prin-cruz-linea'), "the beginner's yellow cross is OLL");

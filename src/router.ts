@@ -5,8 +5,13 @@ export type AcademyPage =
   | { kind: 'home' } | { kind: 'notation' } | { kind: 'cross' } | { kind: 'bases2x2' } | { kind: 'method'; id: string }
   | { kind: 'lesson'; course: string; id: string } // course: the guide's segment, e.g. /academia/cruz/leccion/que-es
   | { kind: 'library' } // every case of every method, with search: /algoritmos (its own menu entry, drawn by the academy)
+  | { kind: 'trainer'; id: Trainer } // a trainer of the Academia's "Entrenadores": /academia/reconocer-pll, /academia/auf
   | { kind: 'case'; method: string; id: string }; // a case's page: /academia/cfop-completo/caso/cfopc-oll-27
 export type Route = { mod: 'solve' } | { mod: 'cube'; page?: 'paint' } | { mod: 'academy'; page: AcademyPage } | { mod: 'progress' } | { mod: 'about' }; // paint: /cubo/pintar; about: /acerca
+
+/** The Academia's trainers, by their URL segment. */
+export const TRAINERS = ['reconocer-pll', 'auf'] as const;
+export type Trainer = (typeof TRAINERS)[number];
 
 const NOTATION = 'notacion';
 /** Old paths that moved: the URL is rewritten to the new one. */
@@ -44,6 +49,7 @@ export function parseRoute(pathname: string): Route {
     if (second === LIBRARY) return { mod: 'academy', page: { kind: 'library' } };
     if (third === LESSON && fourth) return { mod: 'academy', page: { kind: 'lesson', course: second, id: fourth } };
     if (third === CASE && fourth) return { mod: 'academy', page: { kind: 'case', method: second, id: fourth } };
+    if ((TRAINERS as readonly string[]).includes(second)) return { mod: 'academy', page: { kind: 'trainer', id: second as Trainer } };
     return { mod: 'academy', page: guidePage(second) };
   }
   return { mod: 'solve' }; // '/', '/resolver' and anything unknown
@@ -59,6 +65,7 @@ export function routePath(r: Route): string {
   if (p.kind === 'lesson') return `/academia/${encodeURIComponent(p.course)}/${LESSON}/${encodeURIComponent(p.id)}`;
   if (p.kind === 'library') return `/${LIBRARY}`;
   if (p.kind === 'case') return `/academia/${encodeURIComponent(p.method)}/${CASE}/${encodeURIComponent(p.id)}`;
+  if (p.kind === 'trainer') return `/academia/${p.id}`;
   return `/academia/${encodeURIComponent(guideSegment(p))}`;
 }
 

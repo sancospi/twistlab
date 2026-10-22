@@ -13,7 +13,7 @@ import { explainMove } from '../notation.ts';
 import { algView } from '../notation-view.ts';
 import type { MessageKey } from '../i18n.ts';
 import { loc, t, tp } from '../i18n.ts';
-import { guidePage, guideSegment, routePath, type AcademyPage, type GuidePage } from '../router.ts';
+import { guidePage, guideSegment, routePath, type AcademyPage, type GuidePage, type Trainer } from '../router.ts';
 import { LL_STEPS, caseState } from './cube.ts';
 import { crossGuide } from './crossGuide.ts';
 import { guideSections, trainerButton } from './crossView.ts';
@@ -21,7 +21,9 @@ import { bases2x2 } from './bases2x2.ts';
 import { courseFor, MOVE_GROUPS, type Course } from './lessons.ts';
 import { lessonList, playLesson, stopLesson } from './lessonView.ts';
 import { libraryView, showCase, stopCase } from './caseView.ts';
-import { caseDiagram, netSVG } from './diagram.ts';
+import { caseDiagram, netSVG, twoSidesSVG } from './diagram.ts';
+import { pllRecognitionView, stopPllRecognition } from './pllRecognition.ts';
+import { aufTrainerView, stopAufTrainer } from './aufTrainer.ts';
 import { METHODS, allCases } from './methods.ts';
 import { el } from './practice.ts';
 import { caseLabel, lastResult, openQuiz, percent, scopeId, type QuizScope } from './quiz.ts';
@@ -29,6 +31,14 @@ import { caseProbability, formatProbability } from './probability.ts';
 import { isDue, learningFor, preferred, save, setting, statsFor } from './store.ts';
 import { puzzleOf, type Case, type Group, type Method, type Phase, type Puzzle } from './types.ts';
 export { stopCase, stopLesson }; // for main.ts, which loads the academy with its first page
+
+// The trainers' pages: their view and what stops them when they're left
+const TRAINER_VIEWS: Record<Trainer, { view: (k: KPuzzle) => HTMLElement; stop: () => void }> = {
+  'reconocer-pll': { view: pllRecognitionView, stop: stopPllRecognition },
+  auf: { view: aufTrainerView, stop: stopAufTrainer },
+};
+/** Leaving a trainer's page (for main.ts too). */
+export const stopTrainers = (): void => Object.values(TRAINER_VIEWS).forEach((x) => x.stop());
 
 let kpuzzle: KPuzzle;
 
@@ -39,6 +49,12 @@ export async function showAcademy(root: HTMLElement, page: AcademyPage): Promise
   kpuzzle ??= await cube3x3x3.kpuzzle();
   delete root.dataset.puzzle; // a 3x3 page, unless set below (the move tooltips read it)
   if (page.kind !== 'case') stopCase();
+  stopTrainers(); // a trainer's page starts over too
+  if (page.kind === 'trainer') {
+    const title = t(`trainer.${page.id}.title`);
+    root.replaceChildren(crumbs(title), TRAINER_VIEWS[page.id].view(kpuzzle));
+    return inAcademy(title);
+  }
   if (page.kind === 'lesson') return lessonPage(root, page.course, page.id);
   stopLesson();
   if (page.kind === 'case') return casePage(root, page.method, page.id);
@@ -211,6 +227,14 @@ function homeView(): HTMLElement {
     el('strong', { textContent: loc(bases2x2.name) }),
     text(loc(bases2x2.summary), 'hint'),
     el('span', { className: 'tile-meta', textContent: tp('cross.tileLessons', bases2x2.lessons.length) }));
+  // the trainers: one skill each, across methods
+  const trainer = (id: Trainer, strip: HTMLElement) => el('a', { className: 'tile', href: academyLink({ kind: 'trainer', id }) },
+    strip, el('strong', { textContent: t(`trainer.${id}.title`) }), text(t(`trainer.${id}.summary`), 'hint'));
+  const tperm = patternToFacelets(caseState(kpuzzle, "R U R' U' R' F R2 U' R' U' R U R' F'", IDENTITY));
+  const trainers = el('section', { className: 'academy-puzzle', ariaLabel: t('trainers.title') },
+    el('h3', { textContent: t('trainers.title') }), el('div', { className: 'tiles' },
+      trainer('reconocer-pll', el('div', { className: 'tile-strip', ariaHidden: 'true', innerHTML: twoSidesSVG(tperm, { size: 64 }) })),
+      trainer('auf', el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: "U · U′ · U2" }))));
   const group = (puzzle: Puzzle, ...items: HTMLElement[]) => el('section', { className: 'academy-puzzle', ariaLabel: t(`library.puzzle.${puzzle}`) },
     el('h3', { textContent: t(`library.puzzle.${puzzle}`) }), el('div', { className: 'tiles' }, ...items));
   return el('section', { className: 'academy-home' },
@@ -218,6 +242,7 @@ function homeView(): HTMLElement {
     text(t('academy.homeIntro'), 'prose hint'),
     group('3x3x3', cross, ...tiles('3x3x3'), notation, paint),
     group('2x2x2', basics, ...tiles('2x2x2')),
+    trainers,
     el('p', { className: 'foot-link' }, el('a', { href: routePath({ mod: 'about' }), textContent: t('about.link') })));
 }
 
@@ -300,8 +325,8 @@ function methodView(m: Method): Node[] {
 /** The method's trainer and the link to the cross that comes before it: on top of the guide and of its lessons. */
 const methodTop = (m: Method): HTMLElement[] => [
   ...(allCases(m).length ? [trainView(m)] : []),
-  el('p', { className: 'hint' }, m.puzzle === '2x2x2'
-    ? el('a', { href: academyLink({ kind: 'bases2x2' }), textContent: t('bases2x2.before') })
+  el('p', { className: 'hint' }, m.before ? el('a', { href: m.before.path, textContent: loc(m.before.label) })
+    : m.puzzle === '2x2x2' ? el('a', { href: academyLink({ kind: 'bases2x2' }), textContent: t('bases2x2.before') })
     : el('a', { href: academyLink({ kind: 'cross' }), textContent: t('cross.before') })),
 ];
 
@@ -350,7 +375,7 @@ function card(phase: Phase, c: Case): HTMLAnchorElement {
   const link = el('a', { className: 'card', href: academyLink({ kind: 'case', method: m.id, id: c.id }) });
   const p = caseProbability(c.id, kpuzzle);
   const alg = preferred(c).alg;
-  link.innerHTML = caseDiagram(phase.diagram, c.stage, patternToFacelets(caseState(kpuzzle, alg, IDENTITY)), { size: 84, title: t('academy.diagram', { code: c.code }), arrows: true });
+  link.innerHTML = caseDiagram(phase.diagram, c.stage, patternToFacelets(caseState(kpuzzle, c.algs[0].alg, IDENTITY)), { size: 84, title: t('academy.diagram', { code: c.code }), arrows: true }); // the case, as its recognition reads
   const s = statsFor(c.id);
   link.append(
     el('strong', { textContent: c.code }),

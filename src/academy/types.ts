@@ -11,10 +11,28 @@ import type { Localized } from '../i18n.ts';
  * - ll-edges: first two layers + last-layer edges home and oriented after some U turn (corners anything)
  * - ll-corners-placed: ll-edges + last-layer corners in their slots (any orientation), after the same U turn
  * - ll-corners-twist: everything solved after some U turn (the beginner's R' D' R D twists)
+ * - coll: the pll-corners goal (F2L, top all yellow, corners home after some U turn), from a state with the top edges
+ *   oriented: COLL's cases are the corners only, so only an EPLL and an AUF remain
+ * F2L cases may target any slot: 'f2l' is all four slots solved.
  */
 export type Stage =
   | 'first-layer' | 'second-layer' | 'f2l' | 'oll-cross' | 'oll-corners' | 'pll-corners' | 'pll-edges'
-  | 'll-edges' | 'll-corners-placed' | 'll-corners-twist' | Stage2x2;
+  | 'll-edges' | 'll-corners-placed' | 'll-corners-twist' | 'coll' | StageRoux | Stage2x2;
+
+/**
+ * Roux's stages. Blocks are 1x2x3: the left one is DL, FL, BL and DFL, DLB (with the L center), the right one the same on
+ * R. The M slice is free: its centers may be off by M turns (cube.ts lines the blocks up with the centers first). The
+ * left block is the user's left: goalReached takes the grip's frame for these (not just the yellow face).
+ * - roux-fb: the left block
+ * - roux-sb: both blocks
+ * - cmll: + the 4 top corners home after some U turn (top edges, M edges and centers anything)
+ * - lse-eo: + the 6 remaining edges oriented (U/D color on U/D, centers lined up with the blocks)
+ * - lse-ulur: + UL and UR home after that U turn
+ * - lse-4c: everything solved after some U turn, M slice included
+ */
+export type StageRoux = 'roux-fb' | 'roux-sb' | 'cmll' | 'lse-eo' | 'lse-ulur' | 'lse-4c';
+export const ROUX_STAGES: StageRoux[] = ['roux-fb', 'roux-sb', 'cmll', 'lse-eo', 'lse-ulur', 'lse-4c'];
+export const isRoux = (stage: Stage): stage is StageRoux => (ROUX_STAGES as Stage[]).includes(stage);
 
 /**
  * The 2x2's stages. A 2x2 is the corners of a 3x3, so its states are 3x3 states with the edges ignored; with no
@@ -43,7 +61,7 @@ export interface AlgVariant {
 }
 
 export interface SpeedCubeDbRef {
-  set: 'F2L' | 'OLL' | 'PLL';
+  set: 'F2L' | 'OLL' | 'PLL' | 'COLL' | 'CMLL' | 'AdvancedF2L';
   id: string;
   url: string;
 }
@@ -98,5 +116,6 @@ export interface Method {
   orientation: Localized;
   notation?: Localized; // how to read the algorithms
   schedule?: Localized; // the plan's calendar and the goals to reach
+  before?: { path: string; label: Localized }; // the step that comes before it (default: the white cross / the 2x2's basics)
   phases: Phase[];
 }

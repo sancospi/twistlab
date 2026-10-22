@@ -3,7 +3,8 @@
 import type { SpeedCubeDbRef } from './types.ts';
 
 // Checked against the live site (2026-10-20): /a/3x3/F2L/F2L_1, /a/3x3/OLL/OLL_27, /a/3x3/PLL/Ua.
-// Other spellings ("OLL27", "T-perm", "%20") return an empty page or a 404.
+// Other spellings ("OLL27", "T-perm", "%20") return an empty page or a 404. COLL and CMLL (2026-10-22): their own names,
+// spaces as underscores: /a/3x3/COLL/AS_1 (sets AS, S, L, U, T, Pi, H), /a/3x3/CMLL/Anti_Sune_Left_Bar.
 export function scdbUrl(set: SpeedCubeDbRef['set'], id: string): string {
-  return `https://speedcubedb.com/a/3x3/${set}/${set === 'PLL' ? id : `${set}_${id}`}`;
+  return `https://speedcubedb.com/a/3x3/${set}/${set === 'F2L' || set === 'OLL' ? `${set}_${id}` : id.replace(/ /g, '_')}`;
 }

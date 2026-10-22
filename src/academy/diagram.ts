@@ -1,8 +1,9 @@
 // Case diagrams as SVG strings: isometric (F2L) and top view (OLL/PLL), like the plan's figures.
 // Input is a 54-char Kociemba string in the USER frame (yellow up, green front), so letters are user faces.
-import { puzzleOf, type Stage } from './types.ts';
+import { isRoux, puzzleOf, type Stage } from './types.ts';
 
-export type Mask = 'first-layer' | 'first-face' | 'f2l' | 'oll-cross' | 'oll' | 'll-edges' | 'pll' | 'full';
+export type Mask = 'first-layer' | 'first-face' | 'f2l' | 'oll-cross' | 'oll' | 'll-edges' | 'pll' | 'full'
+  | 'coll' | 'roux-fb' | 'roux-sb' | 'cmll' | 'lse' | 'two-sides';
 export interface DiagramOpts {
   n?: 2 | 3; // a 2x2 or a 3x3 (default)
   bottom?: boolean; // top view: the D layer too, beside the U layer (2x2 PBL)
@@ -36,13 +37,31 @@ export function maskFor(stage: Stage): Mask {
   if (stage === '2x2-pbl' || stage === '2x2-ll-corners') return 'pll';
   if (stage === 'first-layer' || stage === 'f2l' || stage === 'oll-cross' || stage === 'll-edges') return stage; // oll-cross: edges only, as in the plan
   if (stage === 'second-layer') return 'f2l';
+  if (stage === 'coll' || stage === 'roux-fb' || stage === 'roux-sb' || stage === 'cmll') return stage;
+  if (isRoux(stage)) return 'lse';
   return stage === 'oll-corners' ? 'oll' : 'pll'; // pll-*, ll-corners-*: every sticker counts
 }
+
+// Roux's masks: which pieces and which centers (by their stickers' colors: the view may be turned) stay in color.
+const block = (s: string[], sides: string) => !s.includes('U') && s.some((x) => sides.includes(x)); // a piece of the L / R block
+const KEEP: Partial<Record<Mask, { piece: (stickers: string[]) => boolean; centers: string }>> = {
+  'roux-fb': { piece: (s) => block(s, 'L'), centers: 'L' },
+  'roux-sb': { piece: (s) => block(s, 'LR'), centers: 'LR' },
+  cmll: { piece: (s) => s.length === 3 && s.includes('U'), centers: '' }, // the top corners
+  lse: { piece: (s) => !block(s, 'LR'), centers: 'UFDB' }, // everything but the blocks, and the M slice's centers
+  'two-sides': { piece: () => false, centers: '' }, // maskedSet keeps the front and right top rows
+};
+const CENTER_FACELETS = [4, 13, 22, 31, 40, 49];
 
 /** Which facelet indices are drawn grey under a mask. */
 function maskedSet(facelets: string, mask: Mask): Set<number> {
   const out = new Set<number>();
-  if (mask === 'oll' || mask === 'oll-cross') {
+  const keep = KEEP[mask];
+  if (keep) {
+    for (let i = 0; i < 54; i++) out.add(i);
+    for (const piece of PIECES) if (keep.piece(piece.map((i) => facelets[i]))) piece.forEach((i) => out.delete(i));
+    for (const i of mask === 'two-sides' ? [9, 10, 11, 18, 19, 20] : CENTER_FACELETS.filter((i) => keep.centers.includes(facelets[i]))) out.delete(i);
+  } else if (mask === 'oll' || mask === 'oll-cross') {
     for (let i = 0; i < 54; i++) if (facelets[i] !== 'U') out.add(i);
     if (mask === 'oll-cross') PIECES.slice(0, 8).forEach((corner) => corner.forEach((i) => out.add(i)));
   } else if (mask === 'f2l' || mask === 'first-layer') {
@@ -141,7 +160,7 @@ export function topSVG(facelets: string, mask: Mask, opts: DiagramOpts = {}): st
       const fade = grey.has(idx) ? ' fill-opacity="0.35"' : '';
       body += `<rect data-facelet="${idx}" x="${r2(x)}" y="${r2(y)}" width="${r2(w)}" height="${r2(h)}" rx="1" fill="${fill(idx)}"${fade} stroke="${PLASTIC}" stroke-width="0.5"/>`;
     }
-    if (opts.arrows) body += arrowsSVG(llArrows(facelets, view), view, s);
+    if (opts.arrows) body += arrowsSVG(llArrows(facelets, view, mask === 'coll' || mask === 'cmll'), view, s);
     return dx ? `<g transform="translate(${dx} 0)">${body}</g>` : body;
   };
   const m = (GAP + BAR) * 10 + 1;
@@ -154,12 +173,14 @@ const FACE_OF = 'URFDLB'; // Kociemba face order: facelet i belongs to FACE_OF[i
 const colorsKey = (letters: string[]) => [...letters].sort().join('');
 
 /** PLL/PBL arrows as [from, to] facelets of a layer: each of its pieces goes home (where the algorithm takes it). Its
- *  side colors name its home slot. */
-export function llArrows(facelets: string, view = layerView(3, 'U')): [number, number][] {
-  const home = new Map(view.slots.map(([idx, sides]) => [colorsKey(sides.map((i) => FACE_OF[Math.floor(i / 9)])), idx]));
+ *  colors name its home slot, so a twisted corner (COLL, CMLL) gets one too. `corners`: the corners' arrows only. */
+export function llArrows(facelets: string, view = layerView(3, 'U'), corners = false): [number, number][] {
+  const key = (idx: number, sides: number[], color: (i: number) => string) => colorsKey([idx, ...sides].map(color));
+  const home = new Map(view.slots.map(([idx, sides]) => [key(idx, sides, (i) => FACE_OF[Math.floor(i / 9)]), idx]));
   const out: [number, number][] = [];
   for (const [idx, sides] of view.slots) {
-    const to = home.get(colorsKey(sides.map((i) => facelets[i])));
+    if (corners && sides.length < 2) continue;
+    const to = home.get(key(idx, sides, (i) => facelets[i]));
     if (to !== undefined && to !== idx) out.push([idx, to]);
   }
   return out;
@@ -185,13 +206,70 @@ function arrowsSVG(moves: [number, number][], view: LayerView, s: number): strin
   return out && `<g class="arrows" stroke="${ARROW}" stroke-width="0.9" fill="${ARROW}" stroke-linejoin="round">${out}</g>`;
 }
 
-/** A case's figure as the academy draws it: `view` is its phase's ('iso' for the first layers and F2L, 'top' for the
- *  last layer), the puzzle and mask come from its stage; `arrows`: PLL/PBL arrows if the stage has them. */
+// --- The cube turned as a whole: the same stickers, seen from another side ---
+
+// Each face's sticker 0 corner, column step and row step (Kociemba order U R F D L B), in isoSVG's coordinates.
+const FACES: [V3, V3, V3][] = [
+  [[0, 3, 0], [1, 0, 0], [0, 0, 1]], [[3, 3, 3], [0, 0, -1], [0, -1, 0]], [[0, 3, 3], [1, 0, 0], [0, -1, 0]],
+  [[0, 0, 3], [1, 0, 0], [0, 0, -1]], [[0, 3, 0], [0, 0, 1], [0, -1, 0]], [[3, 3, 0], [-1, 0, 0], [0, -1, 0]],
+];
+const CENTERS3 = [...Array(54).keys()].map((idx): V3 => {
+  const [o, c, r] = FACES[Math.floor(idx / 9)], i = Math.floor((idx % 9) / 3) + 0.5, j = (idx % 3) + 0.5;
+  return [0, 1, 2].map((k) => o[k] + c[k] * j + r[k] * i - 1.5) as V3; // the sticker's middle, the cube's center at 0
+});
+const at3d = new Map(CENTERS3.map((p, idx) => [p.join(), idx]));
+// Where a point goes when the whole cube turns like R (x) or like U (y)
+const TURN = { x: ([a, b, c]: V3): V3 => [a, c, -b], y: ([a, b, c]: V3): V3 => [-c, b, a] };
+const TURNED = Object.fromEntries((['x', 'y'] as const).map((axis) =>
+  [axis, CENTERS3.map((p) => at3d.get(TURN[axis](p).map((v) => v + 0).join())!)])) as Record<'x' | 'y', number[]>;
+
+/** The facelets of the cube turned `times` times like R (x) or U (y): every sticker keeps its color, at its new place. */
+export function turned(facelets: string, axis: 'x' | 'y', times = 1): string {
+  let f = facelets;
+  for (let t = 0; t < ((times % 4) + 4) % 4; t++) {
+    const out = [...f];
+    TURNED[axis].forEach((to, from) => (out[to] = f[from]));
+    f = out.join('');
+  }
+  return f;
+}
+
+/** Roux: the cube held by its blocks (white down), the M slice's centers wherever they are. The diagrams' states have
+ *  their centers home (cube.ts), so a case whose algorithm turns the M slice shows its blocks turned instead. */
+function rouxHeld(facelets: string): string {
+  for (let t = 0; t < 4; t++) {
+    const f = turned(facelets, 'x', t);
+    if ([27, 30, 33].every((i) => f[i] === 'D')) return f; // the left block's bottom
+  }
+  return facelets;
+}
+
+const SLOT_ROWS = [3, 4, 5, 6, 7, 8]; // a side face's two lower rows: its slots
+/** F2L iso: how many y turns bring the slot being solved to the front-right: the view that shows the most unsolved
+ *  slot stickers on its two side faces (front first on a tie), so a back-slot case faces you. */
+function f2lTurns(facelets: string): number {
+  const wrong = (f: string) => [9, 18].reduce((n, first) => n + SLOT_ROWS.filter((k) => f[first + k] !== f[first + 4]).length, 0);
+  const scores = [0, 1, 2, 3].map((t) => wrong(turned(facelets, 'y', t)));
+  return scores.indexOf(Math.max(...scores));
+}
+
+/** A case's figure as the academy draws it: `view` is its phase's ('iso' for the first layers, F2L and Roux's blocks,
+ *  'top' for the last layer), the puzzle and mask come from its stage; `arrows`: PLL/PBL arrows if the stage has them
+ *  (COLL and CMLL: the corners'). The iso turns to what the stage builds: an F2L back slot, Roux's left block. */
 export function caseDiagram(view: 'iso' | 'top', stage: Stage, facelets: string, opts: DiagramOpts = {}): string {
   const mask = maskFor(stage);
-  const o = { ...opts, n: puzzleOf(stage) === '2x2x2' ? 2 : 3, arrows: !!opts.arrows && mask === 'pll', bottom: stage === '2x2-pbl' } as const;
-  return (view === 'iso' ? isoSVG : topSVG)(facelets, mask, o);
+  const n = puzzleOf(stage) === '2x2x2' ? 2 : 3;
+  const o = { ...opts, n, arrows: !!opts.arrows && (mask === 'pll' || mask === 'coll' || mask === 'cmll'), bottom: stage === '2x2-pbl' } as const;
+  if (isRoux(stage)) facelets = rouxHeld(facelets);
+  if (view === 'top') return topSVG(facelets, mask, o);
+  if (stage === 'f2l') facelets = turned(facelets, 'y', f2lTurns(facelets));
+  if (stage === 'roux-fb') facelets = turned(facelets, 'y', -1); // from the front-left: the L face in view
+  return isoSVG(facelets, mask, o);
 }
+
+/** PLL recognition from two sides, as a cube in your hands shows it: the iso with only the front and right faces' top
+ *  rows in color (the top face and the rest grey). `facelets`: the user frame, like caseDiagram's. */
+export const twoSidesSVG = (facelets: string, opts: DiagramOpts = {}): string => isoSVG(facelets, 'two-sides', opts);
 
 // Full net (cross layout, as on scramble sheets): U above F; L, F, R, B in a row; D below F. Each face in
 // Kociemba reading order, which is exactly how it lies in the net.

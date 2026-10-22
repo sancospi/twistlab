@@ -19,7 +19,7 @@ import { formatTime } from '../timer.ts';
 import { algView } from '../notation-view.ts';
 import { lang, loc, t, tp, type MessageKey } from '../i18n.ts';
 import {
-  HOLDS, caseState, goalReached, holdIn, llFaceOf, llSpecs, llSteps, makeQuizItems, quizPattern, randomStateScramble, specsFor,
+  HOLDS, caseState, goalReached, holdIn, llSpecs, llSteps, makeQuizItems, quizPattern, randomStateScramble, specsFor,
   type Auf, type LLStep, type QuizSpec,
 } from './cube.ts';
 import { heldColors, netSVG } from './diagram.ts';
@@ -425,7 +425,7 @@ const listener: CubeListener = {
     } else if (screen === 'solve') {
       firstMoveAt ||= performance.now();
       done.push(move);
-      if (goalReached(items[index].c.stage, cube.pattern()!, llFaceOf(onCube(items[index])))) return solved();
+      if (goalReached(items[index].c.stage, cube.pattern()!, onCube(items[index]))) return solved();
       if (isStuck(turnCount(done), referenceHtm(items[index].c, items[index].user, preferred(items[index].c)), performance.now() - firstMoveAt)) return stuck();
     } else return;
     render();
@@ -436,7 +436,7 @@ const listener: CubeListener = {
     else if (screen === 'scramble') void guide.replan();
     else if (screen === 'solve' && reset) startItem(); // the item's state is gone: set it up again
     // the cube lost the last turn and the corrected state is at the goal (any other drift: the next turn is judged right)
-    else if (screen === 'solve' && goalReached(items[index].c.stage, cube.pattern()!, llFaceOf(onCube(items[index])))) solved();
+    else if (screen === 'solve' && goalReached(items[index].c.stage, cube.pattern()!, onCube(items[index]))) solved();
   },
 };
 
@@ -630,7 +630,7 @@ function pickView(): HTMLElement {
     el('div', { className: 'quiz-pick-grid', role: 'group', ariaLabel: t('quiz.selPick') }, ...inputs.map(([c, input]) => {
       const box = el('label', { className: 'quiz-pick', title: caseLabel(c) }, input);
       const pic = el('span', { ariaHidden: 'true' }); // the code names it
-      pic.innerHTML = caseSVG(c, caseState(kpuzzle, preferred(c).alg, IDENTITY), { size: 56 });
+      pic.innerHTML = caseSVG(c, caseState(kpuzzle, c.algs[0].alg, IDENTITY), { size: 56 });
       box.append(pic, el('span', { textContent: c.code }));
       return box;
     }))));

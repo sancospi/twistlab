@@ -6,7 +6,7 @@ import { cube2x2x2 } from 'cubing/puzzles';
 import { experimentalSolve2x2x2, experimentalSolve3x3x3IgnoringCenters } from 'cubing/search';
 import { IDENTITY, centerMoves, expand, htm, invertTokens, mapMove, merge, tokenize, type Face, type Frame } from '../notation.ts';
 import { METHODS, allCases } from './methods.ts';
-import { is2x2, type AlgVariant, type Case, type Puzzle, type Stage, type Stage2x2 } from './types.ts';
+import { is2x2, isRoux, type AlgVariant, type Case, type Puzzle, type Stage, type Stage2x2, type StageRoux } from './types.ts';
 
 // cubing.js 3x3x3 orbit slot order; orientation 0 = the piece's U/D (or F/B) sticker on the slot's U/D (F/B) face.
 const EDGES = 'UF UR UB UL DF DR DB DL FR FL BR BL'.split(' ');
@@ -93,8 +93,50 @@ function goal2x2(stage: Stage2x2, q: KPattern): boolean {
   }
 }
 
-/** Whether a case of `stage` is done; llFace = 'U' in the user frame, YELLOW_UP.U on the cube, any face color neutral. */
-export function goalReached(stage: Stage, p: KPattern, llFace: Face): boolean {
+// --- Roux: two 1x2x3 blocks, the M slice free ---
+
+const BLOCK_L = { EDGES: [7, 9, 11], CORNERS: [5, 6] }; // DL FL BL, DFL DLB
+const BLOCK_R = { EDGES: [5, 8, 10], CORNERS: [4, 7] }; // DR FR BR, DRF DBR
+const LSE_EDGES = [0, 1, 2, 3, 4, 6]; // UF UR UB UL DF DB
+const solvedAt = (p: KPattern, slots: { EDGES: number[]; CORNERS: number[] }) =>
+  (['EDGES', 'CORNERS'] as const).every((o) => slots[o].every((i) => p.patternData[o].pieces[i] === i && p.patternData[o].orientation[i] === 0));
+
+/** `p` with the M slice turned so the left block lines up with the centers, and how many M' turns that took; null
+ *  when no M turn does it. Centers never move here, so an M turn is R L' (and a whole-cube turn): undone by R' L. */
+export function rouxAligned(p: KPattern): { q: KPattern; m: number } | null {
+  for (let m = 0, q = p; m < 4; m++, q = q.applyAlg("R' L")) if (solvedAt(q, BLOCK_L)) return { q, m };
+  return null;
+}
+
+function rouxGoal(stage: StageRoux, p: KPattern): boolean {
+  const aligned = rouxAligned(p);
+  if (!aligned || stage === 'roux-fb') return !!aligned;
+  const { q, m } = aligned;
+  if (!solvedAt(q, BLOCK_R)) return false;
+  if (stage === 'roux-sb') return true;
+  const top = llTurns(q, 'U').find((x) => [0, 1, 2, 3].every((i) => x.patternData.CORNERS.pieces[i] === i && x.patternData.CORNERS.orientation[i] === 0));
+  if (!top || stage === 'cmll') return !!top;
+  if (!LSE_EDGES.every((i) => q.patternData.EDGES.orientation[i] === 0)) return false;
+  if (stage === 'lse-eo') return true;
+  const home = (edges: number[]) => edges.every((i) => top.patternData.EDGES.pieces[i] === i);
+  if (stage === 'lse-ulur') return home([1, 3]);
+  return m === 0 && home(LSE_EDGES); // lse-4c: the M slice lined up too
+}
+
+// A whole-cube turn by the frame it leaves (expand's): seenAfter(p, it) is the cube as the person holding it that way sees it.
+const ROTATION_OF = new Map(ROTATIONS.map((r) => [JSON.stringify(expand(r, IDENTITY).frame), r]));
+
+/**
+ * Whether a case of `stage` is done. `held`: the face whose center is the last layer's color (the user frame's U,
+ * YELLOW_UP.U on the cube, any face color neutral), or the whole grip's frame, which Roux's goals need (its left
+ * block is the user's left). With only a face, Roux's left is L ('U'), R ('D': the GAN cube, a z2) or as TO_U turns it.
+ */
+export function goalReached(stage: Stage, p: KPattern, held: Face | Frame): boolean {
+  if (isRoux(stage)) {
+    if (typeof held !== 'string') return rouxGoal(stage, seenAfter(p, ROTATION_OF.get(JSON.stringify(held))!));
+    return rouxGoal(stage, held === 'U' ? p : seenAfter(p, held === 'D' ? 'z2' : TO_U[held]!));
+  }
+  const llFace = typeof held === 'string' ? held : held.U;
   if (is2x2(stage)) return goal2x2(stage, held2x2(llFace === 'U' ? p : seenAfter(p, TO_U[llFace] ?? 'x2')));
   const rot = TO_U[llFace];
   if (rot) return goalReached(stage, seenAfter(p, rot), 'U');
@@ -112,6 +154,7 @@ export function goalReached(stage: Stage, p: KPattern, llFace: Face): boolean {
     case 'oll-corners':
       return f2l && ll.every((x) => x.oriented);
     case 'pll-corners':
+    case 'coll':
       return f2l && ll.every((x) => x.oriented) && afterAuf((x) => !x.corner || x.home);
     case 'll-edges':
       return f2l && afterAuf((x) => x.corner || (x.home && x.oriented));
@@ -166,6 +209,15 @@ export const POOL_STAGES: Record<Stage, Stage[]> = {
   '2x2-oll': ['2x2-pbl', '2x2-ll-corners'], // the ones that keep the first layer too (POOL_KEEPS)
   '2x2-pbl': [],
   '2x2-ll-corners': [],
+  coll: ['pll-edges'], // edges permuted, corners kept
+  // Roux: the later steps keep the earlier ones (quizPool keeps only those that leave the M slice lined up)
+  'roux-fb': ['roux-sb', 'cmll', 'lse-eo', 'lse-ulur', 'lse-4c'],
+  'roux-sb': ['cmll', 'lse-eo', 'lse-ulur', 'lse-4c'],
+  cmll: ['lse-eo', 'lse-ulur', 'lse-4c'],
+  'lse-eo': ['lse-ulur', 'lse-4c'],
+  // none: with the top turned, a 4c algorithm's M turns carry UL/UR into the M slice (that goal is no group), so AUFs only
+  'lse-ulur': [],
+  'lse-4c': [],
 };
 // ponytail: one pool per stage, so the 2x2 OLL quiz keeps the first layer solved: right for the beginner's OLL, and
 // Ortega's doesn't care. Mix in Ortega's bottom permutations here if its quiz should show them.
@@ -174,6 +226,7 @@ const COUNTS: Record<Stage, number[]> = {
   'first-layer': [3, 4], 'second-layer': [3, 4], f2l: [3, 4], 'oll-cross': [2, 3], 'oll-corners': [2, 3], 'pll-corners': [0, 1],
   'pll-edges': [0], 'll-edges': [2, 3], 'll-corners-placed': [0, 1], 'll-corners-twist': [0],
   '2x2-first-layer': [2, 3], '2x2-first-face': [2, 3], '2x2-oll': [1, 2], '2x2-pbl': [0], '2x2-ll-corners': [0],
+  coll: [0, 1], 'roux-fb': [2, 3], 'roux-sb': [2, 3], cmll: [1, 2], 'lse-eo': [1, 2], 'lse-ulur': [0, 1], 'lse-4c': [0],
 };
 const poolAlgs = (stages: Stage[]) =>
   METHODS.flatMap(allCases).filter((c) => stages.includes(c.stage)).flatMap((c) => c.algs.map((v) => centerMoves(v.alg, IDENTITY)));
@@ -188,7 +241,10 @@ export function quizPool(stage: Stage, kpuzzle: KPuzzle) {
     const algs = poolAlgs(POOL_STAGES[stage])
       // 2x2: held back DLB home, so the next one starts from the same grip (goals hold up to a whole-cube turn, products don't)
       .map((a) => (is2x2(stage) ? [...a, ...holdFor(solved.applyAlg(a.join(' '))).moves] : a))
-      .filter((a) => [stage, ...(keep ? [keep] : [])].every((s) => goalReached(s, solved.applyAlg(a.join(' ')), 'U')));
+      .filter((a) => [stage, ...(keep ? [keep] : [])].every((s) => goalReached(s, solved.applyAlg(a.join(' ')), 'U')))
+      // Roux: only algorithms that end with the M slice lined up. One that leaves it off by an M turn keeps the goal from
+      // solved, but the next one, done as if the centers were home, would turn a block's layer instead of the top.
+      .filter((a) => !isRoux(stage) || rouxAligned(solved.applyAlg(a.join(' ')))?.m === 0);
     pools.set(stage, (pool = { algs, count: COUNTS[stage] }));
   }
   return pool;
@@ -270,7 +326,7 @@ export function referenceMoves(_c: Case, variant: AlgVariant, auf: Auf): number 
 export const llFaceOf = (frame: Frame): Face => frame.U;
 
 /** The 24 ways to hold the cube (which color up × a y turn), as frames of the user frame: place -> color (user face). */
-export const HOLDS: Frame[] = ['', 'x', 'x2', "x'", 'z', "z'"].flatMap((r) => ['', 'y', 'y2', "y'"].map((y) => expand(`${r} ${y}`, IDENTITY).frame));
+export const HOLDS: Frame[] = ROTATIONS.map((r) => expand(r, IDENTITY).frame);
 
 /** A cube in `frame` (user face -> center) held as `hold`: place -> center, e.g. holdIn(hold, YELLOW_UP) on the GAN cube. */
 export const holdIn = (hold: Frame, frame: Frame): Frame =>

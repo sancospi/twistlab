@@ -34,7 +34,7 @@ test('all methods: case ids unique across methods; phase and group ids too (page
   const sections = METHODS.flatMap((m) => m.phases.flatMap((p) => [p.id, ...p.groups.map((g) => g.id)]));
   assert.deepEqual(dupes([...sections, ...cases.map((c) => c.id)]), []);
   assert.deepEqual(dupes(METHODS.map((m) => m.id)), []);
-  assert.deepEqual(METHODS.map((m) => m.id), ['principiante', 'cfop-reducido', 'cfop-completo', 'principiante-2x2', 'ortega']);
+  assert.deepEqual(METHODS.map((m) => m.id), ['principiante', 'cfop-reducido', 'cfop-completo', 'f2l-avanzado', 'coll', 'roux', 'principiante-2x2', 'ortega']);
 });
 
 test('all methods: every case is of its method\'s puzzle', () => {

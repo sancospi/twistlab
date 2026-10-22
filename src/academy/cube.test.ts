@@ -5,7 +5,7 @@ import { patternToFacelets } from '../facelets.ts';
 import { KPattern } from 'cubing/kpuzzle';
 import { IDENTITY, YELLOW_UP, centerMoves, invertTokens, mapMove, tokenize } from '../notation.ts';
 import {
-  HOLDS, POOL_STAGES, caseState, goalReached, holdIn, llFaceOf, makeQuizItems, practiceSpec, quizPattern, quizPool, randomStateScramble, referenceMoves, specsFor,
+  HOLDS, POOL_STAGES, caseState, goalReached, holdIn, llFaceOf, makeQuizItems, practiceSpec, quizPattern, quizPool, randomStateScramble, referenceMoves, rouxAligned, specsFor,
 } from './cube.ts';
 import { METHODS, allCases, findCase } from './methods.ts';
 import type { Case, Stage } from './types.ts';
@@ -19,7 +19,7 @@ const ALL_STAGES = Object.keys(POOL_STAGES) as Stage[];
 // Typical beginner algorithms, one case each, for the stages no method has cases of yet.
 const fixture = (stage: Stage, alg: string, i: number): Case => ({
   id: `fixture-${stage}-${i}`, code: 'X', name: { es: 'X' }, recognition: { es: 'X' }, stage,
-  algs: [{ id: 'main', alg, source: 'community' }], setup: invertTokens(tokenize(alg)).join(' '), scdb: null,
+  algs: [{ id: 'main', alg, source: 'community' }], setup: invertTokens(centerMoves(alg, IDENTITY)).join(' '), scdb: null, // face turns, like the data's
 });
 const FIXTURES = ([
   ['first-layer', "U R U' R'"], // white corner from above into its slot
@@ -35,6 +35,14 @@ const FIXTURES = ([
   ['2x2-oll', "R U R' U R U2 R'"], // Sune
   ['2x2-pbl', "R U R' U' R' F R2 U' R' U' R U R' F'"], // T: the top layer only, so it keeps the first layer
   ['2x2-ll-corners', "F R U' R' U' R U R' F' R U R' U' R' F R F'"], // Y
+  // COLL and Roux (until their methods have cases)
+  ['coll', "R U R' U R U2 R'"], // Sune, as a COLL case
+  ['roux-fb', "L' U' L"], // a left-block pair
+  ['roux-sb', "R U R' U' R U R'"], // a right-block pair
+  ['cmll', "R U R' U R U2 R'"], // Sune, as a CMLL case
+  ['lse-eo', "M' U M'"], // two edges flipped: leaves the M slice off by M2
+  ['lse-ulur', "M2 U M2"],
+  ['lse-4c', "M2 U2 M2 U2"], // UF-UB and DF-DB swapped
 ] as const).map(([stage, alg], i) => fixture(stage, alg, i));
 const cases = [...METHODS.flatMap(allCases), ...FIXTURES];
 
@@ -184,6 +192,44 @@ test('goalReached: the beginner stages, on hand-made states', () => {
   assert.equal(goals(edit((d) => { d.EDGES.orientation[0] = d.EDGES.orientation[1] = 1; }), 'D'), '00000');
 });
 
+test('goalReached: COLL is the corners of the last layer, the edges oriented but anywhere', () => {
+  const g = (p: KPattern) => +goalReached('coll', p, 'U');
+  assert.equal(g(user("M2 U M U2 M' U M2")), 1); // Ua: an EPLL is left
+  assert.equal(g(user("R U2 R' U' R U' R'")), 0); // Sune
+  assert.equal(g(edit((d) => swap(d.CORNERS.pieces, 0, 1))), 0);
+  assert.equal(g(edit((d) => { d.CORNERS.pieces = [1, 2, 3, 0, 4, 5, 6, 7]; })), 1); // corners a U turn off the edges
+});
+
+test('goalReached: the Roux stages, the M slice free', () => {
+  const ROUX = ['roux-fb', 'roux-sb', 'cmll', 'lse-eo', 'lse-ulur', 'lse-4c'] as const;
+  const g = (p: KPattern, held: Parameters<typeof goalReached>[2] = 'U') => ROUX.map((s) => +goalReached(s, p, held)).join('');
+  assert.equal(g(solved), '111111');
+  assert.equal(g(user('U')), '111111'); // AUF
+  for (const m of ['M', 'M2', "M'", "M U2 M'  M"]) assert.equal(g(user(m)), '111110', m); // the M slice off: everything but the end
+  assert.equal(g(user('R')), '100000');
+  assert.equal(g(user('L')), '100000'); // the left block turned with its center... is the M slice and the right block off
+  assert.equal(g(user('r')), '100000');
+  assert.equal(g(user("R U R' U R U2 R'")), '110000'); // corners twisted
+  assert.equal(g(edit((d) => { d.EDGES.orientation[0] = d.EDGES.orientation[2] = 1; })), '111000'); // UF and UB flipped
+  assert.equal(g(edit((d) => { d.EDGES.orientation[4] = d.EDGES.orientation[3] = 1; })), '111000'); // DF and UL flipped
+  assert.equal(g(edit((d) => swap(d.EDGES.pieces, 1, 3))), '111100'); // UL and UR swapped
+  assert.equal(g(edit((d) => swap(d.EDGES.pieces, 0, 4))), '111110'); // UF and DF swapped
+  assert.equal(g(edit((d) => swap(d.EDGES.pieces, 8, 9))), '000000'); // FR and FL: neither block
+  assert.equal(g(user("M U M'")), '111000'); // EO broken... (an M' later fixes it)
+  assert.deepEqual([rouxAligned(user('M'))?.m, rouxAligned(user('R'))?.m, rouxAligned(user('F'))], [1, 0, null]);
+  // the frame: Roux's left is the user's left, however the cube is held (yellow on the cube's D, or any other way)
+  for (const hold of HOLDS) {
+    for (const frame of [IDENTITY, YELLOW_UP]) {
+      const f = holdIn(hold, frame);
+      const on = (alg: string) => solved.applyAlg(centerMoves(alg, f).join(' '));
+      assert.equal(g(on("R U R' U R U2 R'"), f), '110000', `${f.U}${f.F}`);
+      assert.equal(g(on('R'), f), '100000', `${f.U}${f.F}`);
+      assert.equal(g(on('M2'), f), '111110', `${f.U}${f.F}`);
+    }
+  }
+  assert.equal(g(solved.applyAlg('L'), 'D'), '100000'); // the GAN cube with just a face: yellow is its D, so the user's left is its R
+});
+
 test('goalReached: the 2x2 stages, up to a whole-cube turn, edges ignored', () => {
   const g = (p: KPattern) => (['2x2-first-layer', '2x2-first-face', '2x2-oll', '2x2-pbl', '2x2-ll-corners'] as const).map((s) => +goalReached(s, p, 'U')).join('');
   for (const turn of ['U', 'D', "D'", 'x', 'y2', "z'", "L R'", 'U D2']) assert.equal(g(user(turn)), '11111', turn); // AUF, ADF, rotations
@@ -287,10 +333,10 @@ test('color neutral: a case held any of the 24 ways is still that case, and its 
         const p = quizPattern(kpuzzle, spec, f);
         const moves = centerMoves(`${spec.auf} ${c.algs[0].alg}`, f); // the algorithm conjugated by the grip
         if (moves.join(' ') !== solution.map((m) => mapMove(m, f)).join(' ')) failures.push(`${c.id}: moves`);
-        if (!goalReached(c.stage, p.applyAlg(moves.join(' ')), llFaceOf(f))) failures.push(`${c.id} ${f.U}${f.F}: not solved`);
+        if (!goalReached(c.stage, p.applyAlg(moves.join(' ')), f)) failures.push(`${c.id} ${f.U}${f.F}: not solved`);
         if (frame !== YELLOW_UP) continue; // the smart cube's frame, step by step
         moves.forEach((_, i) => {
-          if (goalReached(c.stage, p.applyAlg(moves.slice(0, i).join(' ')), llFaceOf(f)) !== expected[i]) failures.push(`${c.id} ${f.U}${f.F}: step ${i}`);
+          if (goalReached(c.stage, p.applyAlg(moves.slice(0, i).join(' ')), f) !== expected[i]) failures.push(`${c.id} ${f.U}${f.F}: step ${i}`);
         });
       }
     }

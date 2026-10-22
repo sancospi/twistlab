@@ -10,13 +10,17 @@ import type { Phase, Stage } from './types.ts';
 // orientation: 8 edge flips (even) × 27 corner twists (sum 0 mod 3) = 216; permutation: 4! × 4! of equal parity = 288.
 // The 2x2 (corners only, edges stay solved): twists: 27 corner twists of the U layer; layers: 4! × 4! of the U and D
 // layers (no parity: no edges).
-type Family = 'orientation' | 'permutation' | 'twists' | 'layers';
+// corners: COLL and CMLL, whose cases are the top corners only: 27 twists × 4! places = 648, edges solved (what the
+// edges do is independent of the corners and doesn't change the case, so it is left out; the corners' parity too).
+type Family = 'orientation' | 'permutation' | 'twists' | 'layers' | 'corners';
 const FAMILY: Partial<Record<Stage, Family>> = {
   'oll-cross': 'orientation', 'oll-corners': 'orientation', 'pll-corners': 'permutation', 'pll-edges': 'permutation',
-  '2x2-oll': 'twists', '2x2-pbl': 'layers',
+  '2x2-oll': 'twists', '2x2-pbl': 'layers', coll: 'corners', cmll: 'corners',
 };
 // 2-look: when the phase also teaches this step, the stage starts with it done
 const PREVIOUS: Partial<Record<Stage, Stage>> = { 'oll-corners': 'oll-cross', 'pll-edges': 'pll-corners' };
+// a state that meets this goal skips the stage too: COLL with the corners already oriented goes straight to PLL
+const SKIP: Partial<Record<Stage, Stage>> = { coll: 'oll-corners' };
 const AUFS = ['', 'U ', "U' ", 'U2 '];
 // PBL: a D turn before too, and a layer only on the bottom is the top case after x2 (as face turns: R2 L2)
 const PBL_PRE = ['', 'R2 L2 '].flatMap((flip) => AUFS.flatMap((d) => AUFS.map((u) => flip + d.replace('U', 'D') + u)));
@@ -40,6 +44,7 @@ function llStates(kpuzzle: KPuzzle, family: Family): KPattern[] {
   const id = range(4), zero = [0, 0, 0, 0];
   if (family === 'orientation') return sums0(4, 2).flatMap((eo) => sums0(4, 3).map((co) => state(id, eo, id, co)));
   if (family === 'twists') return sums0(4, 3).map((co) => state(id, zero, id, co));
+  if (family === 'corners') return sums0(4, 3).flatMap((co) => perms(id).map((cp) => state(id, zero, cp, co)));
   if (family === 'layers') {
     const cp = (u: number[], d: number[]) => new KPattern(kpuzzle, { ...solved, CORNERS: { pieces: [...u, ...d.map((x) => x + 4)], orientation: Array(8).fill(0) } });
     return perms(id).flatMap((u) => perms(id).map((d) => cp(u, d)));
@@ -72,7 +77,7 @@ export function stageCounts(phase: Phase, stage: Stage, kpuzzle: KPuzzle): Stage
     for (const p of llStates(kpuzzle, family)) {
       if (twoLook && !goalReached(prev, p, 'U')) continue;
       counts.total++;
-      if (goalReached(stage, p, 'U')) {
+      if (goalReached(stage, p, 'U') || (SKIP[stage] && goalReached(SKIP[stage], p, 'U'))) {
         counts.skip++;
         continue;
       }
@@ -101,7 +106,7 @@ export const phaseOf = (caseId: string): Phase | undefined =>
   METHODS.flatMap((m) => m.phases).find((p) => p.groups.some((g) => g.cases.some((c) => c.id === caseId)));
 
 /** The probability as a reduced fraction ("1/54", "4/27", "2/3"): one format, so cards compare at a glance. Every
- *  count here is over at most 576 states, so the smallest denominator that makes it whole is exact. */
+ *  count here is over at most 648 states, so the smallest denominator that makes it whole is exact. */
 export function formatProbability(p: number): string {
   const n = range(1000).find((i) => i > 0 && Math.abs(Math.round(i * p) - i * p) < 1e-9)!;
   return `${Math.round(n * p)}/${n}`;

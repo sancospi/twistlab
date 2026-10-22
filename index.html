@@ -214,7 +214,7 @@
     .academy-nav ul { display: none; }
     .academy-phase, .academy-group { scroll-margin-top: 64px; } /* clear of the sticky pills */
     .academy-body .prose, .academy-body .hint { max-width: 80ch; }
-    .academy-groups { display: grid; gap: 22px; }
+    .academy-groups { display: grid; gap: 22px; align-items: start; } /* a short block keeps its own height beside a tall one */
     /* wide screens: blocks side by side, so a 4-case block doesn't leave the rest of the row empty */
     .academy-group { align-content: start; padding: 12px; border-radius: 10px; background: #11141b; }
     @media (min-width: 960px) {
@@ -386,6 +386,37 @@
     #cross-body { display: grid; gap: 10px; }
     #cross-player twisty-player, #cross-viewer-player twisty-player { width: 100%; height: min(280px, 40dvh); }
     @media (max-width: 600px) { #cross-player twisty-player { height: 30dvh; } } /* the pad fits below the cube at 360x640 */
+    /* Trainers: Reconocer PLL and AUF (pllRecognition.ts, aufTrainer.ts) */
+    .academy-trainer { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; max-width: 640px; }
+    .academy-trainer h2, .academy-trainer p { margin: 0; }
+    .trainer-options { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+    .trainer-option { display: flex; gap: 8px; align-items: center; min-width: 0; }
+    .trainer-option select { font: inherit; min-height: 44px; min-width: 0; flex: 1; }
+    .trainer-switch { display: flex; gap: 4px; }
+    .trainer-switch button { min-height: 44px; }
+    .trainer-switch button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+    .trainer-stats { font-variant-numeric: tabular-nums; }
+    .trainer-prompt p { margin-top: 4px; }
+    .trainer-stage { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; min-height: 210px; padding: 8px; border-radius: 12px; background: #11141b; }
+    .trainer-figure svg { display: block; max-width: 100%; height: auto; }
+    .trainer-result { display: grid; gap: 4px; justify-items: center; max-width: 220px; text-align: center; }
+    .trainer-result:empty { display: none; }
+    .trainer-feedback { min-height: 1.5em; }
+    .trainer-answers { display: grid; gap: 8px; }
+    .trainer-group { display: grid; gap: 4px; }
+    .trainer-buttons { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; }
+    .trainer-buttons button { min-height: 44px; padding: 8px 4px; font: 700 1.0714rem ui-monospace, monospace; touch-action: manipulation; }
+    .trainer-aufs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .trainer-aufs button { min-height: 52px; }
+    .trainer-buttons button.right { background: var(--accent); color: #062b14; }
+    .trainer-buttons button.wrong { background: #f87171; color: #2b0606; }
+    .trainer-col { display: grid; gap: 10px; align-content: start; }
+    .trainer-switch .hint { align-self: center; margin-right: 4px; }
+    /* Reconocer PLL on a wide screen: the figure beside the answers, so a round fits without scrolling */
+    @media (min-width: 900px) {
+      .academy-trainer.trainer-wide { max-width: 960px; }
+      .trainer-play { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    }
     /* Lessons: the Guía · Lecciones switch, the list, and the player (one card, one step at a time) */
     .view-switch { align-items: center; margin-bottom: 16px; }
     .view-switch button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }

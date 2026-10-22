@@ -9,6 +9,8 @@ import { bases2x2 } from './bases2x2.ts';
 import { beginner2x2 } from './beginner2x2.ts';
 import { crossGuide, type TextGuide } from './crossGuide.ts';
 import { ortega } from './ortega.ts';
+import { f2lAdvanced } from './f2lAdvanced.ts';
+import { roux } from './roux.ts';
 import type { Case, Method, Phase, Puzzle, Stage } from './types.ts';
 
 export type LessonStep =
@@ -166,7 +168,7 @@ function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
           return { kind: 'cube', title: caseTitle(c), text, setup: invertTokens(tokenize(alg)).join(' '), alg, doSetup: false, stage: c.stage };
         }),
         ...asked.map((i): LessonStep => ({
-          kind: 'case', caseId: cases[i].id, alg: algOf(cases[i]), stage: cases[i].stage, diagram,
+          kind: 'case', caseId: cases[i].id, alg: cases[i].algs[0].alg, stage: cases[i].stage, diagram, // the case's own state: what its recognition reads
           choices: caseChoices(cases, i).map((c) => ({ id: c.id, label: c.code })),
         })),
       ],
@@ -188,7 +190,8 @@ export function courseFor(id: string, algOf: (c: Case) => string = (c) => c.algs
   if (id === 'notacion') return { id, title: t('glossary.title'), lessons: notationLessons() };
   if (id === crossGuide.id) return { id, title: t('cross.title'), lessons: guideLessons(crossGuide) };
   if (id === bases2x2.id) return bases2x2.lessons.length ? { id, title: loc(bases2x2.name), lessons: guideLessons(bases2x2), puzzle: '2x2x2' } : null;
-  const m = [beginner, cfopReduced, beginner2x2, ortega].find((x) => x.id === id); // the full CFOP is a reference: no lessons
+  // the full CFOP and COLL are references: no lessons
+  const m = [beginner, cfopReduced, f2lAdvanced, roux, beginner2x2, ortega].find((x) => x.id === id);
   if (m) return { id, title: loc(m.name), lessons: methodLessons(m, algOf), ...(m.puzzle ? { puzzle: m.puzzle } : {}) };
   return null;
 }

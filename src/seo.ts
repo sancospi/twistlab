@@ -3,7 +3,7 @@
 // as static HTML inside the module's container. The app replaces that content when it boots. Pure: no DOM, no fs.
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { loc, t } from './i18n.ts';
-import { parseRoute, routePath, type AcademyPage, type Route } from './router.ts';
+import { TRAINERS, parseRoute, routePath, type AcademyPage, type Route, type Trainer } from './router.ts';
 import { METHODS, allCases } from './academy/methods.ts';
 import { bases2x2 } from './academy/bases2x2.ts';
 import type { TextGuide } from './academy/crossGuide.ts';
@@ -78,6 +78,12 @@ function guidePage(g: TextGuide, page: AcademyPage): SeoPage {
   };
 }
 
+/** A trainer's page: its name and what it trains (the app draws the trainer itself). */
+function trainerPage(id: Trainer): SeoPage {
+  const [title, description] = [t(`trainer.${id}.title`), t(`trainer.${id}.summary`)];
+  return { path: academy({ kind: 'trainer', id }), title: inAcademy(title), description, body: `<h2>${esc(title)}</h2><p>${esc(description)}</p>` };
+}
+
 function libraryPage(): SeoPage {
   return {
     path: academy({ kind: 'library' }),
@@ -94,7 +100,7 @@ export function seoPages(kpuzzle: KPuzzle): SeoPage[] {
     path: '/acerca', title: pageTitle(t('about.title')), description: t('seo.aboutDescription'),
     body: `<h2>${esc(t('about.title'))}</h2><p>${esc(t('seo.aboutDescription'))}</p>`,
   };
-  return [libraryPage(), guidePage(bases2x2, { kind: 'bases2x2' }), ...METHODS.flatMap((m) => [methodPage(m), ...allCases(m).map((c) => casePage(m, c, kpuzzle))]), about];
+  return [libraryPage(), guidePage(bases2x2, { kind: 'bases2x2' }), ...TRAINERS.map(trainerPage), ...METHODS.flatMap((m) => [methodPage(m), ...allCases(m).map((c) => casePage(m, c, kpuzzle))]), about];
 }
 
 /** The built index.html as this page: its head tags, and its content in the module's container (shown, not hidden). */

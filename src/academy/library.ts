@@ -32,9 +32,9 @@ export function mirrorCase(kpuzzle: KPuzzle, c: Case, alg: string, among: Case[]
 
 // --- Library: search and filters ---
 
-export type CaseSet = 'f2l' | 'oll' | 'pll' | 'pbl' | 'beginner';
+export type CaseSet = 'f2l' | 'oll' | 'pll' | 'coll' | 'roux' | 'cmll' | 'lse' | 'pbl' | 'beginner'; // roux: its blocks
 export type CaseStatus = 'new' | 'learning' | 'known' | 'due';
-export const SETS: CaseSet[] = ['f2l', 'oll', 'pll', 'pbl', 'beginner'];
+export const SETS: CaseSet[] = ['f2l', 'oll', 'pll', 'coll', 'roux', 'cmll', 'lse', 'pbl', 'beginner'];
 export const PUZZLES: Puzzle[] = ['3x3x3', '2x2x2'];
 export const STATUSES: CaseStatus[] = ['new', 'learning', 'known', 'due'];
 
@@ -45,6 +45,10 @@ export function caseSet(stage: Stage): CaseSet {
     case 'oll-cross': case 'oll-corners': case '2x2-oll': return 'oll';
     case '2x2-pbl': return 'pbl';
     case 'pll-corners': case 'pll-edges': return 'pll';
+    case 'coll': return 'coll';
+    case 'roux-fb': case 'roux-sb': return 'roux';
+    case 'cmll': return 'cmll';
+    case 'lse-eo': case 'lse-ulur': case 'lse-4c': return 'lse';
     case 'first-layer': case 'second-layer': case 'll-edges': case 'll-corners-placed': case 'll-corners-twist':
     case '2x2-first-layer': case '2x2-first-face': case '2x2-ll-corners': return 'beginner';
     default: { const unlisted: never = stage; return unlisted; } // a new Stage: pick its set here (tsc fails until then)

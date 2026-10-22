@@ -18,7 +18,7 @@ import { formatTime } from '../timer.ts';
 import { algView } from '../notation-view.ts';
 import { inlineText } from '../rich-text-view.ts';
 import { loc, t, tp, type MessageKey } from '../i18n.ts';
-import { caseState, goalReached, llFaceOf, practiceSpec, quizPattern, type QuizSpec } from './cube.ts';
+import { caseState, goalReached, practiceSpec, quizPattern, type QuizSpec } from './cube.ts';
 import { caseDiagram, type DiagramOpts } from './diagram.ts';
 import { StepFollower } from './follow.ts';
 import { cube, type CubeListener } from './link.ts';
@@ -57,6 +57,14 @@ export const MASKS: Record<Stage, string> = {
   '2x2-oll': 'CORNERS:DDDDOOOO',
   '2x2-pbl': 'CORNERS:--------',
   '2x2-ll-corners': 'CORNERS:DDDD----',
+  coll: 'EDGES:DDDD----DDDD,CORNERS:DDDD----,CENTERS:------', // the last layer in full: its edges are read too
+  // Roux (yellow up, so the user's L block is cubing's R side): each step's own pieces, the blocks already built dim
+  'roux-fb': 'EDGES:I-IIIIII-I-I,CORNERS:--IIIIII,CENTERS:III-II', // the left block and its center
+  'roux-sb': 'EDGES:IDI-IIIID-D-,CORNERS:DD--IIII,CENTERS:I-IDII',
+  cmll: 'EDGES:IDIDIIIIDDDD,CORNERS:DDDD----,CENTERS:IDIDII', // the top corners only
+  'lse-eo': 'EDGES:-D-D----DDDD,CORNERS:DDDDDDDD,CENTERS:-D-D--', // the 6 edges and the M slice's centers
+  'lse-ulur': 'EDGES:-D-D----DDDD,CORNERS:DDDDDDDD,CENTERS:-D-D--',
+  'lse-4c': 'EDGES:-D-D----DDDD,CORNERS:DDDDDDDD,CENTERS:-D-D--',
 };
 
 const puzzles = new WeakMap<TwistyPlayer, Puzzle>(); // every player here starts as a 3x3
@@ -241,7 +249,7 @@ function start() {
 /** The figure (this repetition's state in Practicar, the case otherwise), the scramble, the algorithm and its fingers. */
 function showContent() {
   const practice = tab === 'practice';
-  $('practice-diagram').innerHTML = caseSVG(kase, practice ? rep.user : caseState(kpuzzle, variant.alg, IDENTITY),
+  $('practice-diagram').innerHTML = caseSVG(kase, practice ? rep.user : caseState(kpuzzle, kase.algs[0].alg, IDENTITY),
     { size: 120, title: t('academy.diagram', { code: kase.code }), arrows: true });
   $('practice-setup-row').hidden = !practice;
   $('practice-setup').replaceChildren(algView(rep.spec.moves));
@@ -306,7 +314,7 @@ const listener: CubeListener = {
         if (tab === 'drill') beginSolve();
         else startScramble();
       } else if (follower.done) {
-        if (tab === 'drill' || goalReached(kase.stage, cube.pattern()!, llFaceOf(YELLOW_UP))) finishRep(); // drill: any start state
+        if (tab === 'drill' || goalReached(kase.stage, cube.pattern()!, YELLOW_UP)) finishRep(); // drill: any start state; the frame: Roux's blocks
         else startScramble(); // can't happen from the exact state; start over rather than record nonsense
       }
     }

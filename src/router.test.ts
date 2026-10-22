@@ -21,6 +21,8 @@ test('routes: each screen has its path, and paths round-trip', () => {
     { mod: 'academy', page: { kind: 'lesson', course: 'principiante', id: 'capa1' } },
     { mod: 'academy', page: { kind: 'library' } },
     { mod: 'academy', page: { kind: 'case', method: 'cfop-completo', id: 'cfopc-oll-27' } },
+    { mod: 'academy', page: { kind: 'trainer', id: 'reconocer-pll' } },
+    { mod: 'academy', page: { kind: 'trainer', id: 'auf' } },
   ];
   for (const r of routes) assert.deepEqual(parseRoute(routePath(r)), r);
   assert.equal(routePath({ mod: 'academy', page: { kind: 'method', id: 'cfop-reducido' } }), '/academia/cfop-reducido');
@@ -66,4 +68,11 @@ test('routes: the algorithm library, and each case page under its method', () =>
   assert.deepEqual(parseRoute('/academia/cfop-completo/caso/cfopc-pll-t/'), { mod: 'academy', page: { kind: 'case', method: 'cfop-completo', id: 'cfopc-pll-t' } });
   assert.deepEqual(parseRoute('/academia/cfop-completo/caso'), { mod: 'academy', page: { kind: 'method', id: 'cfop-completo' } }); // no case: the method
   assert.doesNotThrow(() => parseRoute('/academia/cfop-completo/caso/%E0%A4')); // bad percent-encoding
+});
+
+test('routes: the trainers live under /academia, next to the methods', () => {
+  assert.equal(routePath({ mod: 'academy', page: { kind: 'trainer', id: 'reconocer-pll' } }), '/academia/reconocer-pll');
+  assert.equal(routePath({ mod: 'academy', page: { kind: 'trainer', id: 'auf' } }), '/academia/auf');
+  assert.deepEqual(parseRoute('/academia/auf/'), { mod: 'academy', page: { kind: 'trainer', id: 'auf' } });
+  assert.deepEqual(parseRoute('/academia/roux'), { mod: 'academy', page: { kind: 'method', id: 'roux' } });
 });
