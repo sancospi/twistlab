@@ -664,6 +664,15 @@
       h.lang = l;
       if (l === 'en') h.classList.add('i18n-wait');
       if (l === 'en' && en) { var k = document.createElement('link'); k.rel = 'modulepreload'; k.crossOrigin = ''; k.href = en; document.head.appendChild(k); }
+      // Reopened (the installed app, or a new tab: nothing in this tab's session yet) at the start page: back where it
+      // was left (router.ts saves it). A link to a page, a reload or the Resolver's own link still go where they say.
+      try {
+        if (p === '/' && !location.search && !location.hash && !sessionStorage.getItem('open')) {
+          var last = JSON.parse(localStorage.getItem('last-page'));
+          if (last && typeof last.path === 'string' && /^\/[^\/]/.test(last.path)) { history.replaceState({ scroll: +last.scroll || 0 }, '', last.path); p = location.pathname; }
+        }
+        sessionStorage.setItem('open', '1');
+      } catch (x) {}
       var m = /^\/(academia|algoritmos)(\/|$)/.test(p) ? 'academy' : /^\/progreso(\/|$)/.test(p) ? 'progress' : /^\/acerca(\/|$)/.test(p) ? 'about' : /^\/(cubo|guia)(\/|$)/.test(p) ? 'cube' : 'solve';
       b.dataset.module = m;
       if (/^\/cubo\/pintar(\/|$)/.test(p)) b.setAttribute('data-paint', '');
