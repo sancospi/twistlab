@@ -13,7 +13,7 @@ import { explainMove } from '../notation.ts';
 import { algView } from '../notation-view.ts';
 import type { MessageKey } from '../i18n.ts';
 import { loc, t, tp } from '../i18n.ts';
-import { guidePage, guideSegment, routePath, type AcademyPage, type GuidePage, type Trainer } from '../router.ts';
+import { goBack, guidePage, guideSegment, routePath, type AcademyPage, type GuidePage, type Trainer } from '../router.ts';
 import { LL_STEPS, caseState } from './cube.ts';
 import { crossGuide } from './crossGuide.ts';
 import { guideSections, trainerButton } from './crossView.ts';
@@ -178,6 +178,9 @@ function followPhase(root: HTMLElement, nav: HTMLElement) {
 /** Academia › (parent ›) current page, with the way back. */
 const crumbs = (current: string, parent?: GuidePage, parentName = '') =>
   el('nav', { className: 'crumbs', ariaLabel: t('academy.crumbs') },
+    // phones (and the installed app) have no browser Back: this one keeps the scroll of the page you came from
+    el('button', { type: 'button', className: 'crumbs-back', textContent: `← ${t('academy.back')}`,
+      onclick: () => goBack(academyLink(parent ?? { kind: 'home' })) }),
     el('a', { href: academyLink({ kind: 'home' }), textContent: t('menu.academy') }), ' › ',
     ...(parent ? [el('a', { href: academyLink(parent), textContent: parentName }), ' › '] : []),
     el('span', { ariaCurrent: 'page', textContent: current }));

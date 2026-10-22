@@ -84,11 +84,18 @@ function go(back = false) {
 }
 
 /** Goes to an app path (pushes history), e.g. from code rather than a link. The page being left keeps its scroll in
- *  its history entry, for Back. */
+ *  its history entry, for Back. A link to the page we just came from (a crumb) is Back itself: same scroll as left. */
 export function navigate(path: string): void {
+  if ((history.state as { from?: unknown } | null)?.from === path) return history.back();
   history.replaceState({ ...(history.state ?? {}), scroll: readScroll() }, '');
-  history.pushState(null, '', path);
+  history.pushState({ from: location.pathname + location.search }, '', path);
   go();
+}
+
+/** The ← button: back to the previous page of the app, or to `fallback` when this one was opened directly. */
+export function goBack(fallback: string): void {
+  if ((history.state as { from?: unknown } | null)?.from) history.back();
+  else navigate(fallback);
 }
 
 /** Applies the current URL now, then on every link click and back/forward. `scroll` reads the page's scroll position. */

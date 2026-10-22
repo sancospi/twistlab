@@ -738,6 +738,7 @@ export const es = {
   'lesson.score': 'Preguntas: {right} de {n} bien a la primera.',
   'lesson.nextLesson': 'Siguiente: {title}',
   'lesson.back': 'Volver',
+  'academy.back': 'Volver',
   'lesson.notFound': 'Lección no encontrada',
   'lesson.notFoundHint': 'Esa lección no existe o cambió de dirección; vuelve a la Academia para elegir otra.',
 
