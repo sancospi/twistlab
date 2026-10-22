@@ -3,16 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1218" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/icon-32.png" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <title data-i18n="app.title">TwistLab</title>
   <style>
     :root { color-scheme: dark; --bg: #0b0d12; --fg: #e6e8ee; --muted: #8a90a0; --accent: #4ade80; --panel: #151924cc; --header-h: 56px; /* updated live by main.ts */ }
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
-    body { margin: 0; height: 100dvh; background: radial-gradient(circle at 50% 40%, #1b2030, var(--bg)); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; overflow: hidden; }
+    /* Type scales from the root: phones read bigger (mobile first); from 900px the original 14px sizes. */
+    html { font-size: 16.5px; }
+    @media (min-width: 900px) { html { font-size: 14px; } }
+    body { margin: 0; height: 100dvh; background: radial-gradient(circle at 50% 40%, #1b2030, var(--bg)); color: var(--fg); font: 1rem/1.4 system-ui, sans-serif; overflow: hidden; }
     #cube { position: fixed; inset: var(--header-h) 0 0 0; }
     #cube twisty-player { width: 100%; height: 100%; }
-    .panel { position: fixed; top: calc(var(--header-h) + 16px); left: 16px; right: 16px; max-width: 400px; max-height: calc(100dvh - var(--header-h) - 32px); overflow-y: auto; padding: 16px; border-radius: 12px; background: var(--panel); backdrop-filter: blur(8px); display: grid; gap: 10px; }
-    h1 { margin: 0; font-size: 18px; }
+    .panel { position: fixed; top: calc(var(--header-h) + 16px); left: 16px; right: 16px; max-width: 400px; max-height: calc(100dvh - var(--header-h) - 32px); overflow-y: auto; padding: 16px; border-radius: 12px; background: var(--panel); backdrop-filter: blur(8px); display: grid; gap: 10px; z-index: 1; } /* over #cube, which comes after it */
+    h1 { margin: 0; font-size: 1.2857rem; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; }
     button { font: inherit; padding: 8px 12px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); cursor: pointer; }
     button.primary { background: var(--accent); color: #062b14; font-weight: 600; }
@@ -32,18 +39,19 @@
     #mod-solve { display: grid; gap: 8px; }
     .scramble-box { display: grid; gap: 8px; }
     .scramble-box[hidden], .scramble[hidden] { display: none; }
-    .scramble { font: 700 22px/1.45 ui-monospace, monospace; word-spacing: .2ch; }
+    .scramble { font: 700 1.5714rem/1.45 ui-monospace, monospace; word-spacing: .2ch; overflow-wrap: anywhere; }
     .net twisty-player { width: 100%; height: 190px; }
     /* Resolver events: the picker; long scrambles (6x6, 7x7, Megaminx…) smaller and scrollable, Megaminx keeps its lines;
        the 3D model (a 3x3) and its arrows hide for other puzzles */
     .event-pick { display: flex; align-items: center; gap: 8px; color: var(--muted); }
     .event-pick select { flex: 1; width: 0; } /* a select is as wide as its longest option: that would widen the panel */
-    .scramble.long { font-size: 14px; font-weight: 600; white-space: pre-line; max-height: 11em; overflow-y: auto; }
+    .scramble.long { font-size: 1rem; font-weight: 600; white-space: pre-line; max-height: 11em; overflow-y: auto; }
     body.other-puzzle #cube, body.other-puzzle .view, body.other-puzzle #moves { display: none; }
-    .stage { position: fixed; inset: 0; z-index: 10; display: grid; place-content: center; justify-items: center; gap: 20px; padding: 16px;
+    .stage { position: fixed; inset: 0; z-index: 10; display: grid; place-content: center; justify-items: center; gap: 20px;
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
       background: color-mix(in srgb, var(--bg) 90%, transparent); touch-action: none; user-select: none; -webkit-user-select: none; }
     .stage[hidden], #penalties[hidden] { display: none; }
-    .big { font: 700 min(26vw, 240px)/1 ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .big { font: 700 min(17vw, 240px)/1 ui-monospace, monospace; font-variant-numeric: tabular-nums; } /* 17vw: "12:34.56+" fits 360px */
     .big.warn { color: #facc15; } .big.late { color: #fb923c; } .big.hold { color: #ef4444; } .big.go { color: var(--accent); }
     .stage-hint { margin: 0; color: var(--muted); text-align: center; }
     #penalties button { min-width: 64px; }
@@ -52,17 +60,16 @@
     .results li:first-child { color: var(--fg); }
     .results li { padding-left: .5ch; }
     .results li::marker { color: var(--muted); }
-    .del { margin-left: 1ch; padding: 0 .6ch; background: none; color: var(--muted); font-size: 16px; line-height: 1.2; }
+    .del { margin-left: 1ch; padding: 0 .6ch; background: none; color: var(--muted); font-size: 1.1429rem; line-height: 1.2; }
     .del:hover, .del:focus-visible { color: #f87171; }
     .stats-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .stats-row[hidden], #reset-results[hidden] { display: none; }
-    button.small { padding: 4px 8px; font-size: 12px; }
+    button.small { padding: 4px 8px; font-size: 0.8571rem; }
     /* Resolver: inspection-call options, stats dialog (table, histogram, trend) */
-    #mod-solve .stats-row { flex-wrap: wrap; }
-    .timer-opts { gap: 4px 16px; font-size: 13px; color: var(--muted); }
+    .timer-opts { gap: 4px 16px; font-size: 0.9286rem; color: var(--muted); }
     .round { display: flex; flex-direction: column; gap: 6px; }
-    .round input { width: 5em; font-size: 16px; } /* no zoom on focus in iOS */
-    .round-list { margin: 0; padding-left: 1.2em; font-size: 12px; color: var(--muted); }
+    .round input { width: 5em; font-size: 1.1429rem; } /* no zoom on focus in iOS */
+    .round-list { margin: 0; padding-left: 1.2em; font-size: 0.8571rem; color: var(--muted); }
     .round-list:empty { display: none; }
     .timer-opts label { display: flex; align-items: center; gap: 6px; min-height: 32px; cursor: pointer; }
     @media (prefers-reduced-motion: no-preference) { .big.call { animation: call-flash .3s ease-in-out 3 alternate; } }
@@ -71,7 +78,7 @@
     .chart { margin: 0; display: grid; gap: 4px; }
     .chart figcaption { font-weight: 600; }
     .chart svg { width: 100%; max-width: 360px; height: auto; overflow: visible; } /* the viewBox scales the labels: capped so they stay ~11-12px (ponytail: no re-layout per width) */
-    .chart text { fill: var(--muted); font: 11px ui-monospace, monospace; }
+    .chart text { fill: var(--muted); font: 0.7857rem ui-monospace, monospace; }
     .chart .axis { stroke: #2a3142; }
     .chart .bar { fill: color-mix(in srgb, var(--accent) 55%, transparent); }
     .chart .bar:hover { fill: var(--accent); }
@@ -83,14 +90,14 @@
     .chart-legend .pt::before { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); }
     .chart-legend .ao5::before { background: var(--accent); } .chart-legend .ao12::before { background: #facc15; }
     .guide-head button { padding: 4px 10px; }
-    #guide-next { font: 700 44px/1 ui-monospace, monospace; color: var(--accent); }
+    #guide-next { font: 700 3.1429rem/1 ui-monospace, monospace; color: var(--accent); }
     #guide-steps { font-family: ui-monospace, monospace; color: var(--muted); word-break: break-word; }
     #guide-steps span { margin-right: .5ch; }
     #guide-steps .current { color: var(--fg); font-weight: 700; }
-    .hint { margin: 0; font-size: 12px; color: var(--muted); }
-    .view { position: fixed; right: 16px; bottom: 16px; display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 6px; }
-    .view button { padding: 0; font-size: 18px; background: var(--panel); backdrop-filter: blur(8px); }
-    .view [data-turn="up"] { grid-area: 1 / 2; } .view [data-turn="left"] { grid-area: 2 / 1; } .view [data-turn="reset"] { grid-area: 2 / 2; font-size: 15px; }
+    .hint { margin: 0; font-size: 0.8571rem; color: var(--muted); }
+    .view { position: absolute; z-index: 1; right: 16px; bottom: 16px; display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 6px; }
+    .view button { padding: 0; font-size: 1.2857rem; background: var(--panel); backdrop-filter: blur(8px); }
+    .view [data-turn="up"] { grid-area: 1 / 2; } .view [data-turn="left"] { grid-area: 2 / 1; } .view [data-turn="reset"] { grid-area: 2 / 2; font-size: 1.0714rem; }
     .view [data-turn="right"] { grid-area: 2 / 3; } .view [data-turn="down"] { grid-area: 3 / 2; }
     /* Academia: the panel widens to fit the case cards */
     /* room below the last cards for the view's arrow pad, which paints over the panel */
@@ -102,15 +109,17 @@
     .prose p { margin: 0 0 .6em; }
     .prose p:last-child, .prose ul:last-child, .prose ol:last-child { margin-bottom: 0; }
     .prose ul, .prose ol { margin: 0 0 .7em; padding-left: 1.3em; display: grid; gap: .3em; }
-    .prose h4 { margin: .9em 0 .35em; font-size: 13px; color: var(--fg); letter-spacing: .02em; }
+    .prose h4 { margin: .9em 0 .35em; font-size: 0.9286rem; color: var(--fg); letter-spacing: .02em; }
     .prose strong { color: var(--fg); }
     .prose .alg { white-space: nowrap; }
     /* Permanent top bar: title, modules, cube connection and status; collapses into ☰ on phones */
     .app-header { position: fixed; top: 0; left: 0; right: 0; z-index: 6; display: flex; align-items: center; gap: 8px 20px; padding: 10px 24px;
       background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid #2a3142; }
     .app-header h1 { white-space: nowrap; }
+    .app-brand { display: flex; align-items: center; gap: 8px; }
+    .app-mark { width: 1.35em; height: auto; flex: none; } /* the logo: a cube layer twisting */
     .header-module { display: none; color: var(--muted); }
-    .menu-toggle { display: none; margin-left: auto; font-size: 20px; padding: 4px 12px; }
+    .menu-toggle { display: none; margin-left: auto; font-size: 1.4286rem; padding: 4px 12px; }
     .header-menu { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; flex: 1;
       position: static; inset: auto; margin: 0; padding: 0; border: 0; background: none; color: inherit; overflow: visible; width: auto; height: auto; }
     .header-menu .menu { flex: 0 1 380px; }
@@ -119,15 +128,15 @@
     .header-status dt { color: var(--muted); }
     .header-status dd { margin: 0 10px 0 0; }
     .cube-screen { display: grid; gap: 12px; }
-    .cube-screen h2 { margin: 0; font-size: 18px; }
+    .cube-screen h2 { margin: 0; font-size: 1.2857rem; }
     .cube-block { display: grid; gap: 8px; padding: 12px; border-radius: 10px; background: #0b0d12aa; }
-    .cube-block h3 { margin: 0; font-size: 14px; }
+    .cube-block h3 { margin: 0; font-size: 1rem; }
     .cube-block dl, .cube-block .hint { margin: 0; }
     /* Pinta tu cubo (/cubo/pintar): a full page like the Academia. The net: a 4x3 grid of faces, each 3x3 sticker buttons */
     body[data-paint] #cube, body[data-paint] .view, body[data-paint] #moves, body[data-paint] #guide { display: none; }
     body[data-paint] .panel { inset: var(--header-h) 0 0 0; max-width: none; max-height: none; border-radius: 0; padding: 0; gap: 0; background: var(--bg); backdrop-filter: none; align-content: start; }
     #mod-paint { display: grid; gap: 12px; max-width: 640px; padding: 20px 24px; }
-    #mod-paint h2 { margin: 0; font-size: 18px; }
+    #mod-paint h2 { margin: 0; font-size: 1.2857rem; }
     #mod-paint p, #mod-paint .crumbs { margin: 0; }
     .paint-palette { display: flex; flex-wrap: wrap; gap: 6px; }
     .paint-palette button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; text-transform: capitalize; }
@@ -143,10 +152,10 @@
     .paint-sticker:focus-visible { outline: 3px solid #fff; box-shadow: 0 0 0 5px #000; position: relative; z-index: 1; } /* same in any theme */
     #paint-status ul { margin: 4px 0 0; padding-left: 1.2em; }
     #paint-player twisty-player { width: 100%; height: min(280px, 40dvh); }
-    #paint-move { font: 700 32px/1 ui-monospace, monospace; color: var(--accent); margin-right: 8px; }
+    #paint-move { font: 700 2.2857rem/1 ui-monospace, monospace; color: var(--accent); margin-right: 8px; }
     #paint-steps { word-break: break-word; }
     .paint-modes button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
-    .bsolve-stage h4 { margin: 8px 0 4px; font-size: 14px; }
+    .bsolve-stage h4 { margin: 8px 0 4px; font-size: 1rem; }
     .bsolve-stage h4 .hint { font-weight: 400; }
     .bsolve-stage ol { display: grid; gap: 6px; margin: 0; padding-left: 1.6em; }
     .bsolve-stage li[aria-current] { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
@@ -176,7 +185,7 @@
     /* Phones: no side navigation, so the phase pills stick under the bar, in one row that scrolls sideways */
     .academy-nav { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none;
       margin: 0 -24px; padding: 8px 24px; background: var(--bg); border-bottom: 1px solid #2a3142; }
-    .academy-nav a { flex: none; color: var(--fg); text-decoration: none; padding: 4px 10px; border-radius: 8px; background: #2a3142; font-size: 13px; white-space: nowrap; }
+    .academy-nav a { flex: none; color: var(--fg); text-decoration: none; padding: 4px 10px; border-radius: 8px; background: #2a3142; font-size: 0.9286rem; white-space: nowrap; }
     .academy-nav a:hover, .academy-nav a:focus-visible { background: #3a4358; }
     .academy-nav a[aria-current="location"] { background: var(--accent); color: #062b14; font-weight: 600; }
     .academy-nav ul { display: none; }
@@ -208,68 +217,68 @@
     .alg .move.bad { color: #f87171; text-decoration: underline; }
     .tip { position: fixed; inset: auto; margin: 0; width: 220px; overflow: hidden; padding: 10px; border: 1px solid #2a3142; border-radius: 10px; background: #151924; color: var(--fg); box-shadow: 0 8px 24px #0008; }
     .tip twisty-player { width: 100%; height: 150px; } /* keep cubing.js's own display: overriding it collapses the canvas */
-    .tip-text { display: grid; gap: 2px; font-size: 13px; }
-    .tip-text strong { font: 700 18px ui-monospace, monospace; }
+    .tip-text { display: grid; gap: 2px; font-size: 0.9286rem; }
+    .tip-text strong { font: 700 1.2857rem ui-monospace, monospace; }
     .tip-text span:last-child { color: var(--muted); }
     .glossary { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
-    .glossary-entry { display: grid; gap: 2px; padding: 8px; border-radius: 8px; background: #0b0d12aa; font-size: 13px; }
-    .glossary-entry .alg { font-size: 18px; }
-    .glossary-terms dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 13px; }
+    .glossary-entry { display: grid; gap: 2px; padding: 8px; border-radius: 8px; background: #0b0d12aa; font-size: 0.9286rem; }
+    .glossary-entry .alg { font-size: 1.2857rem; }
+    .glossary-terms dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; font-size: 0.9286rem; }
     .glossary-terms dt { font-weight: 700; }
     .glossary-terms dd { margin: 0; color: var(--muted); }
     .academy-method { display: flex; align-items: center; gap: 8px; }
     .quiz-sets { display: grid; gap: 6px; }
     .quiz-set { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-    .quiz-set-label { min-width: 12ch; color: var(--muted); font-size: 12px; }
-    .crumbs { margin-bottom: 16px; color: var(--muted); font-size: 13px; }
+    .quiz-set-label { min-width: 12ch; color: var(--muted); font-size: 0.8571rem; }
+    .crumbs { margin-bottom: 16px; color: var(--muted); font-size: 0.9286rem; }
     .crumbs a { color: var(--fg); }
     .academy-home { display: grid; gap: 12px; }
     .academy-home h2 { margin: 0; }
     .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 16px; }
     .tile { display: grid; gap: 8px; align-content: start; padding: 16px; border-radius: 12px; background: #11141b; border: 1px solid #2a3142; color: var(--fg); text-decoration: none; }
     .tile:hover, .tile:focus-visible { border-color: var(--accent); background: #151924; }
-    .tile strong { font-size: 18px; }
+    .tile strong { font-size: 1.2857rem; }
     .tile .hint { margin: 0; }
-    .tile-meta { font-size: 12px; color: var(--muted); }
+    .tile-meta { font-size: 0.8571rem; color: var(--muted); }
     .tile { grid-template-columns: minmax(0, 1fr); } /* content never widens the card past its column */
     .tile-strip { display: flex; gap: 10px; align-items: center; min-height: 72px; }
     .tile-strip svg { flex: 0 1 64px; min-width: 0; height: auto; } /* one per phase: they shrink to fit (6 in the beginner method) */
-    .tile-moves { font: 700 30px ui-monospace, monospace; letter-spacing: .1em; color: var(--accent); }
+    .tile-moves { font: 700 2.1429rem ui-monospace, monospace; letter-spacing: .1em; color: var(--accent); }
     .academy-body, .academy-phase { display: grid; gap: 10px; }
     .academy-body { gap: 18px; }
-    .academy-phase h2 { margin: 6px 0 0; font-size: 17px; }
-    .academy-about h3 { margin: 8px 0 0; font-size: 14px; }
+    .academy-phase h2 { margin: 6px 0 0; font-size: 1.2143rem; }
+    .academy-about h3 { margin: 8px 0 0; font-size: 1rem; }
     .academy-group { display: grid; gap: 6px; }
-    .academy-group h3 { margin: 0; font-size: 14px; }
+    .academy-group h3 { margin: 0; font-size: 1rem; }
     .academy-group-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
     .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
     .card { display: grid; justify-items: center; align-content: start; gap: 4px; padding: 10px 6px; background: #0b0d12aa; text-align: center; }
     .card:hover, .card:focus-visible { background: #2a3142; }
     .card svg { width: 84px; height: auto; }
-    .card code { font-size: 11px; color: var(--muted); word-break: break-word; }
-    .card .hint { font-size: 11px; }
+    .card code { font-size: 0.7857rem; color: var(--muted); word-break: break-word; }
+    .card .hint { font-size: 0.7857rem; }
     /* Dialogs: centered sheet, full screen on phones */
     .sheet { width: min(640px, 100vw - 32px); max-width: none; max-height: calc(100dvh - 32px); overflow-y: auto; padding: 16px; border: 0; border-radius: 12px; background: #151924; color: var(--fg); }
     .sheet[open] { display: grid; gap: 10px; align-content: start; }
     .sheet::backdrop { background: #000b; }
     .sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .sheet-head h2 { margin: 0; font-size: 18px; }
+    .sheet-head h2 { margin: 0; font-size: 1.2857rem; }
     .sheet p { margin: 0; }
     .sheet a { color: var(--accent); }
-    .close { padding: 4px 12px; font-size: 18px; }
+    .close { padding: 4px 12px; font-size: 1.2857rem; min-width: 44px; min-height: 44px; }
     @media (max-width: 600px) { .sheet { width: 100vw; height: 100dvh; max-height: none; margin: 0; border-radius: 0; } }
     .algs { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; }
     .algs legend { margin-bottom: 6px; padding: 0; color: var(--muted); }
     .alg-option { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; padding: 8px; border-radius: 8px; background: #0b0d12aa; cursor: pointer; }
     .alg-option input { grid-row: span 3; margin: 2px 0 0; }
     .alg-option:has(input:checked) { outline: 2px solid var(--accent); }
-    .alg-option code { font: 500 12px/1.4 ui-monospace, monospace; color: var(--muted); }
-    .alg-option .hint { font-size: 11px; }
-    .alg-option:has(input:checked) code { font: 700 17px/1.4 ui-monospace, monospace; color: var(--fg); } /* the selected one stands out */
-    .alg-option:has(input:checked) .hint { font-size: 12px; }
+    .alg-option code { font: 500 0.8571rem/1.4 ui-monospace, monospace; color: var(--muted); }
+    .alg-option .hint { font-size: 0.7857rem; }
+    .alg-option:has(input:checked) code { font: 700 1.2143rem/1.4 ui-monospace, monospace; color: var(--fg); } /* the selected one stands out */
+    .alg-option:has(input:checked) .hint { font-size: 0.8571rem; }
     .algs > button { justify-self: end; margin-top: -4px; }
     .custom-alg { display: grid; gap: 4px; }
-    .custom-alg input { flex: 1; min-width: 0; padding: 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); font: 16px ui-monospace, monospace; } /* 16px: no zoom on focus in iOS */
+    .custom-alg input { flex: 1; min-width: 0; padding: 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); font: 1.1429rem ui-monospace, monospace; } /* 16px: no zoom on focus in iOS */
     .anim-player twisty-player { width: 100%; height: 260px; }
     #practice-static, #practice-guided, #practice-test, #practice-timer { display: grid; gap: 8px; }
     #practice-static[hidden], #practice-guided[hidden], #practice-test[hidden], #practice-timer[hidden] { display: none; }
@@ -280,15 +289,15 @@
     .practice-diagram svg { width: min(120px, 30vw); height: auto; display: block; }
     .practice-tabs button { flex: 1; }
     .practice-tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
-    .practice-clock { font: 700 56px/1.2 ui-monospace, monospace; font-variant-numeric: tabular-nums; padding: 16px; touch-action: manipulation; }
+    .practice-clock { font: 700 4rem/1.2 ui-monospace, monospace; font-variant-numeric: tabular-nums; padding: 16px; touch-action: manipulation; }
     .practice-clock.running { color: var(--accent); }
     code { font-family: ui-monospace, monospace; }
     .steps { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
     .steps li { flex: 1; padding: 6px; border-radius: 8px; background: #0b0d12aa; color: var(--muted); text-align: center; counter-increment: step; }
     .steps li::before { content: counter(step) ". "; }
     .steps li[aria-current="step"] { background: #2a3142; color: var(--fg); font-weight: 700; }
-    .rotate { color: #facc15; font-size: 18px; font-weight: 700; }
-    .next { font: 700 44px/1 ui-monospace, monospace; color: var(--accent); }
+    .rotate { color: #facc15; font-size: 1.2857rem; font-weight: 700; }
+    .next { font: 700 3.1429rem/1 ui-monospace, monospace; color: var(--accent); }
     .tokens { font-family: ui-monospace, monospace; color: var(--muted); word-break: break-word; }
     .tokens span { margin-right: .6ch; }
     .tokens .done { opacity: .5; }
@@ -299,7 +308,7 @@
     .quiz-diagram svg { width: min(180px, 50vw); height: auto; }
     .answers { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
     .answers button { display: flex; align-items: center; justify-content: center; gap: 6px; }
-    kbd { padding: 0 4px; border-radius: 4px; background: #0b0d12; color: var(--muted); font: 11px ui-monospace, monospace; }
+    kbd { padding: 0 4px; border-radius: 4px; background: #0b0d12; color: var(--muted); font: 0.7857rem ui-monospace, monospace; }
     .ok { color: var(--accent); font-weight: 700; }
     .bad { color: #f87171; font-weight: 700; }
     .quiz-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
@@ -316,7 +325,7 @@
     .quiz-choices .quiz-mode:has(input:disabled) { opacity: .5; cursor: default; }
     .quiz-picks { display: grid; gap: 6px; }
     .quiz-pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; max-height: 45dvh; overflow-y: auto; }
-    .quiz-pick { display: grid; justify-items: center; gap: 2px; padding: 4px; border-radius: 8px; background: #0b0d12aa; font-size: 12px; cursor: pointer; }
+    .quiz-pick { display: grid; justify-items: center; gap: 2px; padding: 4px; border-radius: 8px; background: #0b0d12aa; font-size: 0.8571rem; cursor: pointer; }
     .quiz-pick:has(input:checked) { outline: 2px solid var(--accent); outline-offset: -2px; }
     .quiz-pick svg { width: 56px; height: auto; }
     .quiz-feedback { display: flex; gap: 10px; align-items: flex-start; padding: 8px; border-radius: 8px; background: #0b0d12aa; }
@@ -329,12 +338,12 @@
     .quiz-verdict-case > div:last-child { display: grid; gap: 6px; }
     .academy-train { display: grid; gap: 4px; }
     .academy-train .row { align-items: center; }
-    .tile-due { color: #facc15; font-size: 12px; }
+    .tile-due { color: #facc15; font-size: 0.8571rem; }
     .review { padding: 8px 0; border-top: 1px solid #2a3142; }
     .review p { margin: 4px 0; }
     .review .tokens .bad { color: #f87171; text-decoration: underline; }
     /* White cross: guide page and trainer */
-    .tile-badge { justify-self: start; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: #062b14; font-size: 12px; font-weight: 700; }
+    .tile-badge { justify-self: start; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: #062b14; font-size: 0.8571rem; font-weight: 700; }
     .cross-examples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
     .cross-examples p { margin: 0; }
     .cross-progress { color: var(--accent); }
@@ -342,7 +351,7 @@
     .cross-clock .next { font-variant-numeric: tabular-nums; outline: none; }
     .cross-solutions { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
     .cross-pad { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
-    .cross-pad button { padding: 10px 0; font: 700 16px ui-monospace, monospace; touch-action: manipulation; }
+    .cross-pad button { padding: 10px 0; font: 700 1.1429rem ui-monospace, monospace; touch-action: manipulation; }
     #cross-body { display: grid; gap: 10px; }
     #cross-player twisty-player, #cross-viewer-player twisty-player { width: 100%; height: min(280px, 40dvh); }
     @media (max-width: 600px) { #cross-player twisty-player { height: 30dvh; } } /* the pad fits below the cube at 360x640 */
@@ -351,7 +360,7 @@
     .view-switch button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
     a.button { display: inline-block; padding: 8px 12px; border-radius: 8px; background: #2a3142; color: var(--fg); text-decoration: none; }
     a.button.primary { background: var(--accent); color: #062b14; font-weight: 600; }
-    .lesson-list { display: grid; gap: 12px; max-width: 680px; margin-inline: auto; font-size: 17px; }
+    .lesson-list { display: grid; gap: 12px; max-width: 680px; margin-inline: auto; font-size: 1.2143rem; }
     .lesson-list ol { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
     .lesson-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; background: #11141b; border: 1px solid #2a3142; color: var(--fg); text-decoration: none; }
     .lesson-item:hover, .lesson-item:focus-visible { border-color: var(--accent); background: #151924; }
@@ -359,13 +368,13 @@
     .lesson-num { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #2a3142; font-weight: 700; }
     .lesson-item.done .lesson-num { background: var(--accent); color: #062b14; }
     .lesson-info { display: grid; gap: 2px; flex: 1; min-width: 0; }
-    .lesson-status { flex: none; font-size: 12px; color: var(--muted); }
+    .lesson-status { flex: none; font-size: 0.8571rem; color: var(--muted); }
     .lesson-item.recommended .lesson-status { color: var(--accent); font-weight: 700; }
     body:not([data-module="academy"]) #lesson { display: none; }
     /* A case's page (caseView.ts): the picture on the side on wide screens, on top on phones; and the library */
     body:not([data-module="academy"]) #case { display: none; }
     .case-head { display: grid; gap: 4px; }
-    .case-head h2 { margin: 0; font-size: 22px; }
+    .case-head h2 { margin: 0; font-size: 1.5714rem; }
     .case-page { display: grid; gap: 20px; align-items: start; padding: 0 24px 24px; }
     /* phones: diagram above the 3D cube (side by side the player is too narrow for its controls) */
     .case-visual { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 8px; padding: 12px; border-radius: 12px; background: #11141b; }
@@ -381,48 +390,48 @@
     }
     .case-body { display: grid; gap: 20px; max-width: 760px; }
     .case-section { display: grid; gap: 8px; }
-    .case-section h3 { margin: 0; font-size: 15px; }
+    .case-section h3 { margin: 0; font-size: 1.0714rem; }
     .case-section p { margin: 0; }
     .case-section a { color: var(--accent); }
     .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
-    .chip { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #2a3142; color: var(--fg); font-size: 12px; text-decoration: none; }
+    .chip { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #2a3142; color: var(--fg); font-size: 0.8571rem; text-decoration: none; }
     a.chip { color: var(--fg); text-decoration: underline dotted #ffffff60; text-underline-offset: .2em; }
     a.chip:hover, a.chip:focus-visible { background: #3a4358; }
     .case-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 8px; }
-    .case-actions button { display: grid; gap: 4px; padding: 14px 16px; text-align: left; font-size: 16px; font-weight: 700; }
-    .case-actions small { font-size: 12px; font-weight: 400; color: #b4bacb; }
+    .case-actions button { display: grid; gap: 4px; padding: 14px 16px; text-align: left; font-size: 1.1429rem; font-weight: 700; }
+    .case-actions small { font-size: 0.8571rem; font-weight: 400; color: #b4bacb; }
     .case-actions .primary small { color: #062b14; }
     .case-alg { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: #11141b; }
     .case-alg.chosen { outline: 2px solid var(--accent); }
     .case-alg:focus-visible { outline: 2px solid var(--fg); }
-    .case-moves { font-size: 20px; line-height: 2.2; }
+    .case-moves { font-size: 1.4286rem; line-height: 2.2; }
     /* alternatives stay quiet next to the chosen algorithm; "Usar este" makes one the chosen (big) one */
     /* compact: the moves on one line, then source · chips · Ver dedos · Usar este on another */
-    .case-alg:not(.chosen) { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; padding: 6px 12px; background: #0e1117; font-size: 12px; }
-    .case-alg:not(.chosen) .case-moves { flex: 1 0 100%; font-size: 14px; line-height: 1.8; color: var(--muted); }
+    .case-alg:not(.chosen) { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; padding: 6px 12px; background: #0e1117; font-size: 0.8571rem; }
+    .case-alg:not(.chosen) .case-moves { flex: 1 0 100%; font-size: 1rem; line-height: 1.8; color: var(--muted); }
     .case-alg:not(.chosen) .trigger-name { display: none; } /* underlined is enough here: the label is on the chosen one */
-    .case-alg:not(.chosen) .hint { margin: 0; font-size: 12px; }
-    .case-alg:not(.chosen) .chips { margin: 0; font-size: 11px; }
+    .case-alg:not(.chosen) .hint { margin: 0; font-size: 0.8571rem; }
+    .case-alg:not(.chosen) .chips { margin: 0; font-size: 0.7857rem; }
     .case-alg:not(.chosen) .chip { padding: 1px 8px; }
-    .case-alg:not(.chosen) .fingers-box { order: 1; font-size: 12px; }
+    .case-alg:not(.chosen) .fingers-box { order: 1; font-size: 0.8571rem; }
     .case-alg:not(.chosen) .fingers-box[open] { flex-basis: 100%; }
     .case-alg:not(.chosen) .row { order: 2; margin-left: auto; }
     .trigger { display: inline-grid; justify-items: center; vertical-align: top; line-height: 1.5; }
     .trigger > .alg { padding: 0 2px; border-bottom: 2px solid var(--accent); }
-    .trigger-name { font-size: 11px; color: var(--accent); white-space: nowrap; }
+    .trigger-name { font-size: 0.7857rem; color: var(--accent); white-space: nowrap; }
     .fingers-box { display: grid; gap: 6px; }
     .fingers { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
     .fingers li { display: grid; justify-items: center; align-content: start; gap: 2px; min-width: 64px; max-width: 96px; padding: 4px 6px; border-radius: 8px; background: #0b0d12aa; text-align: center; }
-    .fingers .alg { font-size: 18px; }
-    .fingers small { font-size: 11px; color: var(--muted); }
+    .fingers .alg { font-size: 1.2857rem; }
+    .fingers small { font-size: 0.7857rem; color: var(--muted); }
     .fingers .finger-mark { color: #facc15; }
     .case-data { grid-template-columns: max-content 1fr; gap: 4px 14px; }
     .mini-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
-    .mini-case { display: grid; justify-items: center; align-content: start; gap: 2px; padding: 8px 4px; border-radius: 8px; background: #0b0d12aa; color: var(--fg); text-align: center; text-decoration: none; font-size: 13px; }
+    .mini-case { display: grid; justify-items: center; align-content: start; gap: 2px; padding: 8px 4px; border-radius: 8px; background: #0b0d12aa; color: var(--fg); text-align: center; text-decoration: none; font-size: 0.9286rem; }
     .mini-case:hover, .mini-case:focus-visible { background: #2a3142; }
     .mini-case svg { width: 56px; height: auto; }
-    .mini-case .hint { font-size: 11px; }
-    .case-status { font-size: 11px; color: var(--muted); }
+    .mini-case .hint { font-size: 0.7857rem; }
+    .case-status { font-size: 0.7857rem; color: var(--muted); }
     .case-status.known { color: var(--accent); }
     .case-status.due { color: #facc15; }
     .library { display: grid; gap: 12px; }
@@ -431,18 +440,18 @@
     @media (min-width: 860px) { .library-filters { position: sticky; top: 0; } }
     .library-field { display: grid; gap: 2px; }
     .library-field:first-child { flex: 1 1 240px; }
-    .library-filters select { font-size: 16px; }
-    .library-filters input { width: 100%; padding: 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); font: 16px system-ui, sans-serif; } /* 16px: no zoom on focus in iOS */
+    .library-filters select { font-size: 1.1429rem; }
+    .library-filters input { width: 100%; padding: 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); font: 1.1429rem system-ui, sans-serif; } /* 16px: no zoom on focus in iOS */
     .library-list, .library-method, .library-phase { display: grid; gap: 14px; }
-    .library-method h3 { margin: 8px 0 0; font-size: 18px; }
-    .library-phase h4 { margin: 0; font-size: 15px; }
+    .library-method h3 { margin: 8px 0 0; font-size: 1.2857rem; }
+    .library-phase h4 { margin: 0; font-size: 1.0714rem; }
     .library-group { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: #11141b; }
-    .library-group h5 { margin: 0; font-size: 13px; color: var(--muted); }
+    .library-group h5 { margin: 0; font-size: 0.9286rem; color: var(--muted); }
     a.card { color: var(--fg); text-decoration: none; border-radius: 8px; }
     .lesson { padding: 0 24px 24px; }
-    .lesson-card { display: grid; gap: 12px; max-width: 680px; margin-inline: auto; font-size: 17px; padding: 16px; border-radius: 12px; background: #11141b; border: 1px solid #2a3142; }
-    .lesson-card h2 { margin: 0; font-size: 20px; }
-    .lesson-card h3 { margin: 0 0 6px; font-size: 18px; }
+    .lesson-card { display: grid; gap: 12px; max-width: 680px; margin-inline: auto; font-size: 1.2143rem; padding: 16px; border-radius: 12px; background: #11141b; border: 1px solid #2a3142; }
+    .lesson-card h2 { margin: 0; font-size: 1.4286rem; }
+    .lesson-card h3 { margin: 0 0 6px; font-size: 1.2857rem; }
     .lesson-card progress { width: 100%; height: 8px; accent-color: var(--accent); }
     .lesson-text { outline: none; line-height: 1.55; }
     .lesson-text p { margin: 0 0 .6em; }
@@ -452,7 +461,7 @@
     .lesson-ways button { flex: 1; }
     .lesson-ways button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
     .lesson-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-    .lesson-choices button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 8px; font: 700 16px ui-monospace, monospace; }
+    .lesson-choices button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 8px; font: 700 1.1429rem ui-monospace, monospace; }
     .lesson-choices button:disabled { opacity: 1; }
     .lesson-choices button.right { background: var(--accent); color: #062b14; }
     .lesson-choices button.wrong { background: #f87171; color: #2b0606; }
@@ -462,7 +471,7 @@
     body[data-module="progress"] #cube, body[data-module="progress"] .view, body[data-module="progress"] #moves { display: none; }
     body[data-module="progress"] .panel { inset: var(--header-h) 0 0 0; max-width: none; max-height: none; border-radius: 0; padding: 0; gap: 0; background: var(--bg); backdrop-filter: none; align-content: start; }
     #mod-progress { max-width: 760px; padding: 20px 24px; }
-    #mod-progress h4 { margin: 0; font-size: 13px; }
+    #mod-progress h4 { margin: 0; font-size: 0.9286rem; }
     .activity { display: grid; grid-template-rows: repeat(7, 14px); grid-auto-flow: column; grid-auto-columns: 14px; gap: 3px; }
     .activity span { border-radius: 3px; background: #2a3142; }
     .activity .l1 { background: color-mix(in srgb, var(--accent) 35%, #2a3142); }
@@ -474,7 +483,7 @@
     .learn-bar .known { background: var(--accent); } .learn-bar .learning { background: #facc15; }
     .learn-row progress { width: 100%; height: 8px; accent-color: var(--accent); }
     .goal-form { align-items: end; }
-    .goal-form input { width: 9em; padding: 6px 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); font: 16px system-ui, sans-serif; } /* 16px: no zoom on focus in iOS */
+    .goal-form input { width: 9em; padding: 6px 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); font: 1.1429rem system-ui, sans-serif; } /* 16px: no zoom on focus in iOS */
     .backup-confirm { display: grid; gap: 8px; padding: 10px; border: 1px solid #facc15; border-radius: 8px; }
     /* viewport-fit=cover (for the tab bar's bottom inset): keep the bar, the panel and the arrows clear of a landscape notch */
     .app-header { left: env(safe-area-inset-left); right: env(safe-area-inset-right); }
@@ -490,20 +499,58 @@
       .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; height: var(--tabbar-h);
         padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); border-top: 1px solid #2a3142; }
-      .tabbar a { flex: 1; display: grid; place-content: center; justify-items: center; gap: 2px; color: var(--muted); font-size: 11px; text-decoration: none; }
+      .tabbar a { flex: 1; display: grid; place-content: center; justify-items: center; gap: 2px; color: var(--muted); font-size: 0.7857rem; text-decoration: none; }
       .tabbar a[aria-current="page"] { color: var(--accent); font-weight: 600; }
       .tabbar svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
       #cube { bottom: var(--tabbar-h); }
       .panel { max-height: calc(100dvh - var(--header-h) - var(--tabbar-h) - 32px); }
-      .view { bottom: calc(16px + var(--tabbar-h)); margin-bottom: 0; }
+      .view { margin-bottom: 0; } /* #cube already stops above the bar */
       body:is([data-module="academy"], [data-module="progress"], [data-paint]) .panel { bottom: var(--tabbar-h); }
+    }
+    /* Resolver, mobile first: one column in the page's flow, nothing over the cube. Event + Opciones, the scramble and its
+       net, the 3D cube (arrows in its corner), Empezar, the results. .panel and #mod-solve become display: contents so
+       their children and #cube (outside the panel) share the body's grid, ordered with `order` (the DOM keeps tab order).
+       From 900px: the side panel again, the big cube to its right (never under it). */
+    body[data-module="solve"] { height: auto; min-height: 100dvh; overflow: visible; display: grid; grid-template-columns: minmax(0, 640px); justify-content: center; align-content: start; gap: 10px;
+      padding: calc(var(--header-h) + 10px) calc(16px + env(safe-area-inset-right)) calc(var(--tabbar-h, env(safe-area-inset-bottom)) + 16px) calc(16px + env(safe-area-inset-left)); }
+    body[data-module="solve"] :is(.panel, #mod-solve) { display: contents; }
+    body[data-module="solve"] #mod-solve > * { order: 4; }
+    body[data-module="solve"] :is(.solve-top, #scramble-box, #guide) { order: 1; }
+    body[data-module="solve"] :is(#timer-hint, .solve-actions, #moves) { order: 2; } /* Empezar next to the scramble, thumb reach: the cube follows */
+    body[data-module="solve"] #cube { order: 3; position: relative; inset: auto; height: clamp(140px, 26dvh, 300px); }
+    body[data-module="solve"] #cube twisty-player { touch-action: pan-y; } /* a swipe on the cube still scrolls the page */
+    body[data-module="solve"] .scramble.long { max-height: none; } /* the page scrolls, not a box inside it */
+    body[data-module="solve"] :is(.solve-more button, .solve-top button, .solve-top select) { min-height: 44px; font-size: 1rem; }
+    body[data-module="solve"] .solve-top select { font-size: 1.1429rem; } /* no zoom on focus in iOS */
+    body[data-module="solve"] .del { padding: 10px 14px; margin: -8px 0; }
+    #solve-opts .timer-opts label { min-height: 44px; }
+    #solve-opts input[type=checkbox] { width: 22px; height: 22px; }
+    #solve-opts .round .timer-opts { display: grid; grid-template-columns: 1fr 1fr; }
+    #solve-opts .round input { width: 100%; box-sizing: border-box; }
+    #solve-opts .round label { flex-direction: column; align-items: stretch; gap: 2px; }
+    body[data-module="solve"] :is(#moves, #stats):empty { display: none; }
+    body[data-module="solve"] .view { right: 8px; bottom: 8px; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); gap: 4px; }
+    body[data-module="solve"] .view button { font-size: 1.0714rem; }
+    body[data-module="solve"] .net twisty-player { height: clamp(110px, 34vw, 190px); }
+    .solve-top { display: flex; align-items: center; gap: 8px; }
+    .solve-top .event-pick { flex: 1; min-width: 0; }
+    .solve-actions { display: grid; gap: 8px; }
+    #start { min-height: 52px; font-size: 1.2857rem; } /* full width, thumb-sized */
+    #stats { margin: 0; font-variant-numeric: tabular-nums; }
+    .solve-more { align-items: center; }
+    .solve-more #reset-results { margin-left: auto; }
+    @media (min-width: 600px) { body[data-module="solve"] #cube { height: 40dvh; } }
+    @media (min-width: 900px) {
+      body[data-module="solve"] :is(.panel, #mod-solve) { display: grid; }
+      body[data-module="solve"] .scramble.long { max-height: 11em; }
+      body[data-module="solve"] :is(.solve-more button, .solve-top button, .solve-top select) { min-height: 0; }
+      body[data-module="solve"] #cube { position: fixed; inset: var(--header-h) 0 0 calc(432px + env(safe-area-inset-left)); height: auto; } /* 16 + 400 + 16: the panel */
     }
   </style>
 </head>
 <body>
-  <div id="cube"></div>
   <header class="app-header">
-    <h1 data-i18n="app.title">TwistLab</h1>
+    <h1 class="app-brand"><svg class="app-mark" viewBox="158 210 707 604" aria-hidden="true"><g fill="#eef1f7"><rect x="166" y="218" width="176" height="176" rx="40"/><rect x="372" y="218" width="176" height="176" rx="40"/><rect x="578" y="218" width="176" height="176" rx="40"/><rect x="166" y="630" width="176" height="176" rx="40"/><rect x="372" y="630" width="176" height="176" rx="40"/><rect x="578" y="630" width="176" height="176" rx="40"/></g><g fill="#4ade80"><rect x="270" y="424" width="176" height="176" rx="40"/><rect x="476" y="424" width="176" height="176" rx="40"/><rect x="682" y="424" width="176" height="176" rx="40"/></g></svg><span data-i18n="app.title">TwistLab</span></h1>
     <span id="header-module" class="header-module"></span>
     <button id="menu-toggle" class="menu-toggle" popovertarget="header-menu" data-i18n-aria-label="menu.open">☰</button>
     <!-- a popover on phones (☰); on wide screens CSS keeps it inline in the bar -->
@@ -533,40 +580,27 @@
     <a href="/cubo" data-mod="cube"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg><span data-i18n="menu.cube"></span></a>
   </nav>
   <div class="panel">
-    <section id="mod-solve" data-i18n-aria-label="menu.solve">
-      <label class="event-pick"><span data-i18n="event.label"></span> <select id="event"></select></label>
+    <section id="mod-solve" role="region" data-i18n-aria-label="menu.solve">
+      <div class="solve-top">
+        <label class="event-pick"><span data-i18n="event.label"></span> <select id="event"></select></label>
+        <button id="opts-open" type="button" aria-haspopup="dialog" data-i18n="solve.options"></button>
+      </div>
       <div id="scramble-box" class="scramble-box">
-        <div id="scramble-text" class="scramble" data-i18n-aria-label="solve.scramble"></div>
+        <div id="scramble-text" class="scramble" role="group" data-i18n-aria-label="solve.scramble"></div>
         <div id="net" class="net" aria-hidden="true"></div>
       </div>
       <p id="timer-hint" class="hint"></p>
-      <div class="row">
-        <button id="start" class="primary" data-i18n="solve.start"></button>
-        <button id="new-scramble" data-i18n="solve.newScramble"></button>
+      <div class="solve-actions">
+        <button id="start" class="primary" title="Espacio" data-i18n="solve.start"></button>
+        <button id="new-scramble" title="N" data-i18n="solve.newScramble"></button>
       </div>
-      <div class="row timer-opts">
-        <label><input type="checkbox" id="calls-visual" /> <span data-i18n="timer.callsVisual"></span></label>
-        <label><input type="checkbox" id="calls-voice" /> <span data-i18n="timer.callsVoice"></span></label>
-      </div>
-      <div class="round" role="group" data-i18n-aria-label="round.title">
-        <div class="row timer-opts">
-          <label><span data-i18n="round.cutoff"></span> <input id="round-cutoff" type="number" min="0" step="any" inputmode="decimal" /></label>
-          <label><span data-i18n="round.limit"></span> <input id="round-limit" type="number" min="0" step="any" inputmode="decimal" /></label>
-        </div>
-        <p id="round-hint" class="hint"></p>
-        <div class="row">
-          <button id="round-start" class="small" data-i18n="round.start"></button>
-          <button id="round-stop" class="small" hidden data-i18n="round.stop"></button>
-          <span id="round-status" class="hint" role="status"></span>
-        </div>
-        <ul id="round-list" class="round-list"></ul>
-      </div>
-      <div class="stats-row">
-        <p id="stats" class="hint"></p>
-        <span class="row">
-          <button id="stats-open" class="small" aria-haspopup="dialog" data-i18n="stats.open"></button>
-          <button id="reset-results" class="small" hidden data-i18n="results.deleteAll"></button>
-        </span>
+      <p id="stats"></p>
+      <div class="row solve-more">
+        <button id="stats-open" class="small" aria-haspopup="dialog" data-i18n="stats.open"></button>
+        <button id="round-start" class="small" data-i18n="round.start"></button>
+        <button id="round-stop" class="small" hidden data-i18n="round.stop"></button>
+        <span id="round-status" class="hint" role="status"></span>
+        <button id="reset-results" class="small" hidden data-i18n="results.deleteAll"></button>
       </div>
       <ol id="results" class="results" reversed></ol>
     </section>
@@ -664,6 +698,16 @@
     </section>
     <div id="moves"></div>
   </div>
+  <!-- the 3D cube (main.ts appends its player) with the view arrows in its corner; after the panel so the arrows tab after it -->
+  <div id="cube">
+    <div class="view" role="group" data-i18n-aria-label="view.label">
+      <button data-turn="up" data-i18n-aria-label="view.up" data-i18n-title="view.upTitle">↑</button>
+      <button data-turn="left" data-i18n-aria-label="view.left" data-i18n-title="view.leftTitle">←</button>
+      <button data-turn="reset" data-i18n-aria-label="view.reset" data-i18n-title="view.resetTitle">⟲</button>
+      <button data-turn="right" data-i18n-aria-label="view.right" data-i18n-title="view.rightTitle">→</button>
+      <button data-turn="down" data-i18n-aria-label="view.down" data-i18n-title="view.downTitle">↓</button>
+    </div>
+  </div>
   <div id="stage" class="stage" hidden>
     <div id="big" class="big" role="timer">15</div>
     <p id="stage-hint" class="stage-hint"></p>
@@ -676,13 +720,32 @@
       <button id="delete-last" data-i18n="results.delete"></button>
     </div>
   </div>
-  <div class="view" role="group" data-i18n-aria-label="view.label">
-    <button data-turn="up" data-i18n-aria-label="view.up" data-i18n-title="view.upTitle">↑</button>
-    <button data-turn="left" data-i18n-aria-label="view.left" data-i18n-title="view.leftTitle">←</button>
-    <button data-turn="reset" data-i18n-aria-label="view.reset" data-i18n-title="view.resetTitle">⟲</button>
-    <button data-turn="right" data-i18n-aria-label="view.right" data-i18n-title="view.rightTitle">→</button>
-    <button data-turn="down" data-i18n-aria-label="view.down" data-i18n-title="view.downTitle">↓</button>
-  </div>
+  <dialog id="solve-opts" class="sheet" aria-labelledby="solve-opts-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="solve-opts-title" data-i18n="solve.options"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div class="row timer-opts">
+      <label><input type="checkbox" id="calls-visual" /> <span data-i18n="timer.callsVisual"></span></label>
+      <label><input type="checkbox" id="calls-voice" /> <span data-i18n="timer.callsVoice"></span></label>
+    </div>
+    <section class="cube-block round" aria-labelledby="round-opts-title">
+      <h3 id="round-opts-title" data-i18n="round.title"></h3>
+      <div class="row timer-opts">
+        <label><span data-i18n="round.cutoff"></span> <input id="round-cutoff" placeholder="opcional" type="number" min="0" step="any" inputmode="decimal" /></label>
+        <label><span data-i18n="round.limit"></span> <input id="round-limit" placeholder="opcional" type="number" min="0" step="any" inputmode="decimal" /></label>
+      </div>
+      <p id="round-hint" class="hint"></p>
+      <ul id="round-list" class="round-list"></ul>
+    </section>
+    <section class="cube-block">
+      <h3 data-i18n="import.title"></h3>
+      <p class="hint" data-i18n="import.hint"></p>
+      <div class="row"><button id="import-choose" type="button" data-i18n="import.choose"></button></div>
+      <input id="import-file" type="file" accept=".txt,.json,.csv,text/plain,application/json,text/csv" hidden />
+      <p id="import-status" role="status"></p>
+    </section>
+  </dialog>
   <dialog id="round-dialog" class="sheet" aria-labelledby="round-title">
     <form method="dialog" class="sheet-head">
       <h2 id="round-title"></h2>
@@ -696,13 +759,6 @@
       <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
     </form>
     <div id="stats-body" class="stats-body"></div>
-    <section class="cube-block">
-      <h3 data-i18n="import.title"></h3>
-      <p class="hint" data-i18n="import.hint"></p>
-      <div class="row"><button id="import-choose" type="button" data-i18n="import.choose"></button></div>
-      <input id="import-file" type="file" accept=".txt,.json,.csv,text/plain,application/json,text/csv" hidden />
-      <p id="import-status" role="status"></p>
-    </section>
   </dialog>
   <dialog id="practice" class="sheet" aria-labelledby="practice-title">
     <form method="dialog" class="sheet-head">

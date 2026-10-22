@@ -41,11 +41,12 @@ export const es = {
 
   // Solve module (WCA attempt)
   'solve.scramble': 'Mezcla',
-  'solve.start': 'Empezar (Espacio)',
-  'solve.newScramble': 'Nueva mezcla (N)',
+  'solve.start': 'Empezar',
+  'solve.newScramble': 'Nueva mezcla',
   'solve.generating': 'Generando mezcla…',
   'solve.applyScramble': 'Aplica la mezcla con blanco arriba y verde al frente.',
-  'solve.spaceToInspect': 'Espacio: empezar la inspección',
+  'solve.spaceToInspect': 'Empezar la inspección (Espacio)',
+  'solve.options': 'Opciones',
 
   // Full-screen timer hints
   'timer.release': 'Suelta para empezar',
@@ -106,7 +107,7 @@ export const es = {
   'event.555bf': '5x5 a ciegas',
   'event.missing': 'No disponibles: FMC y multi a ciegas (formato distinto)',
   'event.statsMo3': 'Mejor: {best} · mo3: {mo3}',
-  'event.spaceToStart': 'Espacio: preparar el tiempo (a ciegas no hay inspección)',
+  'event.spaceToStart': 'Preparar el tiempo (Espacio); a ciegas no hay inspección',
   'event.bldHold': 'A ciegas el tiempo incluye memorizar · mantén Espacio (o el dedo) hasta que se ponga verde y suelta · Esc cancela',
   'event.statsTitle': 'Estadísticas · {event}',
 
@@ -753,8 +754,8 @@ export const es = {
   'round.bo3': 'Mejor de 3',
   'round.cutoff': 'Corte (s)',
   'round.limit': 'Límite (s)',
-  'round.hint.one': 'Corte y límite son opcionales. Formato {format}. Corte: el primer intento debe bajar de ese tiempo para seguir. Límite: un intento más lento es DNF.',
-  'round.hint.other': 'Corte y límite son opcionales. Formato {format}. Corte: uno de los primeros {n} intentos debe bajar de ese tiempo para seguir. Límite: un intento más lento es DNF.',
+  'round.hint.one': 'Formato {format}. Corte: el primer intento debe bajar de ese tiempo para seguir. Límite: un intento más lento es DNF.',
+  'round.hint.other': 'Formato {format}. Corte: uno de los primeros {n} intentos debe bajar de ese tiempo para seguir. Límite: un intento más lento es DNF.',
   'round.attempt': 'Intento {n} de {total}',
   'round.dialogTitle': 'Resultado de la ronda · {event}',
   'round.result': '{format}: {value}',

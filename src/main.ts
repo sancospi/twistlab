@@ -708,9 +708,9 @@ function renderStats() {
       key('pt', t('stats.legendSolve')), key('ao5', 'ao5'), key('ao12', 'ao12'))] : []),
   );
 }
+$('opts-open').onclick = () => { $('import-status').textContent = ''; ($('solve-opts') as HTMLDialogElement).showModal(); }; // inspection calls, voice, round settings
 $('stats-open').onclick = () => {
   $('stats-title').textContent = t('event.statsTitle', { event: t(`event.${event}`) });
-  $('import-status').textContent = '';
   renderStats();
   statsDialog.showModal();
 };
