@@ -1,6 +1,6 @@
 // Reusable notation: an algorithm as tappable moves. Each move opens a tooltip with a small 3D cube doing that
 // move in a loop (camera on the turning layer) and a short caption: what turns and which way.
-import { TwistyPlayer } from 'cubing/twisty';
+import type { TwistyPlayer } from 'cubing/twisty';
 import { algParts, explainMove, moveCamera, tokenize, type AlgPart } from './notation.ts';
 import { showTip } from './tooltip.ts';
 import { t } from './i18n.ts';
@@ -67,7 +67,11 @@ let loop = 0;
 let first = 0; // the first replay, slightly delayed
 
 function showMove(anchor: HTMLElement, token: string, frame: NotationFrame) {
-  player ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'none', hintFacelets: 'none', experimentalDragInput: 'none', tempoScale: 1.2 });
+  // cubing/twisty on the first tap: the Resolver shows its scramble (moves are tappable) before loading it
+  if (!player) return void import('cubing/twisty').then(({ TwistyPlayer }) => {
+    player ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'none', hintFacelets: 'none', experimentalDragInput: 'none', tempoScale: 1.2 });
+    showMove(anchor, token, frame);
+  });
   const p = player;
   const { what, how } = explainMove(token);
   const cam = moveCamera(token);

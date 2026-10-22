@@ -26,6 +26,7 @@ import { caseLabel, lastResult, openQuiz, percent, scopeId, type QuizScope } fro
 import { caseProbability, formatProbability } from './probability.ts';
 import { isDue, learningFor, preferred, save, setting, statsFor } from './store.ts';
 import type { Case, Group, Method, Phase } from './types.ts';
+export { stopCase, stopLesson }; // for main.ts, which loads the academy with its first page
 
 let kpuzzle: KPuzzle;
 

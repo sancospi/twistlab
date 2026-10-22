@@ -1,14 +1,15 @@
-import { TwistyPlayer } from 'cubing/twisty';
+import type { TwistyPlayer } from 'cubing/twisty';
+import type { Alg } from 'cubing/alg';
 import { experimentalSolve3x3x3IgnoringCenters, random333Pattern } from 'cubing/search';
 import { randomScrambleForEvent } from 'cubing/scramble';
 import { cube3x3x3, wcaEvents } from 'cubing/puzzles';
 import type { KPattern } from 'cubing/kpuzzle';
-import { Euler, Quaternion, Vector3, type Scene } from 'three';
-import { connectGanCube, type GanCubeConnection, type GanCubeEvent, type MacAddressProvider } from 'gan-web-bluetooth';
+import type { Quaternion, Scene } from 'three';
+import type { GanCubeConnection, GanCubeEvent, MacAddressProvider } from 'gan-web-bluetooth';
 import { faceletsToPattern, patternToFacelets, SOLVED_FACELETS } from './facelets.ts';
 // Emits cubing.js's solver worker as a self-contained bundle where cubing.js looks for it (see vite.config.ts)
 import searchWorkerUrl from '../node_modules/cubing/dist/lib/cubing/chunks/search-worker-entry.js?worker&url';
-import { describe, nextStep, PathGuide, toView } from './guide.ts';
+import { axisAngle, describe, mul, nextStep, PathGuide, toView, type Quat, type Vec } from './guide.ts';
 import { trustFirstMove } from './gan-fix.ts';
 import { average, EVENTS, eventField, eventOf, formatAverage, formatResult, formatTime, hasInspection, HOLD_MS, INSPECTION_MS, inspectionCall, inspectionPenalty, is333, isEvent, isMo3, recordTime, resultValue, type EventId, type Penalty, type Result } from './timer.ts';
 import { histogramSvg, rolling, summary, trendSvg } from './stats.ts';
@@ -17,68 +18,92 @@ import { mergeResults, parseImport, parseStored } from './import.ts';
 import { t, tp, type MessageKey } from './i18n.ts';
 import { algView } from './notation-view.ts';
 import { cube as academyCube } from './academy/link.ts';
-import { showAcademy } from './academy/view.ts';
-import { stopCase } from './academy/caseView.ts';
-import { stopLesson } from './academy/lessonView.ts';
-import { el } from './academy/practice.ts';
+import { el } from './el.ts';
 import { load, save, setting } from './academy/store.ts';
-import { startRouter, type Route } from './router.ts';
-import { showPaint } from './paint-view.ts';
-import { showProgress } from './progress-view.ts';
+import { routePath, startRouter, type Route } from './router.ts';
 // (static markup is already translated: src/boot.ts does it before loading this module)
+// The other screens (Academia, Progreso, Pinta tu cubo), the 3D/2D players and the smart-cube library are loaded
+// when needed (dynamic import), so the Resolver shows its scramble with the least code.
 
 const $ = (id: string) => document.getElementById(id)!;
-
-// Fetch the solver worker early so the first scramble is quicker (this use also keeps the worker in the build)
-document.head.append(Object.assign(document.createElement('link'), { rel: 'prefetch', href: searchWorkerUrl }));
 const btn = (id: string) => $(id) as HTMLButtonElement;
+/** Runs `fn` once the page is idle (Safari has no requestIdleCallback). */
+const idle = (fn: () => void) => ('requestIdleCallback' in window ? requestIdleCallback(() => fn(), { timeout: 2000 }) : setTimeout(fn, 300));
 
-const player = new TwistyPlayer({
-  puzzle: '3x3x3',
-  visualization: 'PG3D',
-  alg: '',
-  experimentalSetupAnchor: 'start',
-  background: 'none',
-  controlPanel: 'none',
-  hintFacelets: 'none',
-  experimentalDragInput: 'none',
-  cameraLatitude: 0,
-  cameraLongitude: 0,
-  cameraLatitudeLimit: 0,
-  tempoScale: 5,
-});
-$('cube').append(player);
+// The big 3D cube and the scramble's 2D net (cubing/twisty + three: the heaviest code) are built after the first
+// scramble is shown (loadTwisty); until then what they should show is kept here and handed over when they're built.
+let player: TwistyPlayer | undefined;
+let net: TwistyPlayer | undefined;
+let playerAlg: Alg | string = '';
+let netAlg = '';
+const setAlg = (alg: Alg | string) => {
+  playerAlg = alg;
+  if (player) player.alg = alg;
+};
+const setNet = (alg: string) => {
+  netAlg = alg;
+  if (net) net.experimentalSetupAlg = alg;
+};
+let twisty: Promise<void> | undefined;
+function loadTwisty(): Promise<void> {
+  return (twisty ??= import('cubing/twisty').then(({ TwistyPlayer }) => {
+    // 2D net of the scrambled state (WCA scramble-sheet style: white up, green front)
+    net = new TwistyPlayer({ puzzle: wcaEvents[event].puzzleID, visualization: '2D', background: 'none', controlPanel: 'none', experimentalDragInput: 'none', hintFacelets: 'none', experimentalSetupAlg: netAlg });
+    $('net').append(net);
+    player = new TwistyPlayer({
+      puzzle: '3x3x3',
+      visualization: 'PG3D',
+      alg: playerAlg,
+      experimentalSetupAnchor: 'start',
+      background: 'none',
+      controlPanel: 'none',
+      hintFacelets: 'none',
+      experimentalDragInput: 'none',
+      cameraLatitude: 0,
+      cameraLongitude: 0,
+      cameraLatitudeLimit: 0,
+      tempoScale: 5,
+    });
+    $('cube').append(player);
+    easeMoves(player);
+    requestAnimationFrame(frame);
+    // The solver worker's entry, ahead of the first solve that needs it (this use also keeps the worker in the build)
+    document.head.append(Object.assign(document.createElement('link'), { rel: 'prefetch', href: searchWorkerUrl }));
+  }));
+}
 
 // cubing.js animates each live move linearly (catchUpMs / tempoScale = 100ms), which looks choppy.
 // Swap its catch-up frame callback for an ease-out one: snappier start, smooth landing.
 // ponytail: patches cubing.js internals (CatchUpHelper); re-check after upgrading cubing.
 const MOVE_MS = 160; // ~95% of the turn done by 100ms
 const easeOut = (t: number) => 1 - (1 - t) ** 3;
-const catchUp = (player as any).controller.animationController.catchUpHelper;
-catchUp.scheduler.callback = (now: number) => {
-  catchUp.scheduler.requestAnimFrame();
-  const dt = (now - catchUp.lastTimestamp) / MOVE_MS;
-  catchUp.lastTimestamp = now;
-  catchUp.model.catchUpMove.set((async () => {
-    const prev = await catchUp.model.catchUpMove.get();
-    if (prev.move === null) return prev;
-    const t = 1 - Math.cbrt(1 - prev.amount) + dt; // un-ease current amount, advance linearly
-    if (t >= 1) {
-      catchUp.stop();
-      catchUp.model.timestampRequest.set('end');
-      return { move: null, amount: 0 };
-    }
-    return { move: prev.move, amount: easeOut(t) };
-  })());
-};
+function easeMoves(player: TwistyPlayer) {
+  const catchUp = (player as any).controller.animationController.catchUpHelper;
+  catchUp.scheduler.callback = (now: number) => {
+    catchUp.scheduler.requestAnimFrame();
+    const dt = (now - catchUp.lastTimestamp) / MOVE_MS;
+    catchUp.lastTimestamp = now;
+    catchUp.model.catchUpMove.set((async () => {
+      const prev = await catchUp.model.catchUpMove.get();
+      if (prev.move === null) return prev;
+      const t = 1 - Math.cbrt(1 - prev.amount) + dt; // un-ease current amount, advance linearly
+      if (t >= 1) {
+        catchUp.stop();
+        catchUp.model.timestampRequest.set('end');
+        return { move: null, amount: 0 };
+      }
+      return { move: prev.move, amount: easeOut(t) };
+    })());
+  };
+}
 
 // --- Orientation: scene = 3/4 camera tilt * user's view (arrows) * gyro (cubes with IMU) ---
 const deg = Math.PI / 180;
-const X = new Vector3(1, 0, 0);
-const Y = new Vector3(0, 1, 0);
-const TILT = new Quaternion().setFromEuler(new Euler(30 * deg, -30 * deg, 0)); // top and right faces visible
-const DEFAULT_VIEW = new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), 180 * deg); // z2: yellow up, green front, orange right
-const WCA_VIEW = new Quaternion(); // competition orientation: white up, green front
+const X: Vec = [1, 0, 0];
+const Y: Vec = [0, 1, 0];
+const TILT = mul(axisAngle(X, 30 * deg), axisAngle(Y, -30 * deg)); // top and right faces visible
+const DEFAULT_VIEW = axisAngle([0, 0, 1], 180 * deg); // z2: yellow up, green front, orange right
+const WCA_VIEW: Quat = { x: 0, y: 0, z: 0, w: 1 }; // competition orientation: white up, green front
 
 // Modules: 'solve' = competition attempt (WCA notation, never translated); 'cube' = the cube's options and guided tools, in the viewer's frame;
 // 'academy' = learn a method's algorithms (same frame as the guide); 'progress' = statistics and learning progress (no cube)
@@ -86,41 +111,43 @@ type Mod = 'solve' | 'cube' | 'academy' | 'progress';
 let mod: Mod = 'solve';
 const homeView = () => (mod === 'solve' ? WCA_VIEW : DEFAULT_VIEW);
 const label = (m: string) => (mod === 'solve' ? m : toView(m, view));
-const view = homeView().clone();
-const gyro = new Quaternion(); // rotation since last gyro calibration; identity on cubes without gyro
-const target = new Quaternion();
-const updateTarget = () => target.copy(TILT).multiply(view).multiply(gyro);
+let view = homeView();
+let gyro = WCA_VIEW; // rotation since last gyro calibration; identity on cubes without gyro
+let target = WCA_VIEW;
+const updateTarget = () => (target = mul(mul(TILT, view), gyro));
 updateTarget();
-let basis: Quaternion | null = null;
+let basis: Quat | null = null;
 
 let vantage: { render(): unknown; scene: { scene(): Promise<unknown> } | null } | undefined; // Twisty3DVantage isn't exported
 let scene: Scene | undefined;
+let to: Quaternion | undefined; // target as a three.js quaternion, for slerp
 
 async function frame() {
   // vantage/scene only exist once the player has rendered, so keep trying
-  vantage ??= [...(await player.experimentalCurrentVantages())][0];
+  vantage ??= [...(await player!.experimentalCurrentVantages())][0];
   scene ??= (await vantage?.scene?.scene()) as Scene | undefined;
   if (scene) {
-    scene.quaternion.slerp(target, 0.25); // ponytail: fixed smoothing factor, tune if it feels laggy
+    to ??= scene.quaternion.clone();
+    scene.quaternion.slerp(to.set(target.x, target.y, target.z, target.w), 0.25); // ponytail: fixed smoothing factor, tune if it feels laggy
     vantage!.render();
   }
   requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
 
 function onGyro({ x, y, z, w }: { x: number; y: number; z: number; w: number }) {
   // GAN: +X red, +Y blue, +Z white -> three.js: +Y up
-  const q = new Quaternion(x, z, -y, w).normalize();
-  basis ??= q.clone().conjugate();
-  gyro.copy(q.premultiply(basis));
+  const l = Math.hypot(x, y, z, w) || 1;
+  const q = { x: x / l, y: z / l, z: -y / l, w: w / l };
+  basis ??= { x: -q.x, y: -q.y, z: -q.z, w: q.w }; // the inverse of the first reading
+  gyro = mul(basis, q);
   updateTarget();
 }
 
 // Arrows rotate the view in 90° steps around the displayed vertical / horizontal axes
-const TURNS: Record<string, [Vector3, number]> = { left: [Y, -90], right: [Y, 90], up: [X, -90], down: [X, 90] };
+const TURNS: Record<string, [Vec, number]> = { left: [Y, -90], right: [Y, 90], up: [X, -90], down: [X, 90] };
 function turnView(dir: string) {
-  if (dir === 'reset') view.copy(homeView());
-  else view.premultiply(new Quaternion().setFromAxisAngle(TURNS[dir][0], TURNS[dir][1] * deg));
+  if (dir === 'reset') view = homeView();
+  else view = mul(axisAngle(TURNS[dir][0], TURNS[dir][1] * deg), view);
   updateTarget();
   render(); // move names depend on the view
 }
@@ -196,7 +223,7 @@ async function onFacelets(facelets: string) {
   const p = await faceletsToPattern(facelets);
   const alg = facelets === SOLVED_FACELETS ? '' : (await experimentalSolve3x3x3IgnoringCenters(p)).invert();
   if (lastMoveAt !== movedAt) return; // a move arrived while solving; the next state event retries
-  player.alg = alg;
+  setAlg(alg);
   const firstSync = !pattern;
   pattern = p;
   if (firstSync && mod === 'solve' && phase === 'ready' && is333(event)) void newScramble(); // now it can be guided on the cube
@@ -210,7 +237,7 @@ function onMove(move: string) {
   lastMoveAt = performance.now();
   if (mod === 'solve' && is333(event) && hasInspection(event)) startSolve(); // first turn after the scramble starts the clock (blindfolded: Space did, before memorising)
   mixed = false;
-  player.experimentalAddMove(move, { cancel: false });
+  player?.experimentalAddMove(move, { cancel: false }); // built before connecting (see connect)
   pattern = pattern?.applyMove(move) ?? null;
   moves.push(move);
   guide.onMove(move);
@@ -273,7 +300,7 @@ function disconnected() {
   mixed = false;
   liveMoveSeen = false;
   academyCube.listener?.sync(); // an open practice falls back to its static view
-  player.alg = '';
+  setAlg('');
   $('status').textContent = t('cube.disconnected');
   $('status').classList.remove('solved');
   $('moves').textContent = '';
@@ -282,17 +309,24 @@ function disconnected() {
   if (mod === 'solve' && phase === 'scramble') void newScramble();
 }
 
+// iPhone/iPad (iPadOS reports a Mac with touch): no browser there has Web Bluetooth but Bluefy, so the Cubo screen
+// shows how to use it
+const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+$('ios-ble').hidden = !!navigator.bluetooth || !ios;
+
 $('connect').onclick = async () => {
   if (conn) return conn.disconnect();
   if (!navigator.bluetooth) {
-    $('status').textContent = t('cube.noBluetooth');
+    $('status').textContent = t(ios ? 'cube.noBluetoothIos' : 'cube.noBluetooth');
     return;
   }
   try {
     $('status').textContent = t('cube.connecting');
+    void loadTwisty(); // the 3D cube mirrors every move: it loads while the device picker is open
+    const { connectGanCube } = await import('gan-web-bluetooth'); // usually prefetched by the Cubo screen
     const c = (conn = await connectGanCube(macProvider));
     trustFirstMove((c as unknown as { driver: unknown }).driver);
-    c.events$.subscribe(handle);
+    c.events$.subscribe(handle); // right away: events$ doesn't replay, a DISCONNECT here must not be lost
     $('device').textContent = `${c.deviceName} (${c.deviceMAC})`;
     $('connect').textContent = t('cube.disconnect');
     btn('reset-gyro').disabled = btn('reset-state').disabled = false;
@@ -345,8 +379,8 @@ eventSelect.onchange = () => {
   resetLabel();
   event = eventSelect.value as EventId;
   save(EVENT_KEY, event);
-  net.experimentalSetupAlg = ''; // the old scramble may not be valid on the new puzzle
-  net.puzzle = wcaEvents[event].puzzleID;
+  setNet(''); // the old scramble may not be valid on the new puzzle
+  if (net) net.puzzle = wcaEvents[event].puzzleID;
   render3d();
   renderResults();
   void newScramble();
@@ -448,9 +482,6 @@ function finishRound() {
 btn('round-start').onclick = startRound;
 btn('round-stop').onclick = () => ((round = null), renderResults(), renderTimer());
 
-// 2D net of the scrambled state (WCA scramble-sheet style: white up, green front)
-const net = new TwistyPlayer({ puzzle: wcaEvents[event].puzzleID, visualization: '2D', background: 'none', controlPanel: 'none', experimentalDragInput: 'none', hintFacelets: 'none' });
-$('net').append(net);
 let scrambleId = 0;
 
 async function newScramble() {
@@ -463,7 +494,7 @@ async function newScramble() {
   phase = cube && pattern ? 'scramble' : 'ready'; // without a cube it's a plain timer: ready right away
   $('scramble-text').textContent = t('solve.generating');
   $('scramble-text').classList.remove('long');
-  net.experimentalSetupAlg = '';
+  setNet('');
   render();
   // WCA scrambles (cubing.js, per event). With the cube, a 3x3 one is made from its target state, which the guide needs:
   // a uniformly random state written as a sequence from solved, like cubing's own "333" (blindfolded: without the
@@ -477,10 +508,11 @@ async function newScramble() {
   // get smaller, scrollable text, keeping Megaminx's lines.
   $('scramble-text').replaceChildren(is333(event) ? algView(scramble, { frame: 'white-up' }) : scramble);
   $('scramble-text').classList.toggle('long', scramble.length > 80);
-  net.experimentalSetupAlg = scramble;
-  if (!conn && is333(event)) player.alg = scramble; // no cube: the 3D model shows the scrambled state too
+  setNet(scramble);
+  if (!conn && is333(event)) setAlg(scramble); // no cube: the 3D model shows the scrambled state too
   else if (phase === 'scramble') await startGuide(target); // walk the real cube there from wherever it is
   render();
+  idle(loadTwisty); // the scramble is up: now the net and the 3D cube
 }
 
 function startInspection() {
@@ -761,18 +793,14 @@ addEventListener('keyup', (e) => {
 });
 
 // --- Menu ---
-// Everything below the bar is placed from its real height (it wraps on medium widths, shrinks on phones).
-new ResizeObserver(([entry]) =>
-  document.documentElement.style.setProperty('--header-h', `${(entry.target as HTMLElement).offsetHeight}px`),
-).observe(document.querySelector('.app-header')!);
-
+let shownMod: Mod | null = null; // the screen setModule last set up
 function setModule(m: Mod) {
-  if (m === mod && document.body.dataset.module === m) return; // e.g. between Academia pages: nothing to reset
-  mod = m;
+  if (m === shownMod) return; // e.g. between Academia pages: nothing to reset
+  shownMod = mod = m;
   guide.stop();
   stopInspection(); // e.g. Back during inspection: no calls on another screen
   mixed = false;
-  view.copy(homeView());
+  view = homeView();
   updateTarget();
   document.body.dataset.module = m; // the academy widens the panel
   render3d();
@@ -780,13 +808,17 @@ function setModule(m: Mod) {
   $('mod-cube').hidden = m !== 'cube';
   $('mod-academy').hidden = m !== 'academy';
   $('mod-progress').hidden = m !== 'progress';
-  if (!conn) player.alg = ''; // the solve module's text scramble only applies there
+  if (!conn) setAlg(''); // the solve module's text scramble only applies there
   render();
   if (m === 'solve') void newScramble();
+  if (m === 'cube') idle(() => { void loadTwisty(); void import('gan-web-bluetooth'); }); // ready for Conectar (requestDevice needs the tap's activation, ~5 s)
 }
 // Each screen has its URL (router.ts): the menu and the Academia tiles are plain links.
 const pageTitle = (page: string) => t('app.pageTitle', { page, app: t('app.title') });
 let routeId = 0;
+let academy: typeof import('./academy/view.ts') | undefined; // loaded by the first Academia page
+// One canonical URL per screen (crawlers run this script; /resolver and the like point to /)
+const canonical = document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'canonical' }));
 async function onRoute(r: Route) {
   const id = ++routeId;
   document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => d.close()); // back/forward leaves any modal
@@ -802,16 +834,19 @@ async function onRoute(r: Route) {
   document.body.toggleAttribute('data-paint', painting);
   $('mod-paint').hidden = !painting;
   if (r.mod === 'cube') $('mod-cube').hidden = painting;
-  if (painting) showPaint();
-  if (r.mod === 'progress') showProgress($('mod-progress')); // read again on every visit: the other screens may have saved
+  canonical.href = `https://twistlab.app${routePath(r)}`;
+  if (painting) void import('./paint-view.ts').then((m) => id === routeId && m.showPaint());
+  if (r.mod === 'progress') void import('./progress-view.ts').then((m) => id === routeId && m.showProgress($('mod-progress'))); // read again on every visit: the other screens may have saved
   if (painting || r.mod === 'progress') document.querySelector('.panel')!.scrollTop = 0;
   if (r.mod !== 'academy') {
-    stopCase();
-    stopLesson(); // a lesson left for another module lets go of the cube and its 3D player
+    academy?.stopCase();
+    academy?.stopLesson(); // a lesson left for another module lets go of the cube and its 3D player
     document.title = r.mod === 'solve' ? t('app.title') : pageTitle(t(painting ? 'paint.title' : r.mod === 'progress' ? 'nav.progress' : 'menu.cube'));
     return;
   }
-  const title = await showAcademy($('mod-academy'), r.page);
+  academy = await import('./academy/view.ts');
+  if (id !== routeId) return;
+  const title = await academy.showAcademy($('mod-academy'), r.page);
   if (id !== routeId) return; // a newer route won while the puzzle was loading
   document.title = pageTitle(title);
   const target = location.hash && document.getElementById(location.hash.slice(1));
@@ -822,7 +857,7 @@ startRouter((r) => void onRoute(r));
 
 $('reset-state').onclick = async () => {
   await conn?.sendCubeCommand({ type: 'REQUEST_RESET' });
-  player.alg = '';
+  setAlg('');
   pattern = (await cube3x3x3.kpuzzle()).defaultPattern();
   moves = [];
   render();

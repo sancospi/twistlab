@@ -1,21 +1,37 @@
 // Guided solve: follow a solution move by move, in the viewer's frame of reference.
-import { Quaternion, Vector3 } from 'three';
 import { KPattern } from 'cubing/kpuzzle';
 import { experimentalSolve3x3x3IgnoringCenters } from 'cubing/search';
 import { t, type MessageKey } from './i18n.ts';
 import { merge } from './notation.ts';
 
-// Face normals in the puzzle's own frame (white U, green F, red R), as cubing.js renders it.
-const FACES: Record<string, Vector3> = {
-  U: new Vector3(0, 1, 0), D: new Vector3(0, -1, 0),
-  R: new Vector3(1, 0, 0), L: new Vector3(-1, 0, 0),
-  F: new Vector3(0, 0, 1), B: new Vector3(0, 0, -1),
+// Rotations as unit quaternions: the few operations the 3D view and toView need, without loading three.js for the
+// Resolver (three's Quaternion has the same x/y/z/w, so either can be passed where a Quat is read).
+export type Quat = { x: number; y: number; z: number; w: number };
+export type Vec = [number, number, number];
+/** a·b: b's rotation, then a's (three: a.multiply(b); b.premultiply(a)). */
+export const mul = (a: Quat, b: Quat): Quat => ({
+  x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+  y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+  z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+  w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+});
+export const axisAngle = ([x, y, z]: Vec, angle: number): Quat => {
+  const s = Math.sin(angle / 2);
+  return { x: x * s, y: y * s, z: z * s, w: Math.cos(angle / 2) };
 };
+/** v rotated by q (three: v.applyQuaternion(q)). */
+export function rotate([x, y, z]: Vec, q: Quat): Vec {
+  const tx = 2 * (q.y * z - q.z * y), ty = 2 * (q.z * x - q.x * z), tz = 2 * (q.x * y - q.y * x);
+  return [x + q.w * tx + q.y * tz - q.z * ty, y + q.w * ty + q.z * tx - q.x * tz, z + q.w * tz + q.x * ty - q.y * tx];
+}
+
+// Face normals in the puzzle's own frame (white U, green F, red R), as cubing.js renders it.
+const FACES: Record<string, Vec> = { U: [0, 1, 0], D: [0, -1, 0], R: [1, 0, 0], L: [-1, 0, 0], F: [0, 0, 1], B: [0, 0, -1] };
 
 /** Rename a move from the cube's frame to the face it's on for someone looking at it under `view`. */
-export function toView(move: string, view: Quaternion): string {
-  const n = FACES[move[0]].clone().applyQuaternion(view);
-  return Object.keys(FACES).find((f) => FACES[f].dot(n) > 0.9)! + move.slice(1);
+export function toView(move: string, view: Quat): string {
+  const [x, y, z] = rotate(FACES[move[0]], view);
+  return Object.keys(FACES).find((f) => FACES[f][0] * x + FACES[f][1] * y + FACES[f][2] * z > 0.9)! + move.slice(1);
 }
 
 /** Spoken form of a move ("Cara derecha, antihorario"), for the viewer's face names. */

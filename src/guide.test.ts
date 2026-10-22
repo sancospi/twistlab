@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Quaternion, Vector3 } from 'three';
 import { cube3x3x3 } from 'cubing/puzzles';
-import { describe, follow, PathGuide, relativePattern, toView, type Guide } from './guide.ts';
+import { Euler } from 'three';
+import { axisAngle, describe, follow, mul, PathGuide, relativePattern, rotate, toView, type Guide } from './guide.ts';
 import type { KPattern } from 'cubing/kpuzzle';
 
 test('toView renames faces for the viewer', () => {
@@ -11,6 +12,17 @@ test('toView renames faces for the viewer', () => {
   assert.equal(toView("R'", new Quaternion()), "R'");
   const y = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2); // front goes right
   assert.equal(toView('F', y), 'R');
+});
+
+test('quaternion helpers match three.js', () => {
+  const close = (a: number[], b: number[]) => a.forEach((v, i) => assert.ok(Math.abs(v - b[i]) < 1e-12, `${a} vs ${b}`));
+  const xyzw = (q: { x: number; y: number; z: number; w: number }) => [q.x, q.y, q.z, q.w];
+  const a = axisAngle([1, 0, 0], 0.5), b = axisAngle([0, 1, 0], -0.7);
+  close(xyzw(mul(a, b)), xyzw(new Quaternion().setFromEuler(new Euler(0.5, -0.7, 0)))); // XYZ Euler = x·y
+  const ta = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), 0.5), tb = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), -0.7);
+  close(xyzw(mul(b, a)), xyzw(ta.clone().premultiply(tb)));
+  const v = new Vector3(0.3, -1, 2).applyQuaternion(ta.multiply(tb));
+  close(rotate([0.3, -1, 2], mul(a, b)), [v.x, v.y, v.z]);
 });
 
 test('follow advances on the planned move, half turns either way, null when off plan', () => {

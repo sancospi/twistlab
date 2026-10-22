@@ -8,13 +8,23 @@
   <link rel="icon" href="/icon-32.png" sizes="32x32" type="image/png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <title data-i18n="app.title">TwistLab</title>
+  <meta name="description" content="Aprende a resolver el cubo de Rubik gratis: cronómetro con mezclas oficiales de la WCA, academia paso a paso (principiante y CFOP), algoritmos, tu progreso y cubos inteligentes GAN." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TwistLab" />
+  <meta property="og:title" content="TwistLab · Aprende a resolver el cubo de Rubik" />
+  <meta property="og:description" content="Cronómetro con mezclas WCA, academia paso a paso, algoritmos y cubos inteligentes. Gratis, en español." />
+  <meta property="og:image" content="https://twistlab.app/apple-touch-icon.png" />
+  <meta property="og:locale" content="es_ES" />
+  <meta name="twitter:card" content="summary" />
   <style>
-    :root { color-scheme: dark; --bg: #0b0d12; --fg: #e6e8ee; --muted: #8a90a0; --accent: #4ade80; --panel: #151924cc; --header-h: 56px; /* updated live by main.ts */ }
+    :root { color-scheme: dark; --bg: #0b0d12; --fg: #e6e8ee; --muted: #8a90a0; --accent: #4ade80; --panel: #151924cc; --header-h: 47px; /* updated live by boot.ts; these defaults match it, so the first paint is already right */ }
+    @media (min-width: 601px) { :root { --header-h: 58px; } }
+    @media (min-width: 760px) { :root { --header-h: 125px; } } /* the menu wraps under the title */
+    @media (min-width: 870px) { :root { --header-h: 69px; } } /* one line again (tighter bar up to 959px, below) */
     * { box-sizing: border-box; }
     [hidden] { display: none !important; }
-    /* Type scales from the root: phones read bigger (mobile first); from 900px the original 14px sizes. */
-    html { font-size: 16.5px; }
-    @media (min-width: 900px) { html { font-size: 14px; } }
+    /* Type scales from the root (every size is in rem): 17px on phones and desktops alike. */
+    html { font-size: 17px; }
     body { margin: 0; height: 100dvh; background: radial-gradient(circle at 50% 40%, #1b2030, var(--bg)); color: var(--fg); font: 1rem/1.4 system-ui, sans-serif; overflow: hidden; }
     #cube { position: fixed; inset: var(--header-h) 0 0 0; }
     #cube twisty-player { width: 100%; height: 100%; }
@@ -40,11 +50,16 @@
     .scramble-box { display: grid; gap: 8px; }
     .scramble-box[hidden], .scramble[hidden] { display: none; }
     .scramble { font: 700 1.5714rem/1.45 ui-monospace, monospace; word-spacing: .2ch; overflow-wrap: anywhere; }
-    .net twisty-player { width: 100%; height: 190px; }
+    .net { height: 190px; } /* reserved: the 2D player arrives after the first scramble */
+    .net twisty-player { width: 100%; height: 100%; }
     /* Resolver events: the picker; long scrambles (6x6, 7x7, Megaminx…) smaller and scrollable, Megaminx keeps its lines;
        the 3D model (a 3x3) and its arrows hide for other puzzles */
     .event-pick { display: flex; align-items: center; gap: 8px; color: var(--muted); }
     .event-pick select { flex: 1; width: 0; } /* a select is as wide as its longest option: that would widen the panel */
+    .scramble:not(.long) { min-height: calc(4 * 1.45em); } /* a 3x3 scramble's lines: kept while it's generated */
+    @media (min-width: 601px) and (max-width: 899px) { .scramble:not(.long) { min-height: calc(3 * 1.45em); } } /* wider: 2-3 lines */
+    body.other-puzzle .scramble:not(.long) { min-height: 0; }
+    body[data-module]:not([data-module="solve"]) #mod-solve { display: none; } /* deep links: before main.ts hides it */
     .scramble.long { font-size: 1rem; font-weight: 600; white-space: pre-line; max-height: 11em; overflow-y: auto; }
     body.other-puzzle #cube, body.other-puzzle .view, body.other-puzzle #moves { display: none; }
     .stage { position: fixed; inset: 0; z-index: 10; display: grid; place-content: center; justify-items: center; gap: 20px;
@@ -132,6 +147,7 @@
     .cube-block { display: grid; gap: 8px; padding: 12px; border-radius: 10px; background: #0b0d12aa; }
     .cube-block h3 { margin: 0; font-size: 1rem; }
     .cube-block dl, .cube-block .hint { margin: 0; }
+    .ios-ble { display: grid; gap: 6px; } .ios-ble[hidden] { display: none; } .ios-ble p, .ios-ble ol { margin: 0; } .ios-ble ol { padding-left: 1.3em; }
     /* Pinta tu cubo (/cubo/pintar): a full page like the Academia. The net: a 4x3 grid of faces, each 3x3 sticker buttons */
     body[data-paint] #cube, body[data-paint] .view, body[data-paint] #moves, body[data-paint] #guide { display: none; }
     body[data-paint] .panel { inset: var(--header-h) 0 0 0; max-width: none; max-height: none; border-radius: 0; padding: 0; gap: 0; background: var(--bg); backdrop-filter: none; align-content: start; }
@@ -143,6 +159,10 @@
     .paint-palette button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
     .paint-swatch { width: 16px; height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1px #0006; }
     .paint-net { display: grid; grid-template-columns: repeat(4, minmax(0, 132px)); gap: 4px; }
+    /* reserved until paint-view.ts fills them: two rows of colours (three on small phones), a net three square faces high */
+    .paint-palette:empty { min-height: calc(2.8rem + 30px); }
+    @media (max-width: 399px) { .paint-palette:empty { min-height: calc(4.2rem + 48px); } }
+    .paint-net:empty { height: calc(3 * min(132px, (100vw - 44px) / 4) + 8px); }
     .paint-face { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 1px; border-radius: 6px; background: #000; } /* 360px: stickers stay over 24px */
     .paint-sticker { aspect-ratio: 1; min-width: 0; padding: 0; border-radius: 4px; touch-action: manipulation; }
     .paint-sticker.blank { background: repeating-linear-gradient(45deg, #2a3142 0 4px, #1b2030 4px 8px); }
@@ -164,6 +184,8 @@
     .alg .move.setup { color: var(--muted); font-style: italic; }
     .tile-strip.tile-net svg { flex: 0 1 120px; } /* the Academia tile: one net, not a strip */
     @media (max-width: 600px) { #mod-paint { padding: 16px; } }
+    /* medium widths: a tighter bar, so the 17px menu stays on one line down to ~870px (it wraps below that) */
+    @media (min-width: 760px) and (max-width: 959px) { .app-header, .header-menu { gap: 8px 12px; } .app-header { padding-inline: 16px; } .menu a { padding-inline: 8px; } }
     @media (max-width: 759px) {
       .app-header { padding: 8px 16px; }
       .header-module, .menu-toggle { display: inline-block; }
@@ -531,7 +553,7 @@
     body[data-module="solve"] :is(#moves, #stats):empty { display: none; }
     body[data-module="solve"] .view { right: 8px; bottom: 8px; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); gap: 4px; }
     body[data-module="solve"] .view button { font-size: 1.0714rem; }
-    body[data-module="solve"] .net twisty-player { height: clamp(110px, 34vw, 190px); }
+    body[data-module="solve"] .net { height: clamp(110px, 34vw, 190px); }
     .solve-top { display: flex; align-items: center; gap: 8px; }
     .solve-top .event-pick { flex: 1; min-width: 0; }
     .solve-actions { display: grid; gap: 8px; }
@@ -540,6 +562,12 @@
     .solve-more { align-items: center; }
     .solve-more #reset-results { margin-left: auto; }
     @media (min-width: 600px) { body[data-module="solve"] #cube { height: 40dvh; } }
+    /* Below 900px the Resolver's page scrolls inside the body, which ends above the tab bar: nothing half under the bar
+       (a button cut by it is a tap target too small to hit) */
+    @media (max-width: 899px) {
+      html:has(> body[data-module="solve"]) { overflow: hidden; }
+      body[data-module="solve"] { height: calc(100dvh - var(--tabbar-h, 0px)); min-height: 0; overflow-y: auto; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+    }
     @media (min-width: 900px) {
       body[data-module="solve"] :is(.panel, #mod-solve) { display: grid; }
       body[data-module="solve"] .scramble.long { max-height: 11em; }
@@ -549,6 +577,15 @@
   </style>
 </head>
 <body>
+  <script>
+    // The layout depends on these (main.ts sets them too): set before the first paint so nothing moves when the app loads
+    (function (b, p) {
+      var m = /^\/(academia|algoritmos)(\/|$)/.test(p) ? 'academy' : /^\/progreso(\/|$)/.test(p) ? 'progress' : /^\/(cubo|guia)(\/|$)/.test(p) ? 'cube' : 'solve';
+      b.dataset.module = m;
+      if (/^\/cubo\/pintar(\/|$)/.test(p)) b.setAttribute('data-paint', '');
+      try { var e = JSON.parse(localStorage.getItem('cube-event')); if (m === 'solve' && typeof e === 'string' && e.slice(0, 3) !== '333') b.classList.add('other-puzzle'); } catch (x) {}
+    })(document.body, location.pathname);
+  </script>
   <header class="app-header">
     <h1 class="app-brand"><svg class="app-mark" viewBox="158 210 707 604" aria-hidden="true"><g fill="#eef1f7"><rect x="166" y="218" width="176" height="176" rx="40"/><rect x="372" y="218" width="176" height="176" rx="40"/><rect x="578" y="218" width="176" height="176" rx="40"/><rect x="166" y="630" width="176" height="176" rx="40"/><rect x="372" y="630" width="176" height="176" rx="40"/><rect x="578" y="630" width="176" height="176" rx="40"/></g><g fill="#4ade80"><rect x="270" y="424" width="176" height="176" rx="40"/><rect x="476" y="424" width="176" height="176" rx="40"/><rect x="682" y="424" width="176" height="176" rx="40"/></g></svg><span data-i18n="app.title">TwistLab</span></h1>
     <span id="header-module" class="header-module"></span>
@@ -567,7 +604,7 @@
     </div>
     <!-- always in the bar, phones included (there only the status) -->
     <dl class="header-status">
-      <dt data-i18n="cube.status"></dt><dd id="status" data-i18n="cube.disconnected"></dd>
+      <dt data-i18n="cube.status"></dt><dd id="status" data-i18n="cube.noCube"></dd>
       <dt data-i18n="cube.battery"></dt><dd id="battery">–</dd>
     </dl>
   </header>
@@ -586,10 +623,10 @@
         <button id="opts-open" type="button" aria-haspopup="dialog" data-i18n="solve.options"></button>
       </div>
       <div id="scramble-box" class="scramble-box">
-        <div id="scramble-text" class="scramble" role="group" data-i18n-aria-label="solve.scramble"></div>
+        <div id="scramble-text" class="scramble" role="group" data-i18n-aria-label="solve.scramble" data-i18n="solve.generating"></div>
         <div id="net" class="net" aria-hidden="true"></div>
       </div>
-      <p id="timer-hint" class="hint"></p>
+      <p id="timer-hint" class="hint" data-i18n="solve.spaceToInspect"></p>
       <div class="solve-actions">
         <button id="start" class="primary" title="Espacio" data-i18n="solve.start"></button>
         <button id="new-scramble" title="N" data-i18n="solve.newScramble"></button>
@@ -609,6 +646,16 @@
       <section class="cube-block">
         <h3 data-i18n="cube.connection"></h3>
         <div class="row"><button id="connect" class="primary" data-i18n="cube.connect"></button></div>
+        <div id="ios-ble" class="ios-ble" hidden>
+          <p><strong data-i18n="cube.iosTitle"></strong></p>
+          <ol>
+            <li data-i18n="cube.iosStep1"></li>
+            <li data-i18n="cube.iosStep2"></li>
+            <li data-i18n="cube.iosStep3"></li>
+          </ol>
+          <a href="https://apps.apple.com/app/id1492822055" target="_blank" rel="noopener" data-i18n="cube.iosLink"></a>
+          <p class="hint" data-i18n="cube.iosNote"></p>
+        </div>
         <dl><dt data-i18n="cube.device"></dt><dd id="device">–</dd></dl>
         <p class="hint" data-i18n="cube.connectionHint"></p>
       </section>

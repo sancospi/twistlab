@@ -26,15 +26,10 @@ import type { AlgSource, AlgVariant, Case, Stage } from './types.ts';
 import { checkCustomAlg } from './customAlg.ts';
 import { fingertricks, type FingerHint } from '../fingertricks.ts';
 import { caseProbability, formatProbability, phaseOf } from './probability.ts';
+import { el } from '../el.ts';
 
 const $ = (id: string) => document.getElementById(id)!;
-/** Element with properties and children: enough DOM building for the academy's views. */
-export function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...children: (Node | string)[]): HTMLElementTagNameMap[K] {
-  const e: HTMLElementTagNameMap[K] = document.createElement(tag);
-  Object.assign(e, props);
-  e.append(...children);
-  return e;
-}
+export { el }; // lives in el.ts so the Resolver can use it without loading the academy
 const dialog = $('practice') as HTMLDialogElement;
 
 const MAX_UNDO = 4; // more pending corrections than this: easier to set the case up again
