@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
-import { findCase } from './methods.ts';
+import { METHODS, allCases, findCase } from './methods.ts';
 import { phaseOf } from './probability.ts';
-import { caseSet, inverseCase, matches, mirrorCase, type LibraryFilter } from './library.ts';
+import { bySet, caseSet, inverseCase, libraryEntries, matches, mirrorCase, type LibraryFilter } from './library.ts';
 import type { Learning } from './store.ts';
 import type { Case } from './types.ts';
 
@@ -52,4 +52,19 @@ test('library: search by code, name, recognition or algorithm; filters by set an
   assert.ok(ok(sune, f('', { status: 'known' }), learning(6, now - 1)));
   assert.ok(ok(sune, f('', { status: 'due' }), learning(6, now - 1)), 'known and due today: both');
   assert.ok(!ok(sune, f('', { status: 'due' }), learning(6, now + 3 * 86_400_000)));
+});
+
+test('library: filter by method, group by set across methods', () => {
+  const all = libraryEntries(METHODS, '');
+  assert.equal(all.length, METHODS.reduce((n, m) => n + allCases(m).length, 0));
+  const one = libraryEntries(METHODS, METHODS[1].id);
+  assert.ok(one.length && one.every((e) => e.method === METHODS[1]));
+  assert.deepEqual(libraryEntries(METHODS, 'nope'), []);
+  const sets = bySet(all);
+  assert.deepEqual(sets.map((s) => s.set), ['f2l', 'oll', 'pll', 'beginner']);
+  const oll = sets.find((s) => s.set === 'oll')!.entries;
+  assert.deepEqual([...new Set(oll.map((e) => e.method.id))], ['principiante', 'cfop-reducido', 'cfop-completo'], 'every method, in order');
+  assert.ok(oll.some((e) => e.c.id === 'prin-cruz-linea'), "the beginner's yellow cross is OLL");
+  assert.equal(sets.reduce((n, s) => n + s.entries.length, 0), all.length, 'each case once per method');
+  assert.deepEqual(bySet(libraryEntries(METHODS, 'principiante')).map((s) => s.set), ['oll', 'beginner'], 'no empty sets');
 });

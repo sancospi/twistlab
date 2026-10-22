@@ -8,6 +8,7 @@ test('routes: each screen has its path, and paths round-trip', () => {
     { mod: 'cube' },
     { mod: 'cube', page: 'paint' },
     { mod: 'progress' },
+    { mod: 'about' },
     { mod: 'academy', page: { kind: 'home' } },
     { mod: 'academy', page: { kind: 'notation' } },
     { mod: 'academy', page: { kind: 'cross' } },
@@ -36,6 +37,8 @@ test('routes: trailing slashes, the old /resolver and unknown paths', () => {
   assert.deepEqual(parseRoute('/cubo/otra'), { mod: 'cube' });
   assert.equal(routePath({ mod: 'progress' }), '/progreso');
   assert.deepEqual(parseRoute('/progreso/'), { mod: 'progress' });
+  assert.equal(routePath({ mod: 'about' }), '/acerca');
+  assert.deepEqual(parseRoute('/acerca/'), { mod: 'about' });
   assert.deepEqual(parseRoute('/index.html'), { mod: 'solve' });
   assert.deepEqual(parseRoute('/algo/raro'), { mod: 'solve' });
   assert.deepEqual(parseRoute('/academia/no-existe'), { mod: 'academy', page: { kind: 'method', id: 'no-existe' } }); // the page says "not found"

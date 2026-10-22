@@ -4,18 +4,85 @@ import { invertTokens, tokenize } from '../../notation.ts';
 import { scdbUrl } from '../scdb.ts';
 import type { Case, Group, Phase } from '../types.ts';
 
-const es = (text: string): Localized => ({ es: text });
+const tr = (es: string, en: string): Localized => ({ es, en });
+
+const NAME_EN: Record<string, string> = {
+  Punto: 'Dot', Cuadrado: 'Square', Relámpago: 'Lightning bolt', Pez: 'Fish', Caballo: 'Knight move', 'Esquinas listas': 'Corners done',
+  Raro: 'Awkward', 'Forma de P': 'P-shape', 'Forma de T': 'T-shape', 'Forma de C': 'C-shape', 'Forma de W': 'W-shape', 'L pequeña': 'Small L', Línea: 'Line',
+};
+
+// English recognition text per case number (the Spanish is passed to oll()).
+const RECOG_EN: Record<number, string> = {
+  1: 'Top: only the center. Sides: front and back, the edge; left and right, all 3.',
+  2: 'Top: only the center. Sides: front, all 3; left and right, the edge and the back corner; back, the edge.',
+  3: 'Top: front-right corner. Sides: front, the edge; left, the front corner and the edge; right, the edge and the back corner; back, the left corner and the edge.',
+  4: 'Top: back-right corner. Sides: front, the left corner and the edge; left, the edge and the back corner; right, the front corner and the edge; back, the edge.',
+  5: 'Top: right and front edges; front-right corner. Sides: left, the front corner and the edge; right, the back corner; back, the left corner and the edge.',
+  6: 'Top: back and right edges; back-right corner. Sides: front, the left corner and the edge; left, the edge and the back corner; right, the front corner.',
+  7: 'Top: back and left edges; front-left corner. Sides: front, the edge and the right corner; right, the edge and the back corner; back, the left corner.',
+  8: 'Top: left and front edges; back-left corner. Sides: front, the left corner; right, the front corner and the edge; back, the edge and the right corner.',
+  9: 'Top: back and left edges; front-right corner. Sides: front, the left corner and the edge; left, the back corner; right, the edge; back, the right corner.',
+  10: 'Top: left and front edges; back-right corner. Sides: front, the right corner; left, the front corner; right, the edge; back, the left corner and the edge.',
+  11: 'Top: right and front edges; front-left corner. Sides: front, the right corner; left, the edge; right, the back corner; back, the left corner and the edge.',
+  12: 'Top: back and right edges; back-left corner. Sides: front, the left corner and the edge; left, the edge; right, the front corner; back, the right corner.',
+  13: 'Top: left–right line; front-left corner. Sides: front, the edge and the right corner; right, the back corner; back, the left corner and the edge.',
+  14: 'Top: left–right line; front-right corner. Sides: front, the left corner and the edge; left, the back corner; back, the edge and the right corner.',
+  15: 'Top: left–right line; front-right corner. Sides: front, the edge; left, the front corner; right, the back corner; back, the left corner and the edge.',
+  16: 'Top: left–right line; back-right corner. Sides: front, the left corner and the edge; left, the back corner; right, the front corner; back, the edge.',
+  17: 'Top: back-left and front-right corners. Sides: front and right, the edge; left, the front corner and the edge; back, the edge and the right corner.',
+  18: 'Top: back-right and front-right corners. Sides: left, all 3; the others, the edge.',
+  19: 'Top: back-right and front-right corners. Sides: front and back, the left corner and the edge; left and right, the edge.',
+  20: 'Top: all 4 corners. Sides: the edge on each one.',
+  21: 'Cross done. 0 corners on top; two yellows on the left and two on the right.',
+  22: 'Cross done. 0 corners on top; two yellows on the left, and on the right one at the front and one at the back.',
+  23: 'Cross done. 2 corners on top (the back ones); two yellows at the front.',
+  24: 'Cross done. 2 corners on top (the right ones); on the left, one yellow at the front and one at the back.',
+  25: 'Cross done. 2 corners on top, diagonal (back-left and front-right); the front-left one shows yellow on the front.',
+  26: 'Cross done. 1 corner on top, back-right; the front-left one shows yellow on the front.',
+  27: 'Cross done. 1 corner on top, front-left; the front-right one shows yellow on the front.',
+  28: 'Top: back and left edges; all 4 corners. Sides: front and right, the edge.',
+  29: 'Top: left and front edges; back-left and back-right corners. Sides: left, the front corner; right, the front corner and the edge; back, the edge.',
+  30: 'Top: back and left edges; front-left and front-right corners. Sides: front, the edge; left, the back corner; right, the edge and the back corner.',
+  31: 'Top: back and right edges; back-right and front-right corners. Sides: front, the left corner and the edge; left, the edge; back, the left corner.',
+  32: 'Top: right and front edges; back-right and front-right corners. Sides: front, the left corner; left, the edge; back, the left corner and the edge.',
+  33: 'Top: left–right line; back-right and front-right corners. Sides: front and back, the left corner and the edge.',
+  34: 'Top: front–back line; back-right and front-right corners. Sides: front and back, the left corner; left and right, the edge.',
+  35: 'Top: right and front edges; back-left and front-right corners. Sides: front, the left corner; left and back, the edge; right, the back corner.',
+  36: 'Top: back and left edges; back-right and front-left corners. Sides: front, the edge and the right corner; left, the back corner; right, the edge.',
+  37: 'Top: back and left edges; back-left and front-right corners. Sides: front, the left corner and the edge; right, the edge and the back corner.',
+  38: 'Top: back and left edges; back-right and front-left corners. Sides: front, the edge; right, the front corner and the edge; back, the left corner.',
+  39: 'Top: left–right line; back-right and front-left corners. Sides: front, the edge and the right corner; left, the back corner; back, the edge.',
+  40: 'Top: left–right line; back-left and front-right corners. Sides: front, the edge; left, the front corner; back, the edge and the right corner.',
+  41: 'Top: back and left edges; front-left and front-right corners. Sides: front and right, the edge; back, both corners.',
+  42: 'Top: left and front edges; back-left and back-right corners. Sides: front, both corners; right and back, the edge.',
+  43: 'Top: back and left edges; back-left and back-right corners. Sides: front, all 3; right, the edge.',
+  44: 'Top: right and front edges; back-right and front-right corners. Sides: left, all 3; back, the edge.',
+  45: 'Top: left–right line; back-right and front-right corners. Sides: front and back, the edge; left, both corners.',
+  46: 'Top: front–back line; back-left and front-left corners. Sides: left, the edge; right, all 3.',
+  47: 'Top: back and left edges. Sides: front, the edge; left, the front corner; right, the front corner and the edge; back, both corners.',
+  48: 'Top: back and left edges. Sides: front, the edge and the right corner; left, both corners; right, the edge; back, the right corner.',
+  49: 'Top: back and right edges. Sides: front, the edge and the right corner; left, all 3; back, the right corner.',
+  50: 'Top: right and front edges. Sides: front, the right corner; left, all 3; back, the edge and the right corner.',
+  51: 'Top: left–right line. Sides: front and back, the left corner and the edge; right, both corners.',
+  52: 'Top: front–back line. Sides: front and back, the right corner; left, all 3; right, the edge.',
+  53: 'Top: right and front edges. Sides: left, all 3; right, both corners; back, the edge.',
+  54: 'Top: back and right edges. Sides: front, the edge; left, all 3; right, both corners.',
+  55: 'Top: left–right line. Sides: front and back, all 3.',
+  56: 'Top: left–right line. Sides: front and back, the edge; left and right, both corners.',
+  57: 'Top: left–right line; all 4 corners. Sides: front and back, the edge.',
+};
+
 
 // Main algorithm = SpeedCubeDB's #1 (fetched 2026-10-21) without the leading y the site sometimes starts with: the
 // case is drawn from the angle the algorithm starts at, so the AUF does the rotation's job. Extras ([rank, alg]) are
 // the site's #2–#4 with at least 10 votes, minus the same algorithm (or another extra) done with the other hand (y2 and l for r), each with
 // the U turn it needs to start from the main one's angle. cfop.validate.test.ts checks every one in the simulator.
-function oll(n: number, name: string, recognition: string, alg: string, alts: [number, string][] = [], note?: string, code = `OLL ${n}`): Case {
+function oll(n: number, name: string, recognition: string, alg: string, alts: [number, string][] = [], note?: Localized, code = `OLL ${n}`): Case {
   return {
     id: `cfopc-oll-${String(n).padStart(2, '0')}`,
     code,
-    name: es(name),
-    recognition: es(recognition),
+    name: tr(name, NAME_EN[name] ?? name),
+    recognition: tr(recognition, RECOG_EN[n]),
     stage: 'oll-corners',
     algs: [
       { id: 'main', alg, source: 'speedcubedb', rank: 1 },
@@ -23,15 +90,15 @@ function oll(n: number, name: string, recognition: string, alg: string, alts: [n
     ],
     setup: invertTokens(tokenize(alg)).join(' '),
     scdb: { set: 'OLL', id: String(n), url: scdbUrl('OLL', String(n)) },
-    ...(note ? { note: es(note) } : {}),
+    ...(note ? { note } : {}),
   };
 }
 /** The 7 OCLL cases keep their common name as code, with the wording of CFOP reducido. */
-const ocll = (code: string, n: number, recognition: string, alg: string, alts: [number, string][], note?: string): Case =>
+const ocll = (code: string, n: number, recognition: string, alg: string, alts: [number, string][], note?: Localized): Case =>
   oll(n, `OLL ${n}`, `Cruz hecha. ${recognition}`, alg, alts, note, code);
-const inverse = (n: number) => `Es el inverso del OLL ${n}: la mezcla de uno es el algoritmo del otro.`;
-const SUNE_NOTE = 'Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra. Apréndelas primero: salen en muchos solves y comparten gatillos con la H.';
-const UL_NOTE = 'U y L son inversas: la mezcla de la L es el algoritmo de la U. D gira la capa de abajo en sentido horario, mirándola desde abajo.';
+const inverse = (n: number) => tr(`Es el inverso del OLL ${n}: la mezcla de uno es el algoritmo del otro.`, `It's the inverse of OLL ${n}: the scramble of one is the algorithm of the other.`);
+const SUNE_NOTE = tr('Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra. Apréndelas primero: salen en muchos solves y comparten gatillos con la H.', 'Sune and Antisune are inverses: the scramble of one is the algorithm of the other. Learn them first: they show up in many solves and share triggers with the H.');
+const UL_NOTE = tr('U y L son inversas: la mezcla de la L es el algoritmo de la U. D gira la capa de abajo en sentido horario, mirándola desde abajo.', 'U and L are inverses: the scramble of the L is the algorithm of the U. D turns the bottom layer clockwise, looking at it from below.');
 
 // "A los lados" = the yellow stickers on the side faces of the top layer, as drawn (front at the bottom).
 const CASES: Case[] = [
@@ -78,8 +145,8 @@ const CASES: Case[] = [
   oll(41, 'Raro', 'Arriba: aristas atrás e izquierda; esquinas adelante-izq y adelante-der. A los lados: al frente y a la derecha, la arista; atrás, las 2 esquinas.', "R U R' U R U2 R' F R U R' U' F'", [[2, "F U R2 D R' U' R D' R2 F'"], [3, "U S U' R' F' U' F U R S'"], [4, "U2 M U' F' L' U' L U F M'"]]),
   oll(42, 'Raro', 'Arriba: aristas izquierda y adelante; esquinas atrás-izq y atrás-der. A los lados: al frente, las 2 esquinas; a la derecha y atrás, la arista.', "R' U' R U' R' U2 R F R U R' U' F'", [[2, "U F S' R U R' U' F' U S"], [3, "U R' F R F' R' F R F' R U R' U' R U R'"], [4, "U R' U' F2 u' R U R' D R2 B"]]),
   oll(43, 'Forma de P', 'Arriba: aristas atrás e izquierda; esquinas atrás-izq y atrás-der. A los lados: al frente, las 3; a la derecha, la arista.', "R' U' F' U F R", [[2, "U F' U' L' U L F"], [3, "U' f' L' U' L U f"]]),
-  oll(44, 'Forma de P', 'Arriba: aristas derecha y adelante; esquinas atrás-der y adelante-der. A los lados: a la izquierda, las 3; atrás, la arista.', "f R U R' U' f'", [[2, "U2 F U R U' R' F'"]], 'Ya lo conoces: es la L de la cruz amarilla del OLL en 2 pasos.'),
-  oll(45, 'Forma de T', 'Arriba: línea izquierda–derecha; esquinas atrás-der y adelante-der. A los lados: al frente y atrás, la arista; a la izquierda, las 2 esquinas.', "F R U R' U' F'", [[2, "U R' F' U' F U R"]], 'Ya lo conoces: es la Línea de la cruz amarilla del OLL en 2 pasos.'),
+  oll(44, 'Forma de P', 'Arriba: aristas derecha y adelante; esquinas atrás-der y adelante-der. A los lados: a la izquierda, las 3; atrás, la arista.', "f R U R' U' f'", [[2, "U2 F U R U' R' F'"]], tr('Ya lo conoces: es la L de la cruz amarilla del OLL en 2 pasos.', 'You already know it: it is the L of the yellow cross in 2-look OLL.')),
+  oll(45, 'Forma de T', 'Arriba: línea izquierda–derecha; esquinas atrás-der y adelante-der. A los lados: al frente y atrás, la arista; a la izquierda, las 2 esquinas.', "F R U R' U' F'", [[2, "U R' F' U' F U R"]], tr('Ya lo conoces: es la Línea de la cruz amarilla del OLL en 2 pasos.', 'You already know it: it is the Line of the yellow cross in 2-look OLL.')),
   oll(46, 'Forma de C', 'Arriba: línea adelante–atrás; esquinas atrás-izq y adelante-izq. A los lados: a la izquierda, la arista; a la derecha, las 3.', "R' U' R' F R F' U R"),
   oll(47, 'L pequeña', 'Arriba: aristas atrás e izquierda. A los lados: al frente, la arista; a la izquierda, la esquina de adelante; a la derecha, la esquina de adelante y la arista; atrás, las 2 esquinas.', "F R' F' R U2 R U' R' U R U2 R'", [[2, "U F' L' U' L U L' U' L U F"], [3, "U R' U' R' F R F' R' F R F' U R"]]),
   oll(48, 'L pequeña', 'Arriba: aristas atrás e izquierda. A los lados: al frente, la arista y la esquina derecha; a la izquierda, las 2 esquinas; a la derecha, la arista; atrás, la esquina derecha.', "F R U R' U' R U R' U' F'", [], inverse(51)),
@@ -95,17 +162,17 @@ const CASES: Case[] = [
 ];
 
 const pick = (ns: number[]) => ns.map((n) => CASES.find((c) => c.scdb?.id === String(n))!);
-const group = (slug: string, name: string, description: string, ns: number[]): Group => ({
+const group = (slug: string, name: Localized, description: Localized, ns: number[]): Group => ({
   id: `cfopc-oll-${slug}`,
-  name: es(name),
-  description: es(description),
+  name,
+  description,
   cases: pick(ns),
 });
 
 export const ollPhase: Phase = {
   id: 'cfopc-oll',
-  name: es('OLL'),
-  description: es(
+  name: tr('OLL', 'OLL'),
+  description: tr(
     [
       'Deja toda la cara de arriba amarilla **con un solo algoritmo**. 57 casos.',
       '## En 2 pasos o completo',
@@ -120,30 +187,50 @@ export const ollPhase: Phase = {
       '3. Dentro del grupo, mira los amarillos de los lados.',
       '«A los lados» son las pegatinas amarillas de las caras laterales de la capa de arriba, como en la figura (frente abajo).',
     ].join('\n'),
+    [
+      'Makes the whole top face yellow **with a single algorithm**. 57 cases.',
+      '## 2-look or full',
+      '- **2-look:** the one from reduced CFOP. Yellow cross, then corners: 9 algorithms (the Dot is the Line followed by the L).',
+      '- **Full:** one algorithm per case. You save a step and a recognition pause, at the cost of 48 new algorithms (you already know 9: the 7 OCLLs, the Line and the L).',
+      'If a case comes up that you don\'t know, solve it in 2 looks.',
+      '## Start with OCLL',
+      'The 7 cases with the cross already done (OCLL) are step 2 of 2-look OLL. If you come from reduced CFOP, you already know them: master them first.',
+      '## Recognize by shape',
+      '1. Look at the top edges: cross, line, L shape (the L of 2-look OLL) or none (dot).',
+      '2. Look at which corners have yellow on top. Together with the edges, they draw the shape that gives the group.',
+      '3. Within the group, look at the yellows on the sides.',
+      '"Sides" are the yellow stickers on the side faces of the top layer, as in the figure (front at the bottom).',
+    ].join('\n'),
   ),
   diagram: 'top',
   groups: [
-    group('ocll', 'Cruz hecha (OCLL)', 'La cruz amarilla ya está; faltan las esquinas. Cuenta las que tienen el amarillo arriba:\n- 0 → H o Pi\n- 1 → Sune o Antisune\n- 2 → U, T o L', [27, 26, 21, 22, 23, 24, 25]),
-    group('t', 'Formas de T', 'Línea de aristas y las 2 esquinas de un extremo: forman una fila de 3 que cruza la línea. El 45 es la Línea del OLL en 2 pasos.', [45, 33]),
-    group('p', 'Formas de P', 'Dos aristas en ángulo y 2 esquinas que forman una fila de 3 con una de ellas. El 44 es la L del OLL en 2 pasos.', [44, 43, 32, 31]),
-    group('c', 'Formas de C', 'Línea de aristas y las 2 esquinas del lado paralelo, con hueco en medio.', [34, 46]),
-    group('w', 'Formas de W', 'Dos aristas en ángulo y 2 esquinas en escalera.', [36, 38]),
-    group('cuadrado', 'Cuadrados', 'Cuadrado 2×2: dos aristas en ángulo y la esquina entre ellas.', [5, 6]),
-    group('relampago', 'Relámpagos', 'Forma de rayo.\n- **Pequeños (7, 8, 11 y 12):** dos aristas en ángulo y 1 esquina pegada a una, fuera del ángulo.\n- **Grandes (39 y 40):** una línea y 2 esquinas en diagonal.', [7, 8, 11, 12, 39, 40]),
-    group('pez', 'Peces', 'Dos aristas en ángulo y la esquina opuesta en diagonal (la cola). En el 35 y el 37 también está arriba la esquina del ángulo.', [9, 10, 35, 37]),
-    group('caballo', 'Saltos de caballo', 'Línea de aristas y una sola esquina arriba, como el salto del caballo en ajedrez.', [13, 14, 15, 16]),
-    group('l', 'L pequeñas', 'Solo dos aristas en ángulo, sin esquinas arriba.', [47, 48, 49, 50, 53, 54]),
-    group('linea', 'Líneas', 'Solo una línea de aristas, sin esquinas arriba.', [51, 52, 55, 56]),
-    group('esquinas', 'Esquinas listas', 'Las 4 esquinas ya tienen el amarillo arriba; faltan 2 aristas.', [28, 57]),
-    group('raros', 'Raros', 'Dos aristas en ángulo y las 2 esquinas del lado sin arista, con hueco en medio. Difíciles de reconocer: fíjate en los lados.', [29, 30, 41, 42]),
-    group('punto', 'Puntos', 'Ninguna arista arriba: solo el centro y, a veces, esquinas. De los más largos.', [1, 2, 3, 4, 17, 18, 19, 20]),
+    group('ocll', tr('Cruz hecha (OCLL)', 'Cross done (OCLL)'), tr('La cruz amarilla ya está; faltan las esquinas. Cuenta las que tienen el amarillo arriba:\n- 0 → H o Pi\n- 1 → Sune o Antisune\n- 2 → U, T o L', 'The yellow cross is done; the corners are left. Count the ones with yellow on top:\n- 0 → H or Pi\n- 1 → Sune or Antisune\n- 2 → U, T or L'), [27, 26, 21, 22, 23, 24, 25]),
+    group('t', tr('Formas de T', 'T-shapes'), tr('Línea de aristas y las 2 esquinas de un extremo: forman una fila de 3 que cruza la línea. El 45 es la Línea del OLL en 2 pasos.', 'A line of edges and the 2 corners at one end: they make a row of 3 that crosses the line. OLL 45 is the Line of 2-look OLL.'), [45, 33]),
+    group('p', tr('Formas de P', 'P-shapes'), tr('Dos aristas en ángulo y 2 esquinas que forman una fila de 3 con una de ellas. El 44 es la L del OLL en 2 pasos.', 'Two adjacent edges (an L shape) and 2 corners that make a row of 3 with one of them. OLL 44 is the L of 2-look OLL.'), [44, 43, 32, 31]),
+    group('c', tr('Formas de C', 'C-shapes'), tr('Línea de aristas y las 2 esquinas del lado paralelo, con hueco en medio.', 'A line of edges and the 2 corners of the parallel side, with a gap in the middle.'), [34, 46]),
+    group('w', tr('Formas de W', 'W-shapes'), tr('Dos aristas en ángulo y 2 esquinas en escalera.', 'Two adjacent edges (an L shape) and 2 corners in a staircase.'), [36, 38]),
+    group('cuadrado', tr('Cuadrados', 'Squares'), tr('Cuadrado 2×2: dos aristas en ángulo y la esquina entre ellas.', '2×2 square: two adjacent edges (an L shape) and the corner between them.'), [5, 6]),
+    group('relampago', tr('Relámpagos', 'Lightning bolts'), tr('Forma de rayo.\n- **Pequeños (7, 8, 11 y 12):** dos aristas en ángulo y 1 esquina pegada a una, fuera del ángulo.\n- **Grandes (39 y 40):** una línea y 2 esquinas en diagonal.', 'Bolt shape.\n- **Small (7, 8, 11 and 12):** two adjacent edges (an L shape) and 1 corner next to one of them, outside the L.\n- **Big (39 and 40):** a line and 2 corners on a diagonal.'), [7, 8, 11, 12, 39, 40]),
+    group('pez', tr('Peces', 'Fish'), tr('Dos aristas en ángulo y la esquina opuesta en diagonal (la cola). En el 35 y el 37 también está arriba la esquina del ángulo.', 'Two adjacent edges (an L shape) and the opposite corner on the diagonal (the tail). In 35 and 37 the corner inside the L is also on top.'), [9, 10, 35, 37]),
+    group('caballo', tr('Saltos de caballo', 'Knight moves'), tr('Línea de aristas y una sola esquina arriba, como el salto del caballo en ajedrez.', 'A line of edges and a single corner on top, like a knight\'s move in chess.'), [13, 14, 15, 16]),
+    group('l', tr('L pequeñas', 'Small Ls'), tr('Solo dos aristas en ángulo, sin esquinas arriba.', 'Only two edges in an L shape, no corners on top.'), [47, 48, 49, 50, 53, 54]),
+    group('linea', tr('Líneas', 'Lines'), tr('Solo una línea de aristas, sin esquinas arriba.', 'Only a line of edges, no corners on top.'), [51, 52, 55, 56]),
+    group('esquinas', tr('Esquinas listas', 'Corners done'), tr('Las 4 esquinas ya tienen el amarillo arriba; faltan 2 aristas.', 'All 4 corners already have yellow on top; 2 edges are left.'), [28, 57]),
+    group('raros', tr('Raros', 'Awkward'), tr('Dos aristas en ángulo y las 2 esquinas del lado sin arista, con hueco en medio. Difíciles de reconocer: fíjate en los lados.', 'Two adjacent edges (an L shape) and the 2 corners of the side without an edge, with a gap in the middle. Hard to recognize: look at the sides.'), [29, 30, 41, 42]),
+    group('punto', tr('Puntos', 'Dots'), tr('Ninguna arista arriba: solo el centro y, a veces, esquinas. De los más largos.', 'No edges on top: only the center and, sometimes, corners. Among the longest.'), [1, 2, 3, 4, 17, 18, 19, 20]),
   ],
-  progression: es(
+  progression: tr(
     [
       'Orden: **OCLL → T, P y C → W, cuadrados y relámpagos → peces y saltos de caballo → L pequeñas y líneas → esquinas listas y raros → puntos**.',
       '- Aprende también el inverso de cada caso, aunque sea de otro grupo: la mezcla de uno es el algoritmo del otro (5 y 8, 6 y 7, 31 y 40, 33 y 37, 48 y 51, 49 y 50, 28 y 57).',
       '- Mientras no sepas un caso, resuélvelo en 2 pasos: cruz amarilla y luego OCLL.',
       '- Deja los puntos para el final: mientras tanto, usa el Punto del OLL en 2 pasos.',
+    ].join('\n'),
+    [
+      'Order: **OCLL → T, P and C → W, squares and lightning bolts → fish and knight moves → small Ls and lines → corners done and awkward → dots**.',
+      '- Also learn the inverse of each case, even if it is in another group: the scramble of one is the algorithm of the other (5 and 8, 6 and 7, 31 and 40, 33 and 37, 48 and 51, 49 and 50, 28 and 57).',
+      '- Until you know a case, solve it in 2 looks: yellow cross, then OCLL.',
+      '- Leave the dots for last: in the meantime, use the Dot from 2-look OLL.',
     ].join('\n'),
   ),
   quizzes: [],

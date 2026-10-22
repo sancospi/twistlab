@@ -209,6 +209,13 @@ const customVariant = (alg: string): AlgVariant => ({ id: `custom:${alg}`, alg, 
 /** The case's algorithms: the plan's and SpeedCubeDB's, then the user's own. */
 export const variants = (c: Case): AlgVariant[] => [...c.algs, ...(custom[c.id] ?? []).map(customVariant)];
 
+/** On screen: the chosen one, then one secondary (the Plan B, else the next in order), then the rest (folded from [2]). */
+export function byChoice(all: AlgVariant[], chosen: AlgVariant): AlgVariant[] {
+  const rest = all.filter((v) => v.id !== chosen.id);
+  const second = rest.find((v) => v.source === 'plan-b') ?? rest[0];
+  return [chosen, ...rest.filter((v) => v === second), ...rest.filter((v) => v !== second)];
+}
+
 /** `alg` must be normalized (tokens joined by single spaces). */
 export function addCustom(caseId: string, alg: string): AlgVariant {
   const list = (custom[caseId] ??= []);

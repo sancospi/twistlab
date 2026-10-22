@@ -14,16 +14,18 @@ import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { describe, nextStep, PathGuide } from '../guide.ts';
 import { patternToFacelets } from '../facelets.ts';
-import { IDENTITY, YELLOW_UP, centerMoves, htm, tokenize, turnCount, unmapMove, type Frame } from '../notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, htm, merge, tokenize, turnCount, unmapMove, type Frame } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView } from '../notation-view.ts';
 import { lang, loc, t, tp, type MessageKey } from '../i18n.ts';
 import {
-  HOLDS, caseState, goalReached, holdIn, llFaceOf, makeQuizItems, quizPattern, randomStateScramble, specsFor, type QuizSpec,
+  HOLDS, caseState, goalReached, holdIn, llFaceOf, llSpecs, llSteps, makeQuizItems, quizPattern, randomStateScramble, specsFor,
+  type Auf, type LLStep, type QuizSpec,
 } from './cube.ts';
 import { heldColors, netSVG } from './diagram.ts';
 import { cube, type CubeListener } from './link.ts';
 import { METHODS, findCase } from './methods.ts';
+import { inlineText } from '../rich-text-view.ts';
 import { Animation, caseSVG, el, fingersView, loadCase, movesView, openPractice } from './practice.ts';
 import { caseProbability } from './probability.ts';
 import { average, learningFor, load, preferred, recordGrade, recordRep, save, setting, statsFor, type Grade } from './store.ts';
@@ -35,7 +37,8 @@ import type { Case, OfficialQuiz, Phase } from './types.ts';
 
 export type QuizScope =
   | { kind: 'cases'; id: string; cases: Case[]; title: string; answers?: Case[] } // answers: default `cases`
-  | { kind: 'official'; quiz: OfficialQuiz; phase: Phase };
+  | { kind: 'official'; quiz: OfficialQuiz; phase: Phase }
+  | { kind: 'll'; id: string; cases: Case[]; title: string }; // full last layer: random LL states, `cases` = the method's OLL and PLL
 
 const $ = (id: string) => document.getElementById(id)!;
 const dialog = $('quiz') as HTMLDialogElement;
@@ -47,12 +50,12 @@ const SELECTIONS: Selection[] = ['one', 'pick', 'due', 'learning', 'known', 'slo
 const ORDERS: Order[] = ['uniform', 'probability', 'spaced'];
 const HISTORY_KEY = 'academy-quiz-history';
 
-export const scopeId = (s: QuizScope): string => (s.kind === 'cases' ? s.id : s.quiz.id);
-const scopeTitle = (s: QuizScope): string => (s.kind === 'cases' ? s.title : loc(s.quiz.name));
+export const scopeId = (s: QuizScope): string => (s.kind === 'official' ? s.quiz.id : s.id);
+const scopeTitle = (s: QuizScope): string => (s.kind === 'official' ? loc(s.quiz.name) : s.title);
 
 /** Cases the user may answer: an official quiz covers the groups its answers come from. */
 function scopeCases(s: QuizScope): Case[] {
-  if (s.kind === 'cases') return s.answers ?? s.cases;
+  if (s.kind !== 'official') return s.kind === 'cases' ? s.answers ?? s.cases : s.cases;
   const answers = new Set(s.quiz.items.map((it) => it.answer));
   return s.phase.groups.filter((g) => g.cases.some((c) => answers.has(c.id))).flatMap((g) => g.cases);
 }
@@ -76,6 +79,7 @@ interface Item {
   scramble?: string | null; // recognition: the plan's scramble, or the random-state one (null while the solver works)
   random?: boolean; // ...found by the solver (else, too slow: the merged setup)
   hold: Frame; // color neutral: how the cube is held (place -> color), IDENTITY = yellow up, green front
+  steps?: LLStep[]; // full last layer: its OLL and PLL cases (c is then the drill, see llCase)
 }
 
 /** The item's frame on the GAN cube: its moves, goal and solution are those of the grip it's held in. */
@@ -182,6 +186,7 @@ function initialSelection(): Selection {
 }
 
 function makeSpecs(): QuizSpec[] {
+  if (scope.kind === 'll') return llSpecs(perCase, crypto.getRandomValues(new Uint32Array(1))[0], kpuzzle);
   if (scope.kind === 'official') {
     return scope.quiz.items.map((it) => {
       const c = findCase(it.answer)!;
@@ -202,11 +207,28 @@ function makeSpecs(): QuizSpec[] {
 }
 
 // the state stays the same in the grip (diagram, scramble, AUF, answers): only the colors and the cube's frame change
-const makeItem = (spec: QuizSpec, scramble?: string): Item => ({
-  spec, c: findCase(spec.caseId)!, user: quizPattern(kpuzzle, spec, IDENTITY),
-  hold: neutral ? HOLDS[Math.floor(Math.random() * HOLDS.length)] : IDENTITY,
-  ...(scramble === undefined ? {} : { scramble, random: false }),
-});
+function makeItem(spec: QuizSpec, scramble?: string): Item {
+  const user = quizPattern(kpuzzle, spec, IDENTITY);
+  // ponytail: a method's OLL and PLL sets are complete (ll.test.ts), so no step is ever missing
+  const steps = scope.kind === 'll' ? llSteps(user, scope.cases, (c) => preferred(c).alg) ?? [] : undefined;
+  return {
+    spec, c: steps ? llCase(steps) : findCase(spec.caseId)!, user, steps,
+    hold: neutral ? HOLDS[Math.floor(Math.random() * HOLDS.length)] : IDENTITY,
+    ...(scramble === undefined ? {} : { scramble, random: false }),
+  };
+}
+
+/** A full last layer item as a case of its own: its steps one after another, as face turns (so a rotation in one
+ *  algorithm can't turn the next), done up to an AUF. Its id is the drill's: times and grades are the drill's. */
+function llCase(steps: LLStep[]): Case {
+  const code = steps.map((s) => caseLabel(s.c)).join(' + ');
+  return {
+    id: scopeId(scope), code, name: { es: code }, recognition: { es: '' },
+    stage: 'll-corners-twist', // solved up to an AUF, with every last-layer sticker in color (pll-edges shows only the sides)
+    algs: [{ id: 'main', alg: merge(steps.flatMap((s) => centerMoves(`${s.auf} ${s.alg}`, IDENTITY))).join(' '), source: 'custom' }],
+    setup: '', scdb: null,
+  };
+}
 
 function start() {
   mode = executionNext() ? 'execution' : 'recognition';
@@ -368,8 +390,8 @@ function skip() {
 
 /** Repetir: the same case again, from another random state (an item more, right after this one). */
 function repeat() {
-  const c = items[index].c;
-  items.splice(index + 1, 0, makeItem(specsFor([c], crypto.getRandomValues(new Uint32Array(1))[0], kpuzzle)[0]));
+  const c = items[index].c, seed = crypto.getRandomValues(new Uint32Array(1))[0];
+  items.splice(index + 1, 0, makeItem(scope.kind === 'll' ? llSpecs(1, seed, kpuzzle)[0] : specsFor([c], seed, kpuzzle)[0]));
   next();
 }
 
@@ -515,6 +537,9 @@ function renderSetup(): Node[] {
   if (scope.kind === 'official') {
     n = scope.quiz.items.length;
     out.push(p(loc(scope.quiz.instructions), 'prose'), p(tp('quiz.items', n), 'hint'));
+  } else if (scope.kind === 'll') {
+    n = perCase;
+    out.push(p(t('ll.intro'), 'prose'), el('label', { className: 'academy-method' }, t('ll.count'), perCaseSelect()));
   } else {
     const one = oneCase();
     const choices = SELECTIONS.filter((x) => x !== 'one' || one).map((x) => {
@@ -529,11 +554,6 @@ function renderSetup(): Node[] {
     const noOdds = scopeCases(scope).every((c) => caseProbability(c.id, kpuzzle) === null);
     const orders = ORDERS.map((x) => option('quiz-order', x, x === order, () => save('quiz-order', (order = x)), t(ORDER_LABEL[x][0]), t(ORDER_LABEL[x][1]),
       x === 'probability' && noOdds));
-    const select = el('select', {}, ...PER_CASE.map((k) => el('option', { value: String(k), textContent: String(k), selected: k === perCase })));
-    select.onchange = () => {
-      save('quiz-per-case', (perCase = +select.value));
-      render();
-    };
     const cases = selected().length;
     n = cases * perCase;
     const summary = p(setupSummary(cases), 'hint');
@@ -542,7 +562,7 @@ function renderSetup(): Node[] {
       el('fieldset', { className: 'quiz-modes quiz-choices' }, el('legend', { textContent: t('quiz.which') }), ...choices),
       ...(selection === 'pick' ? [pickView()] : []),
       ...(selection === 'one' ? [] : [el('fieldset', { className: 'quiz-modes' }, el('legend', { textContent: t('quiz.order') }), ...orders)]),
-      el('label', { className: 'academy-method' }, t('quiz.perCase'), select),
+      el('label', { className: 'academy-method' }, t('quiz.perCase'), perCaseSelect()),
       summary);
   }
   out.push(p(t(execution ? 'quiz.howCube' : 'quiz.howNoCube')));
@@ -558,6 +578,15 @@ function renderSetup(): Node[] {
   go.dataset.focus = '';
   out.push(el('div', { className: 'row' }, go));
   return out;
+}
+
+function perCaseSelect(): HTMLSelectElement {
+  const select = el('select', {}, ...PER_CASE.map((k) => el('option', { value: String(k), textContent: String(k), selected: k === perCase })));
+  select.onchange = () => {
+    save('quiz-per-case', (perCase = +select.value));
+    render();
+  };
+  return select;
 }
 
 const setupSummary = (cases: number) => `${tp('quiz.cases', cases)} · ${tp('quiz.items', cases * perCase)}`;
@@ -617,7 +646,7 @@ const progress = () => p(t('quiz.progress', { n: index + 1, total: items.length 
 /** The item's state as a figure; `arrows` (PLL) only once the case is known. */
 function diagram(item: Item, size = 180, arrows = false): HTMLElement {
   const box = el('div', { className: 'quiz-diagram' });
-  box.innerHTML = caseSVG(item.c, item.user, { size, title: arrows ? caseLabel(item.c) : t('quiz.question'), colors: heldColors(item.hold), arrows });
+  box.innerHTML = caseSVG(item.c, item.user, { size, title: arrows ? caseLabel(item.c) : t('quiz.question'), colors: heldColors(item.hold), arrows: arrows && !item.steps });
   return box;
 }
 
@@ -693,7 +722,7 @@ function renderDone(): Node[] {
     ...(a.htm === undefined ? [] : [p(t('practice.rep', { moves: a.moves!, htm: a.htm, ref: a.refHtm ?? '–' }), 'hint')]),
     ...(s ? [p(t('quiz.caseStats', { best: timeOr(s.best), avg: timeOr(avg ?? null) }), 'hint')] : []),
     feedbackView(f),
-    el('div', { className: 'row' }, ...(f.grade === 'fail' ? [retryButton()] : []), action('repeat', t('quiz.repeat'), repeat), nextButton(true), ...(f.grade === 'fail' ? [reviewButton(f.item.c)] : [])),
+    el('div', { className: 'row' }, ...(f.grade === 'fail' ? [retryButton()] : []), action('repeat', t('quiz.repeat'), repeat), nextButton(true), ...(f.grade === 'fail' ? reviewButton(f.item) : [])),
   ];
 }
 
@@ -708,20 +737,22 @@ function renderExplain(): Node[] {
   retry.className = 'primary';
   return [
     progress(), p(whyText(), 'bad'), diagram(item, 140, true),
-    el('p', {}, el('strong', { textContent: caseLabel(item.c) })),
-    p(loc(item.c.recognition), 'hint'),
-    movesView(tokens), fingersView(tokens),
+    ...(item.steps ? howTo(item) : [ // full last layer: each case with its AUF and algorithm
+      el('p', {}, el('strong', { textContent: caseLabel(item.c) })),
+      el('p', { className: 'hint' }, ...inlineText(loc(item.c.recognition))),
+      movesView(tokens), fingersView(tokens)]),
     el('div', { className: 'row' }, anim.button()),
     p(t('quiz.helpExplain'), 'hint'),
-    el('div', { className: 'row' }, retry, nextButton(false), reviewButton(item.c)),
+    el('div', { className: 'row' }, retry, nextButton(false), ...reviewButton(item)),
   ];
 }
 
-/** "Repasar ahora": it leaves the quiz, so it says so. */
-function reviewButton(c: Case): HTMLElement {
-  const b = action('drill', t('quiz.reviewNow'), () => reviewNow(c));
+/** "Repasar ahora": it leaves the quiz, so it says so. Not for a full last layer: it's no case of its own. */
+function reviewButton(item: Item): HTMLElement[] {
+  if (item.steps) return [];
+  const b = action('drill', t('quiz.reviewNow'), () => reviewNow(item.c));
   b.title = t('quiz.reviewNowHint');
-  return b;
+  return [b];
 }
 
 /** Without a smart cube the user sets each item up by hand: the plan's scramble, or a random-state one. */
@@ -750,14 +781,19 @@ function scrambleToggle(content: (Node | string)[]): Node[] {
   return [b, net];
 }
 
-/** The case's name, the AUF it needed and the chosen algorithm. */
+/** The case's name, the AUF it needed and the chosen algorithm; a full last layer: each of its cases so, and its skips. */
 function howTo(item: Item): Node[] {
   const alg = preferred(item.c).alg;
-  const auf = aufFor(item.c, alg, item.user);
+  const steps: { c: Case; auf: Auf | null; alg: string }[] = item.steps ?? [{ c: item.c, auf: aufFor(item.c, alg, item.user), alg }];
+  const skipped = (k: string) => !!item.steps && !item.steps.some((s) => s.c.stage.startsWith(k));
   return [
-    el('p', {}, el('strong', { textContent: caseLabel(item.c) })),
-    ...(auf ? [el('p', {}, `${t('quiz.aufBefore')} `, algView(auf))] : []),
-    el('p', {}, algView(alg)),
+    ...(skipped('oll') ? [p(t('ll.ollSkip'), 'hint')] : []),
+    ...steps.flatMap((s) => [
+      el('p', {}, el('strong', { textContent: caseLabel(s.c) })),
+      ...(s.auf ? [el('p', {}, `${t('quiz.aufBefore')} `, algView(s.auf))] : []),
+      el('p', {}, algView(s.alg)),
+    ]),
+    ...(skipped('pll') ? [p(t('ll.pllSkip'), 'hint')] : []),
   ];
 }
 
@@ -770,7 +806,7 @@ function feedbackText(f: Feedback): string {
 
 function feedbackView(f: Feedback): HTMLElement {
   const pic = el('div', { className: 'quiz-feedback-diagram', ariaHidden: 'true' }); // the case's name is next to it
-  pic.innerHTML = caseSVG(f.item.c, f.item.user, { size: 72, colors: heldColors(f.item.hold), arrows: true });
+  pic.innerHTML = caseSVG(f.item.c, f.item.user, { size: 72, colors: heldColors(f.item.hold), arrows: !f.item.steps });
   return el('div', { className: 'quiz-feedback' }, pic, el('div', {}, p(feedbackText(f), f.grade === 'fail' ? 'bad' : 'ok'), ...howTo(f.item)));
 }
 
@@ -825,13 +861,14 @@ function renderResults(): Node[] {
   const table = el('table', { className: 'quiz-table' },
     el('thead', {}, el('tr', {}, th(t('quiz.colCase')), th(t('quiz.colAccuracy')), th(t('quiz.colTime')), ...(execution ? [th(t('quiz.colEfficiency'))] : []))),
     el('tbody', {}, ...cases.map((c) => el('tr', {},
-      td(findCase(c.caseId)?.code ?? c.caseId),
+      td(findCase(c.caseId)?.code ?? scopeTitle(scope)), // a full last layer's items are the drill's
       td(`${c.correct}/${c.n}`),
       td(timeOr(c.ms)),
       ...(execution ? [td(pctOr(c.efficiency))] : [])))));
   const issues = execution ? reviewed() : [];
   // the review's errors (e.g. extra turns) are worth repeating too, not only misses and slow cases
-  const retry = [...new Set([...toRetry(cases, s), ...issues.map(({ l }) => l.item.c.id), ...failed])].map((id) => findCase(id)!);
+  const bad = [...new Set([...toRetry(cases, s), ...issues.map(({ l }) => l.item.c.id), ...failed])];
+  const retry = bad.flatMap((id) => findCase(id) ?? []); // a full last layer has no cases to retry: a new round is its retry
   const close = button(t('dialog.close'), () => dialog.close());
   const actions = el('div', { className: 'row' });
   if (retry.length) {
@@ -845,7 +882,7 @@ function renderResults(): Node[] {
     actions.append(close);
   }
   return [el('h3', { textContent: t('quiz.results') }), summary, table, ...(execution ? reviewSection(issues) : []),
-    ...(retry.length ? [] : [p(t('quiz.allGood'), 'ok')]), actions];
+    ...(bad.length ? [] : [p(t('quiz.allGood'), 'ok')]), actions];
 }
 
 /** Solve mode: every item with an error, with its review. */

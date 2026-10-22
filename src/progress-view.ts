@@ -37,6 +37,7 @@ export function showProgress(root: HTMLElement): void {
   root.replaceChildren(
     el('h2', { textContent: t('progress.title') }),
     text(t('progress.intro'), 'hint'),
+    text(t('pwa.offline'), 'hint'),
     timesSection(results), practiceSection(results), learningSection(), goalSection(results), backupSection());
 }
 

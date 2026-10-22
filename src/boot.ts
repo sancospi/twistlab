@@ -2,9 +2,17 @@
 // Vite merges every module script of index.html into one bundle, so a separate <script> wouldn't run any earlier:
 // the app has to be a dynamic import to keep this entry tiny.
 import { inject } from '@vercel/analytics';
-import { applyI18n } from './i18n.ts';
+import { applyI18n, lang, loadLang, setLang, type Lang } from './i18n.ts';
 
+// English: its dictionary is a chunk of its own (Spanish pages don't load it); the inline script keeps the page hidden
+// until it's in (html.i18n-wait), so no Spanish shows first. Nothing below runs before it: the app renders in English.
+if (lang !== 'es') await loadLang();
 applyI18n(document);
+// The ES · EN switches (☰ menu, /acerca): remember and reload
+addEventListener('click', (e) => {
+  const l = (e.target as Element).closest?.('[data-lang]')?.getAttribute('data-lang');
+  if (l && l !== lang) setLang(l as Lang);
+});
 // A lazy chunk that won't load (a tab left open across a deploy: its hashed files are gone) would leave an empty
 // screen or no 3D cube: reload once onto the new build. ponytail: once per tab session, so an offline tab can't loop.
 addEventListener('vite:preloadError', () => {
@@ -28,6 +36,10 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
   void import('./main.ts');
   if (document.body.dataset.module === 'academy') void import('./academy/view.ts');
 }));
-// Vercel Web Analytics (page views, including the router's pushState navigations; no data sent in dev): not needed
-// for the page to work, so it waits until the page has loaded and gone idle.
-addEventListener('load', () => setTimeout(() => ('requestIdleCallback' in window ? requestIdleCallback(() => inject()) : inject()), 0));
+// Vercel Web Analytics (page views, including the router's pushState navigations; no data sent in dev) and the offline
+// service worker (public/sw.js; built files only, so not in dev): not needed for the page to work, so they wait until
+// the page has loaded and gone idle.
+const whenIdle = (f: () => void) =>
+  addEventListener('load', () => setTimeout(() => ('requestIdleCallback' in window ? requestIdleCallback(() => f()) : f()), 0));
+whenIdle(() => inject());
+if (import.meta.env.PROD && 'serviceWorker' in navigator) whenIdle(() => void navigator.serviceWorker.register('/sw.js').catch(() => {}));

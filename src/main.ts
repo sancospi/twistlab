@@ -107,7 +107,7 @@ const WCA_VIEW: Quat = { x: 0, y: 0, z: 0, w: 1 }; // competition orientation: w
 
 // Modules: 'solve' = competition attempt (WCA notation, never translated); 'cube' = the cube's options and guided tools, in the viewer's frame;
 // 'academy' = learn a method's algorithms (same frame as the guide); 'progress' = statistics and learning progress (no cube)
-type Mod = 'solve' | 'cube' | 'academy' | 'progress';
+type Mod = 'solve' | 'cube' | 'academy' | 'progress' | 'about'; // about: /acerca, static markup shown by CSS
 let mod: Mod = 'solve';
 const homeView = () => (mod === 'solve' ? WCA_VIEW : DEFAULT_VIEW);
 const label = (m: string) => (mod === 'solve' ? m : toView(m, view));
@@ -628,6 +628,13 @@ function renderResults() {
   }));
 }
 renderResults();
+// First visit (body.fresh, see index.html): each of the welcome card's choices hides it for good
+$('welcome').onclick = (e) => {
+  if (!(e.target as Element).closest('a, button')) return;
+  save('cube-welcome', true);
+  document.body.classList.remove('fresh');
+  if ((e.target as Element).closest('#welcome-timer')) btn('start').focus(); // the card (and the focus) is gone: on to the timer
+};
 
 // The judge's 8 s / 12 s calls: shown big for a moment (optional) and spoken (optional, where the browser can)
 const CALL_MS = 900;
@@ -818,7 +825,8 @@ const pageTitle = (page: string) => t('app.pageTitle', { page, app: t('app.title
 let routeId = 0;
 let academy: typeof import('./academy/view.ts') | undefined; // loaded by the first Academia page
 // One canonical URL per screen (crawlers run this script; /resolver and the like point to /)
-const canonical = document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'canonical' }));
+const canonical = document.querySelector<HTMLLinkElement>('link[rel=canonical]') // the build's static pages bring theirs (src/seo.ts)
+  ?? document.head.appendChild(Object.assign(document.createElement('link'), { rel: 'canonical' }));
 async function onRoute(r: Route) {
   const id = ++routeId;
   document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach((d) => d.close()); // back/forward leaves any modal
@@ -828,7 +836,7 @@ async function onRoute(r: Route) {
   // the menu entry: the algorithm library is drawn by the academy but has its own entry
   const entry = r.mod === 'academy' && r.page.kind === 'library' ? 'library' : r.mod;
   document.querySelectorAll<HTMLElement>('[data-mod]').forEach((a) => (a.dataset.mod === entry ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
-  $('header-module').textContent = t(entry === 'progress' ? 'nav.progress' : (`menu.${entry}` as MessageKey)); // shown next to ☰ on phones
+  $('header-module').textContent = t(entry === 'progress' ? 'nav.progress' : entry === 'about' ? 'about.menu' : (`menu.${entry}` as MessageKey)); // shown next to ☰ on phones
   // "Pinta tu cubo" (/cubo/pintar): a page of the Cubo screen, full width like the Academia
   const painting = r.mod === 'cube' && r.page === 'paint';
   document.body.toggleAttribute('data-paint', painting);
@@ -837,11 +845,11 @@ async function onRoute(r: Route) {
   canonical.href = `https://twistlab.app${routePath(r)}`;
   if (painting) void import('./paint-view.ts').then((m) => id === routeId && m.showPaint());
   if (r.mod === 'progress') void import('./progress-view.ts').then((m) => id === routeId && m.showProgress($('mod-progress'))); // read again on every visit: the other screens may have saved
-  if (painting || r.mod === 'progress') document.querySelector('.panel')!.scrollTop = 0;
+  if (painting || r.mod === 'progress' || r.mod === 'about') document.querySelector('.panel')!.scrollTop = 0;
   if (r.mod !== 'academy') {
     academy?.stopCase();
     academy?.stopLesson(); // a lesson left for another module lets go of the cube and its 3D player
-    document.title = r.mod === 'solve' ? t('app.title') : pageTitle(t(painting ? 'paint.title' : r.mod === 'progress' ? 'nav.progress' : 'menu.cube'));
+    document.title = r.mod === 'solve' ? t('app.title') : pageTitle(t(painting ? 'paint.title' : r.mod === 'progress' ? 'nav.progress' : r.mod === 'about' ? 'about.title' : 'menu.cube'));
     return;
   }
   academy = await import('./academy/view.ts');

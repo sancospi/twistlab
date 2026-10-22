@@ -209,3 +209,53 @@ export const HOLDS: Frame[] = ['', 'x', 'x2', "x'", 'z', "z'"].flatMap((r) => ['
 /** A cube in `frame` (user face -> center) held as `hold`: place -> center, e.g. holdIn(hold, YELLOW_UP) on the GAN cube. */
 export const holdIn = (hold: Frame, frame: Frame): Frame =>
   Object.fromEntries((Object.keys(hold) as Face[]).map((f) => [f, frame[hold[f]]])) as Record<Face, Face>;
+
+// --- Full last layer (OLL then PLL in one go) ---
+
+/** The last-layer steps in solving order: a 1-look method has cases of one OLL and one PLL stage, a 2-look one of all. */
+export const LL_STEPS: Stage[] = ['oll-cross', 'oll-corners', 'pll-corners', 'pll-edges'];
+
+/** `n` random last-layer states (F2L solved, OLL, PLL and AUFs anything; none solved up to an AUF), deterministic per
+ *  seed. ponytail: products of the pooled LL algorithms like the F2L quiz's, close to uniform; enumerate the 62208
+ *  states if exact odds matter. `caseId` is empty: the state's cases depend on the method (llSteps). */
+export function llSpecs(n: number, seed: number, kpuzzle: KPuzzle): QuizSpec[] {
+  const rng = mulberry32(seed);
+  const solved = kpuzzle.defaultPattern();
+  return Array.from({ length: n }, () => {
+    let moves: string[];
+    do moves = merge(randomLL(rng, 'f2l', kpuzzle));
+    while (goalReached('pll-edges', solved.applyAlg(moves.join(' ')), 'U'));
+    return { caseId: '', moves, auf: '' };
+  });
+}
+
+/** One step of a last-layer solve: the case, the AUF before it and its algorithm (as written). */
+export interface LLStep {
+  c: Case;
+  auf: Auf;
+  alg: string;
+}
+
+/** How `cases` (a method's OLL and PLL sets) solve the last-layer state `p` (user frame) with `alg` of each case: the
+ *  case of each step and its AUF, in order; a step already done is left out (a skip). null when no case fits. */
+export function llSteps(p: KPattern, cases: Case[], alg: (c: Case) => string): LLStep[] | null {
+  const steps: LLStep[] = [];
+  for (const stage of LL_STEPS) {
+    const own = cases.filter((c) => c.stage === stage);
+    if (!own.length || goalReached(stage, p, 'U')) continue;
+    let next: KPattern | null = null;
+    for (const c of own) {
+      for (const auf of AUFS) {
+        const q = p.applyAlg(centerMoves(`${auf} ${alg(c)}`, IDENTITY).join(' '));
+        if (!goalReached(stage, q, 'U')) continue;
+        steps.push({ c, auf, alg: alg(c) });
+        next = q;
+        break;
+      }
+      if (next) break;
+    }
+    if (!next) return null;
+    p = next;
+  }
+  return steps;
+}

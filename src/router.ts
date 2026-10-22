@@ -6,7 +6,7 @@ export type AcademyPage =
   | { kind: 'lesson'; course: string; id: string } // course: the guide's segment, e.g. /academia/cruz/leccion/que-es
   | { kind: 'library' } // every case of every method, with search: /algoritmos (its own menu entry, drawn by the academy)
   | { kind: 'case'; method: string; id: string }; // a case's page: /academia/cfop-completo/caso/cfopc-oll-27
-export type Route = { mod: 'solve' } | { mod: 'cube'; page?: 'paint' } | { mod: 'academy'; page: AcademyPage } | { mod: 'progress' }; // paint: /cubo/pintar
+export type Route = { mod: 'solve' } | { mod: 'cube'; page?: 'paint' } | { mod: 'academy'; page: AcademyPage } | { mod: 'progress' } | { mod: 'about' }; // paint: /cubo/pintar; about: /acerca
 
 const NOTATION = 'notacion';
 /** Old paths that moved: the URL is rewritten to the new one. */
@@ -17,6 +17,7 @@ const LIBRARY = 'algoritmos';
 const CASE = 'caso';
 const PAINT = 'pintar';
 const PROGRESS = 'progreso';
+const ABOUT = 'acerca';
 
 export type GuidePage = Extract<AcademyPage, { kind: 'notation' | 'cross' | 'method' }>;
 /** The guide at /academia/<segment>: the notation, the white cross or a method. */
@@ -32,6 +33,7 @@ export function parseRoute(pathname: string): Route {
   if (first === 'cubo' && second === PAINT) return { mod: 'cube', page: 'paint' };
   if (first === 'cubo' || first === 'guia') return { mod: 'cube' };
   if (first === PROGRESS) return { mod: 'progress' };
+  if (first === ABOUT) return { mod: 'about' };
   if (first === LIBRARY) return { mod: 'academy', page: { kind: 'library' } };
   if (first === 'academia') {
     if (!second) return { mod: 'academy', page: { kind: 'home' } };
@@ -47,6 +49,7 @@ export function routePath(r: Route): string {
   if (r.mod === 'solve') return '/';
   if (r.mod === 'cube') return r.page ? `/cubo/${PAINT}` : '/cubo';
   if (r.mod === 'progress') return `/${PROGRESS}`;
+  if (r.mod === 'about') return `/${ABOUT}`;
   const p = r.page;
   if (p.kind === 'home') return '/academia';
   if (p.kind === 'lesson') return `/academia/${encodeURIComponent(p.course)}/${LESSON}/${encodeURIComponent(p.id)}`;

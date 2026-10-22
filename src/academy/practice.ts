@@ -16,12 +16,13 @@ import { describe, nextStep, PathGuide } from '../guide.ts';
 import { IDENTITY, YELLOW_UP, centerMoves, expand, formatAlg, htm, invertTokens, mapMove, tokenize, triggerSegments, turnCount, unmapMove } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView } from '../notation-view.ts';
+import { inlineText } from '../rich-text-view.ts';
 import { loc, t, tp, type MessageKey } from '../i18n.ts';
 import { caseState, goalReached, llFaceOf, practiceSpec, quizPattern, type QuizSpec } from './cube.ts';
 import { isoSVG, maskFor, topSVG, type DiagramOpts } from './diagram.ts';
 import { StepFollower } from './follow.ts';
 import { cube, type CubeListener } from './link.ts';
-import { addCustom, average, preferred, recordRep, removeCustom, save, setPreferred, setting, statsFor, STREAK_GOAL, variants, type Rep } from './store.ts';
+import { addCustom, average, byChoice, preferred, recordRep, removeCustom, save, setPreferred, setting, statsFor, STREAK_GOAL, variants, type Rep } from './store.ts';
 import type { AlgSource, AlgVariant, Case, Stage } from './types.ts';
 import { checkCustomAlg } from './customAlg.ts';
 import { fingertricks, type FingerHint } from '../fingertricks.ts';
@@ -436,8 +437,8 @@ function removeButton(v: AlgVariant) {
 // Case facts and the algorithm choice: they only change when another case opens.
 function renderInfo() {
   $('practice-title').textContent = caseTitle(kase);
-  $('practice-recognition').textContent = loc(kase.recognition);
-  $('practice-note').textContent = kase.note ? loc(kase.note) : '';
+  $('practice-recognition').replaceChildren(...inlineText(loc(kase.recognition)));
+  $('practice-note').replaceChildren(...(kase.note ? inlineText(loc(kase.note)) : []));
   $('practice-note').hidden = !kase.note;
   const link = $('practice-scdb') as HTMLAnchorElement;
   link.hidden = !kase.scdb;
@@ -446,18 +447,28 @@ function renderInfo() {
   $('practice-prob').textContent = p === null ? '' : t('prob.practice', { p: formatProbability(p) });
   $('practice-prob').hidden = p === null;
   const current = preferred(kase);
-  algOptions.replaceChildren(
-    ...variants(kase).flatMap((v) => {
-      const input = el('input', { type: 'radio', name: 'practice-alg', value: v.id, checked: v.id === current.id });
-      input.onchange = () => prefer(v);
-      const option = el('label', { className: 'alg-option' }, input,
-        el('code', { textContent: formatAlg(tokenize(v.alg)) }),
-        el('span', { className: 'hint', textContent: `${sourceLabel(v)} · ${t('practice.htm', { n: htm(centerMoves(v.alg, IDENTITY)) })}` }),
-        ...(v.note ? [el('span', { className: 'hint alg-note', textContent: loc(v.note) })] : []));
-      return v.source === 'custom' ? [option, removeButton(v)] : [option]; // outside the label: not part of the radio's name
-    }),
-  );
+  const option = (v: AlgVariant, folded: boolean) => {
+    const input = el('input', { type: 'radio', name: 'practice-alg', value: v.id, checked: v.id === current.id });
+    input.onchange = () => {
+      prefer(v);
+      if (!folded) return; // ponytail: only a folded pick re-orders: arrow keys between the two shown would swap them back and forth
+      renderInfo();
+      algOptions.querySelector<HTMLInputElement>('input:checked')!.focus();
+    };
+    const label = el('label', { className: 'alg-option' }, input,
+      el('code', { textContent: formatAlg(tokenize(v.alg)) }),
+      el('span', { className: 'hint', textContent: `${sourceLabel(v)} · ${t('practice.htm', { n: htm(centerMoves(v.alg, IDENTITY)) })}` }),
+      ...(v.note ? [el('span', { className: 'hint alg-note' }, ...inlineText(loc(v.note)))] : []));
+    return v.source === 'custom' ? [label, removeButton(v)] : [label]; // outside the label: not part of the radio's name
+  };
+  const [first, second, ...more] = byChoice(variants(kase), current);
+  algOptions.replaceChildren(...option(first, false), ...(second ? option(second, false) : []),
+    ...(more.length ? [moreAlgs(more.length, more.flatMap((v) => option(v, true)))] : []));
 }
+
+/** The algorithms past the chosen one and its secondary, folded ("Más algoritmos (n)"); the case page uses it too. */
+export const moreAlgs = (n: number, items: Node[]): HTMLDetailsElement =>
+  el('details', { className: 'more-algs' }, el('summary', { textContent: t('case.moreAlgs', { n }) }), el('div', {}, ...items));
 
 
 /** The helper of what's on screen: what to do now, how it ends, what comes next. */

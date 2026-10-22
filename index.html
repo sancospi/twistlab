@@ -7,6 +7,7 @@
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="icon" href="/icon-32.png" sizes="32x32" type="image/png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
   <title data-i18n="app.title">TwistLab</title>
   <meta name="description" content="Aprende a resolver el cubo de Rubik gratis: cronómetro con mezclas oficiales de la WCA, academia paso a paso (principiante y CFOP), algoritmos, tu progreso y cubos inteligentes GAN." />
   <meta property="og:type" content="website" />
@@ -242,6 +243,12 @@
     .tip-text { display: grid; gap: 2px; font-size: 0.9286rem; }
     .tip-text strong { font: 700 1.2857rem ui-monospace, monospace; }
     .tip-text span:last-child { color: var(--muted); }
+    .term { font: inherit; color: inherit; background: none; border: 0; margin: 0; padding: 0; border-radius: 3px; cursor: help; text-decoration: underline dotted #ffffff40; text-underline-offset: .2em; }
+    .term:hover, .term:focus-visible, .term[aria-expanded="true"] { background: #2a3142; text-decoration-color: currentColor; }
+    .tip-term strong { font-family: inherit; font-size: 1rem; }
+    .tip-term span:last-of-type { color: var(--muted); }
+    .tip-term a { justify-self: start; margin-top: 4px; color: var(--accent); }
+    .more-algs > div { display: grid; gap: 8px; margin-top: 8px; }
     .glossary { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
     .glossary-entry { display: grid; gap: 2px; padding: 8px; border-radius: 8px; background: #0b0d12aa; font-size: 0.9286rem; }
     .glossary-entry .alg { font-size: 1.2857rem; }
@@ -298,7 +305,7 @@
     .alg-option .hint { font-size: 0.7857rem; }
     .alg-option:has(input:checked) code { font: 700 1.2143rem/1.4 ui-monospace, monospace; color: var(--fg); } /* the selected one stands out */
     .alg-option:has(input:checked) .hint { font-size: 0.8571rem; }
-    .algs > button { justify-self: end; margin-top: -4px; }
+    :is(.algs, .more-algs > div) > button { justify-self: end; margin-top: -4px; }
     .custom-alg { display: grid; gap: 4px; }
     .custom-alg input { flex: 1; min-width: 0; padding: 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); font: 1.1429rem ui-monospace, monospace; } /* 16px: no zoom on focus in iOS */
     .anim-player twisty-player { width: 100%; height: 260px; }
@@ -454,6 +461,7 @@
     .mini-case svg { width: 56px; height: auto; }
     .mini-case .hint { font-size: 0.7857rem; }
     .case-status { font-size: 0.7857rem; color: var(--muted); }
+    .case-method { font-size: 0.7143rem; color: var(--muted); } /* the library by set: whose case it is */
     .case-status.known { color: var(--accent); }
     .case-status.due { color: #facc15; }
     .library { display: grid; gap: 12px; }
@@ -494,6 +502,37 @@
     body[data-module="progress"] .panel { inset: var(--header-h) 0 0 0; max-width: none; max-height: none; border-radius: 0; padding: 0; gap: 0; background: var(--bg); backdrop-filter: none; align-content: start; }
     #mod-progress { max-width: 760px; padding: 20px 24px; }
     #mod-progress h4 { margin: 0; font-size: 0.9286rem; }
+    /* Acerca de (/acerca): a full page like Progreso, shown by the module alone (static markup); the FAQ as <details> */
+    #mod-about { display: none; max-width: 760px; padding: 20px 24px; }
+    body[data-module="about"] #mod-about { display: grid; }
+    body[data-module="about"] :is(#cube, .view, #moves) { display: none; }
+    body[data-module="about"] .panel { inset: var(--header-h) 0 0 0; max-width: none; max-height: none; border-radius: 0; padding: 0; gap: 0; background: var(--bg); backdrop-filter: none; align-content: start; }
+    #mod-about :is(h2, h3, p, ul) { margin: 0; }
+    #mod-about h3 { margin-top: 8px; font-size: 1.0714rem; }
+    #mod-about ul { padding-left: 1.3em; display: grid; gap: 4px; }
+    #mod-about details { padding: 10px 12px; border-radius: 10px; background: #11141b; }
+    #mod-about details p { margin-top: 6px; line-height: 1.55; color: #c9cdd8; }
+    #mod-about a, .foot-link a { color: var(--accent); }
+    .foot-link { margin: 0; font-size: 0.8571rem; }
+    /* ES · EN (boot.ts): in the ☰ menu's foot and on /acerca. English pages wait hidden for their texts (inline script) */
+    .i18n-wait body { visibility: hidden; animation: i18n-show 0s 3s forwards; }
+    @keyframes i18n-show { to { visibility: visible; } }
+    /* src/seo.ts's prerendered (Spanish) content: hidden for English until the app renders over it, or after 10 s */
+    html[lang="en"] [data-prerendered] { visibility: hidden; animation: i18n-show 0s 10s forwards; }
+    .lang-switch { color: var(--muted); }
+    .lang-switch button { padding: 4px 8px; background: none; color: var(--muted); }
+    .lang-switch button[aria-pressed="true"] { color: var(--fg); font-weight: 600; }
+    .header-menu .lang-switch { display: none; margin: 0; }
+    @media (max-width: 759px) { .header-menu:popover-open .lang-switch { display: block; font-size: 0.9286rem; } }
+    .menu-about { display: none; } /* wide screens: the bar has no room; the Resolver and the Academia link it instead */
+    @media (max-width: 759px) { .header-menu:popover-open .menu-about { display: block; padding: 4px 12px; color: var(--muted); font-size: 0.9286rem; } }
+    @media (max-width: 600px) { body[data-module="about"] .panel { bottom: var(--tabbar-h); } #mod-about { padding: 16px; } }
+    /* the Resolver's first-visit card (body.fresh: no saved data, decided before the first paint) */
+    #welcome { display: none; gap: 8px; padding: 12px; border-radius: 10px; border: 1px solid #2a3142; background: #11141b; }
+    body.fresh #welcome { display: grid; }
+    body[data-module="solve"] #mod-solve > #welcome { order: 2; } /* after Empezar (same order, later in the DOM), before the cube: #mod-solve > * is order 4 */
+    #welcome p { margin: 0; font-weight: 600; }
+    #welcome .row > * { flex: 1 1 auto; text-align: center; font-size: 0.9286rem; }
     .activity { display: grid; grid-template-rows: repeat(7, 14px); grid-auto-flow: column; grid-auto-columns: 14px; gap: 3px; }
     .activity span { border-radius: 3px; background: #2a3142; }
     .activity .l1 { background: color-mix(in srgb, var(--accent) 35%, #2a3142); }
@@ -580,10 +619,23 @@
   <script>
     // The layout depends on these (main.ts sets them too): set before the first paint so nothing moves when the app loads
     (function (b, p) {
-      var m = /^\/(academia|algoritmos)(\/|$)/.test(p) ? 'academy' : /^\/progreso(\/|$)/.test(p) ? 'progress' : /^\/(cubo|guia)(\/|$)/.test(p) ? 'cube' : 'solve';
+      // Language (i18n.ts reads <html lang>): the remembered one, else the browser's (en* → English), but not for crawlers:
+      // the URLs are the Spanish pages (title, description, prerendered content), so they read them in Spanish. English
+      // waits hidden (html.i18n-wait) for boot.ts to swap the build's Spanish texts, so they never flash; CSS shows it
+      // anyway after 3 s. Its dictionary chunk (`en`, written in by the build: vite.config.ts) is fetched alongside the app.
+      var h = document.documentElement, l, en = '';
+      try { l = localStorage.getItem('lang'); } catch (x) {}
+      if (l !== 'es' && l !== 'en') l = /^en/i.test(navigator.language || '') && !/bot|crawl|spider|slurp/i.test(navigator.userAgent || '') ? 'en' : 'es';
+      h.lang = l;
+      if (l === 'en') h.classList.add('i18n-wait');
+      if (l === 'en' && en) { var k = document.createElement('link'); k.rel = 'modulepreload'; k.crossOrigin = ''; k.href = en; document.head.appendChild(k); }
+      var m = /^\/(academia|algoritmos)(\/|$)/.test(p) ? 'academy' : /^\/progreso(\/|$)/.test(p) ? 'progress' : /^\/acerca(\/|$)/.test(p) ? 'about' : /^\/(cubo|guia)(\/|$)/.test(p) ? 'cube' : 'solve';
       b.dataset.module = m;
       if (/^\/cubo\/pintar(\/|$)/.test(p)) b.setAttribute('data-paint', '');
       try { var e = JSON.parse(localStorage.getItem('cube-event')); if (m === 'solve' && typeof e === 'string' && e.slice(0, 3) !== '333') b.classList.add('other-puzzle'); } catch (x) {}
+      // First visit (none of the app's keys, as progress.ts's inBackup, but the empty times main.ts writes on load):
+      // the Resolver's welcome card, laid out before the first paint so nothing moves. Dismissed: 'cube-welcome'.
+      try { for (var i = 0, s = localStorage, k, fresh = true; fresh && i < s.length; i++) { k = s.key(i); if (/^(cube|academy|quiz|cross|practice|progress|paint)-/.test(k) && !(k === 'cube-results' && s.getItem(k) === '[]')) fresh = false; } if (fresh) b.classList.add('fresh'); } catch (x) {}
     })(document.body, location.pathname);
   </script>
   <header class="app-header">
@@ -601,6 +653,8 @@
       <nav class="menu menu-cube" data-i18n-aria-label="menu.cube">
         <a href="/cubo" data-mod="cube" data-i18n="menu.cube"></a>
       </nav>
+      <a class="menu-about" href="/acerca" data-mod="about" data-i18n="about.link"></a><!-- the ☰ menu's foot only -->
+      <p class="lang-switch" role="group" data-i18n-aria-label="lang.label"><button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button></p>
     </div>
     <!-- always in the bar, phones included (there only the status) -->
     <dl class="header-status">
@@ -616,7 +670,7 @@
     <a href="/progreso" data-mod="progress"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M6 17v-5M11 17V6M16 17v-8M21 17v-3"/></svg><span data-i18n="nav.progress"></span></a>
     <a href="/cubo" data-mod="cube"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg><span data-i18n="menu.cube"></span></a>
   </nav>
-  <div class="panel">
+  <main class="panel">
     <section id="mod-solve" role="region" data-i18n-aria-label="menu.solve">
       <div class="solve-top">
         <label class="event-pick"><span data-i18n="event.label"></span> <select id="event"></select></label>
@@ -631,6 +685,15 @@
         <button id="start" class="primary" title="Espacio" data-i18n="solve.start"></button>
         <button id="new-scramble" title="N" data-i18n="solve.newScramble"></button>
       </div>
+      <!-- first visit only (body.fresh, set by the inline script above): under Empezar, so it never pushes it down -->
+      <section id="welcome" class="welcome" aria-labelledby="welcome-title">
+        <p id="welcome-title" data-i18n="about.welcome"></p>
+        <div class="row">
+          <a class="button" href="/academia/cruz" data-i18n="about.welcomeLearn"></a>
+          <a class="button" href="/academia/cfop-reducido" data-i18n="about.welcomeCfop"></a>
+          <button id="welcome-timer" type="button" data-i18n="about.welcomeTimer"></button>
+        </div>
+      </section>
       <p id="stats"></p>
       <div class="row solve-more">
         <button id="stats-open" class="small" aria-haspopup="dialog" data-i18n="stats.open"></button>
@@ -640,6 +703,7 @@
         <button id="reset-results" class="small" hidden data-i18n="results.deleteAll"></button>
       </div>
       <ol id="results" class="results" reversed></ol>
+      <p class="foot-link"><a href="/acerca" data-i18n="about.link"></a></p>
     </section>
     <section id="mod-cube" class="cube-screen" data-i18n-aria-label="menu.cube" hidden>
       <h2 data-i18n="cube.title"></h2>
@@ -718,6 +782,27 @@
     </section>
     <section id="mod-academy" data-i18n-aria-label="menu.academy" hidden></section>
     <section id="mod-progress" class="cube-screen" data-i18n-aria-label="nav.progress" hidden></section>
+    <!-- Acerca de (/acerca): static, shown by body[data-module="about"] (CSS), so a deep link has it on the first paint -->
+    <section id="mod-about" class="cube-screen" aria-labelledby="about-title">
+      <h2 id="about-title" data-i18n="about.title"></h2>
+      <p data-i18n="about.intro"></p>
+      <p class="lang-switch" role="group" aria-labelledby="about-lang"><span id="about-lang" data-i18n="lang.label"></span> <button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button></p>
+      <ul class="about-points">
+        <li data-i18n="about.pointFree"></li>
+        <li data-i18n="about.pointLocal"></li>
+        <li data-i18n="about.pointCube"></li>
+        <li data-i18n="about.pointOffline"></li>
+      </ul>
+      <h3 data-i18n="about.faq"></h3>
+      <details><summary data-i18n="about.qFree"></summary><p data-i18n="about.aFree"></p></details>
+      <details><summary data-i18n="about.qAccount"></summary><p data-i18n="about.aAccount"></p></details>
+      <details><summary data-i18n="about.qCube"></summary><p data-i18n="about.aCube"></p></details>
+      <details><summary data-i18n="about.qIphone"></summary><p data-i18n="about.aIphone"></p><p><a href="/cubo" data-i18n="about.aIphoneLink"></a></p></details>
+      <details><summary data-i18n="about.qData"></summary><p data-i18n="about.aData"></p><p><a href="/progreso" data-i18n="about.aDataLink"></a></p></details>
+      <details><summary data-i18n="about.qOffline"></summary><p data-i18n="about.aOffline"></p></details>
+      <details><summary data-i18n="about.qWho"></summary><p data-i18n="about.aWho"></p></details>
+      <details><summary data-i18n="about.qWca"></summary><p data-i18n="about.aWca"></p></details>
+    </section>
     <!-- a case's page (caseView.ts): the head goes in #mod-academy; the rest lives here, so its 3D cube is never re-attached -->
     <section id="case" class="case-page" hidden>
       <div class="case-visual"><div id="case-diagram" class="case-diagram"></div><div id="case-anim"></div><div id="case-player" class="case-player" role="group" data-i18n-aria-label="anim.label" hidden></div></div>
@@ -744,7 +829,7 @@
       <p class="hint" data-i18n="guide.holdHint"></p>
     </section>
     <div id="moves"></div>
-  </div>
+  </main>
   <!-- the 3D cube (main.ts appends its player) with the view arrows in its corner; after the panel so the arrows tab after it -->
   <div id="cube">
     <div class="view" role="group" data-i18n-aria-label="view.label">

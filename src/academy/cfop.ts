@@ -1,10 +1,15 @@
 // "CFOP reducido" (Parte 1 of the training plan): 19 F2L + OLL in 2 steps + PLL in 2 steps, plus the
 // plan's quizzes. Text is the plan's wording; algorithms and scrambles are the plan's, with ASCII primes.
-import type { Localized } from '../i18n.ts';
+import { loc, type Localized } from '../i18n.ts';
 import type { Case, Method, OfficialQuiz, QuizItem, SpeedCubeDbRef, Stage } from './types.ts';
 import { scdbUrl } from './scdb.ts';
+import { EN } from './cfop.en.ts';
 
-const es = (text: string): Localized => ({ es: text });
+// Spanish text -> Localized; English comes from EN line by line (see cfop.en.ts).
+const es = (text: string): Localized => {
+  const en = text.split('\n').map((line) => EN[line]);
+  return en.includes(undefined as never) ? { es: text } : { es: text, en: en.join('\n') };
+};
 
 const PLAN_B_NOTE = es('Plan B: más fácil al principio; solo R, U y F o gatillos conocidos.');
 
@@ -65,10 +70,11 @@ function kase(r: Row): Case {
   if (r.planB) algs.push({ id: 'plan-b', alg: r.planB, source: 'plan-b', note: PLAN_B_NOTE });
   const id = `cfop-${r.stage.split('-')[0]}-${r.slug}`;
   for (const [rank, alg] of SCDB_ALTS[id] ?? []) algs.push({ id: `scdb-${rank}`, alg, source: 'speedcubedb', rank });
+  const name = { es: r.name ?? r.code, en: EN[r.name ?? r.code] ?? r.name ?? r.code };
   return {
     id,
-    code: r.code,
-    name: es(r.name ?? r.code),
+    code: r.name ? r.code : loc(name), // a code that is a word (Línea, Punto) in the visitor's language
+    name,
     recognition: es(r.recognition),
     stage: r.stage,
     algs,

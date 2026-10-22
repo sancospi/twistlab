@@ -7,7 +7,7 @@ import { caseState } from './cube.ts';
 import { isoSVG, llArrows, maskFor, topSVG, netSVG } from './diagram.ts';
 import { findCase } from './methods.ts';
 
-const YELLOW = '#ffd60a', GREEN = '#22c55e', WHITE = '#f5f5f5', ORANGE = '#f97316', GREY = '#9ca3af';
+const YELLOW = '#ffd60a', GREEN = '#22c55e', WHITE = '#f5f5f5', ORANGE = '#ff8a1f', GREY = '#9ca3af';
 
 /** facelet index -> { fill, points } for every sticker in the markup. */
 function stickers(svg: string): Map<number, { fill: string; points: string }> {
@@ -60,7 +60,7 @@ test('solved cube: iso shows U, F, R fully colored; top shows U and its side bar
   const top = stickers(topSVG(SOLVED_FACELETS, 'pll'));
   assert.deepEqual([...top.keys()].sort((a, b) => a - b), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 18, 19, 20, 36, 37, 38, 45, 46, 47]);
   assert.equal(top.get(47)!.fill, '#2563eb');
-  assert.equal(top.get(36)!.fill, '#ef4444');
+  assert.equal(top.get(36)!.fill, '#d1192e');
 });
 
 test('svg is accessible and escapes its title', () => {

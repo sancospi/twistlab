@@ -64,3 +64,6 @@ function place(tip: HTMLElement, target: HTMLElement) {
   tip.style.top = `${below ? r.bottom + gap : r.top - gap - height}px`;
   tip.style.left = `${Math.min(Math.max(gap, r.left + r.width / 2 - width / 2), innerWidth - width - gap)}px`;
 }
+
+/** Closes the tooltip, e.g. when a link in it leaves the page. */
+export const hideTip = (): void => void (box?.matches(':popover-open') && box.hidePopover());

@@ -1,3 +1,7 @@
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 import { es, type MessageKey } from './src/i18n/es.ts';
 
@@ -13,12 +17,77 @@ const i18nHtml: Plugin = {
     .replace(/\sdata-i18n-(title|aria-label)="([\w.]+)"/g, (m, attr, key) => `${m} ${attr}="${text(key)}"`),
 };
 
+// English visitors' dictionary (i18n/en.ts, its own chunk): index.html's inline script preloads it, so it loads alongside
+// boot.ts instead of after it (English pages stay hidden until it's in). Its hashed name is written in here.
+const enPreload: Plugin = {
+  name: 'en-preload',
+  apply: 'build',
+  transformIndexHtml: {
+    order: 'post',
+    handler(html, { bundle }) {
+      const chunk = Object.values(bundle ?? {}).find((c) => c.type === 'chunk' && c.facadeModuleId?.endsWith('/src/i18n/en.ts'));
+      if (!chunk || !html.includes("en = ''")) throw new Error('en-preload: no en.ts chunk, or index.html\'s `en = \'\'` is gone');
+      return html.replace("en = ''", `en = '/${chunk.fileName}'`);
+    },
+  },
+};
+
+// public/sw.js precaches the whole build (every file in dist, the solver worker's too, and '/' for index.html; not the
+// crawlers' files: robots, sitemap, the pages src/seo.ts writes): written in once the build is on disk. The version is a hash of all of it, so any change makes a new worker (and cache).
+const swPrecache: Plugin = {
+  name: 'sw-precache',
+  apply: 'build',
+  writeBundle: {
+    order: 'post',
+    handler({ dir = 'dist' }) {
+      const files = (readdirSync(dir, { recursive: true }) as string[]).map((f) => f.split('\\').join('/'))
+        .filter((f) => f !== 'sw.js' && !/\.(xml|txt)$|.\/index\.html$/.test(f) && statSync(join(dir, f)).isFile()).sort();
+      const hash = createHash('sha256');
+      for (const f of files) hash.update(f).update(readFileSync(join(dir, f)));
+      const version = `const VERSION = '${hash.digest('hex').slice(0, 12)}';`;
+      const precache = `const PRECACHE = ${JSON.stringify(['/', ...files.filter((f) => f !== 'index.html').map((f) => `/${f}`)])};`;
+      const sw = join(dir, 'sw.js');
+      const out = readFileSync(sw, 'utf8').replace("const VERSION = 'dev';", version).replace("const PRECACHE = ['/'];", precache);
+      if (!out.includes(version) || !out.includes(precache)) this.error('sw.js: the VERSION / PRECACHE lines to fill are gone');
+      writeFileSync(sw, out);
+    },
+  },
+};
+
+// Every case, method, the library and /acerca get their own index.html (src/seo.ts): crawlers read each page's title,
+// description and content without running the app; the sitemap lists them. Static files win over vercel.json's rewrite.
+let outDir = 'dist';
+let building = false; // vite preview runs as 'serve' (its middleware below), and dev closes bundles too
+const prerender: Plugin = {
+  name: 'prerender',
+  configResolved: (c) => void ((outDir = join(c.root, c.build.outDir)), (building = c.command === 'build')),
+  async closeBundle() {
+    if (!building) return;
+    const [{ cube3x3x3 }, { prerender: render, seoPages, sitemap }] = await Promise.all([import('cubing/puzzles'), import('./src/seo.ts')]);
+    const html = await readFile(join(outDir, 'index.html'), 'utf8');
+    const pages = seoPages(await cube3x3x3.kpuzzle());
+    await Promise.all(pages.map(async (p) => {
+      const dir = join(outDir, p.path);
+      await mkdir(dir, { recursive: true });
+      await writeFile(join(dir, 'index.html'), render(html, p));
+    }));
+    const map = join(outDir, 'sitemap.xml');
+    await writeFile(map, sitemap(await readFile(map, 'utf8'), pages.map((p) => p.path)));
+  },
+  // vite preview as Vercel: /x serves x/index.html (sirv only does it for /x/)
+  configurePreviewServer: (server) => void server.middlewares.use((req, _res, next) => {
+    const path = req.url?.split('?')[0] ?? '/';
+    if (!path.endsWith('/') && existsSync(join(outDir, decodeURIComponent(path), 'index.html'))) req.url = path + '/' + req.url!.slice(path.length);
+    next();
+  }),
+};
+
 // cubing.js looks for its solver worker at `./search-worker-entry.js` next to its own code
 // (import.meta.resolve). Vite can't see that, so src/main.ts imports the entry with `?worker&url`
 // to emit it as a self-contained worker bundle, named exactly what cubing.js looks for.
 // Without it, cubing.js falls back to a worker that shares the page's chunks and runs page code.
 export default defineConfig({
-  plugins: [i18nHtml],
+  plugins: [i18nHtml, enPreload, swPrecache, prerender],
   optimizeDeps: { exclude: ['cubing'] }, // keep cubing's files unbundled in dev so its lookup works there too
   worker: {
     format: 'es',

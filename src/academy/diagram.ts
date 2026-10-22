@@ -11,7 +11,7 @@ export interface DiagramOpts {
 }
 
 export const COLORS: Record<string, string> = {
-  U: '#ffd60a', D: '#f5f5f5', F: '#22c55e', B: '#2563eb', R: '#f97316', L: '#ef4444',
+  U: '#ffd60a', D: '#f5f5f5', F: '#22c55e', B: '#2563eb', R: '#ff8a1f', L: '#d1192e', // orange lighter and yellower, red deeper: they stay apart on thin side stickers
 };
 /** Sticker colors of a cube held as `hold` (place -> user face, cube.ts HOLDS): what each place really shows. */
 export const heldColors = (hold: Record<string, string>): Record<string, string> =>

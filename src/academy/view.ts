@@ -3,6 +3,7 @@
 // and groups, each case as a card that opens its page (caseView.ts: Practicar, Quiz, Memoria muscular), with Quiz
 // buttons per group and phase, plus the plan's own quizzes: the same Quiz, only the scope changes.
 import { prose } from '../rich-text-view.ts';
+import { TERMS } from '../terms.ts';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
@@ -13,7 +14,7 @@ import { algView } from '../notation-view.ts';
 import type { MessageKey } from '../i18n.ts';
 import { loc, t, tp } from '../i18n.ts';
 import { guidePage, guideSegment, routePath, type AcademyPage, type GuidePage } from '../router.ts';
-import { caseState } from './cube.ts';
+import { LL_STEPS, caseState } from './cube.ts';
 import { crossGuide } from './crossGuide.ts';
 import { crossSections, trainerButton } from './crossView.ts';
 import { courseFor, MOVE_GROUPS, type Course } from './lessons.ts';
@@ -200,7 +201,8 @@ function homeView(): HTMLElement {
   return el('section', { className: 'academy-home' },
     el('h2', { textContent: t('menu.academy') }),
     text(t('academy.homeIntro'), 'prose hint'),
-    el('div', { className: 'tiles' }, cross, ...tiles, notation, paint));
+    el('div', { className: 'tiles' }, cross, ...tiles, notation, paint),
+    el('p', { className: 'foot-link' }, el('a', { href: routePath({ mod: 'about' }), textContent: t('about.link') })));
 }
 
 // Section anchors for the side navigation (phase and group ids are unique across methods)
@@ -217,10 +219,6 @@ function navView(m: Method): Node[] {
 
 // --- Notation glossary: every kind of move (tappable, animated in a tooltip) and the plan's terms ---
 
-const TERMS: { key: string; example?: string }[] = [
-  { key: 'auf', example: "U U' U2" }, { key: 'trigger', example: "R U R' U'" }, { key: 'setup' }, { key: 'planB' },
-  { key: 'htm' }, { key: 'cross' }, { key: 'slot' }, { key: 'f2l' }, { key: 'oll' }, { key: 'pll' }, { key: 'headlights' }, { key: 'inspection' },
-];
 const g = (key: string) => t(`glossary.${key}` as MessageKey);
 
 function notationView(): HTMLElement {
@@ -296,7 +294,8 @@ function phaseView(phase: Phase): HTMLElement {
     el('div', { className: 'quiz-set', role: 'group', ariaLabel: label }, el('span', { className: 'quiz-set-label', textContent: label, title: hint }), ...buttons);
   const quizzes = !cases.length ? [] : [el('div', { className: 'quiz-sets' },
     set(t('academy.quizGenerated'), t('academy.quizGeneratedHint'),
-      quizButton(t('academy.quizPhase'), { kind: 'cases', id: phase.id, cases, title: loc(phase.name) }, t('academy.quizOf', { name: loc(phase.name) }))),
+      quizButton(t('academy.quizPhase'), { kind: 'cases', id: phase.id, cases, title: loc(phase.name) }, t('academy.quizOf', { name: loc(phase.name) })),
+      ...lastLayerButton(phase)),
     ...(phase.quizzes.length ? [set(t('academy.quizOfficial'), t('academy.quizOfficialHint'),
       ...phase.quizzes.map((quiz) => quizButton(loc(quiz.name), { kind: 'official', quiz, phase })))] : []))]; // none without cases
   return el('section', { className: 'academy-phase', id: anchor(phase.id) },
@@ -305,6 +304,16 @@ function phaseView(phase: Phase): HTMLElement {
     ...(phase.progression ? [el('details', {}, el('summary', { textContent: t('academy.progression') }), prose(loc(phase.progression)))] : []),
     ...quizzes,
     el('div', { className: 'academy-groups' }, ...phase.groups.map((g) => groupView(phase, g))));
+}
+
+/** "Última capa completa" (OLL then PLL on random states), in the PLL phase of a method that has OLL and PLL. */
+function lastLayerButton(phase: Phase): HTMLElement[] {
+  const m = METHODS.find((x) => x.phases.includes(phase))!;
+  const cases = allCases(m).filter((c) => LL_STEPS.includes(c.stage));
+  if (!phase.groups.some((g) => g.cases.some((c) => c.stage === 'pll-edges')) || !cases.some((c) => c.stage.startsWith('oll'))) return [];
+  const b = quizButton(t('ll.title'), { kind: 'll', id: `${m.id}:ll`, cases, title: `${t('ll.title')} · ${loc(m.name)}` });
+  b.title = t('ll.hint');
+  return [b];
 }
 
 function groupView(phase: Phase, g: Group): HTMLElement {

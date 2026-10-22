@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  KNOWN_DAYS, addRep, average, graded, isDue, learnStatus, parseLearning, parsePrefs, parseStats, preferred, timed,
+  KNOWN_DAYS, addRep, average, byChoice, graded, isDue, learnStatus, parseLearning, parsePrefs, parseStats, preferred, timed,
   type CaseStats, type Learning,
 } from './store.ts';
 import { findCase } from './methods.ts';
@@ -95,4 +95,14 @@ test('parseLearning keeps valid entries and drops corrupted ones', () => {
   });
   assert.deepEqual(parsed, { a: ok });
   for (const junk of [null, 42, 'x', [ok]]) assert.deepEqual(parseLearning(junk), {});
+});
+
+test('byChoice: chosen, then the Plan B (else the next one), then the rest in order', () => {
+  const v = (id: string, source: 'speedcubedb' | 'plan-b' = 'speedcubedb') => ({ id, alg: 'R', source });
+  const [a, b, pb, c] = [v('a'), v('b'), v('pb', 'plan-b'), v('c')];
+  const ids = (xs: { id: string }[]) => xs.map((x) => x.id).join();
+  assert.equal(ids(byChoice([a, b, pb, c], a)), 'a,pb,b,c');
+  assert.equal(ids(byChoice([a, b, pb, c], c)), 'c,pb,a,b');
+  assert.equal(ids(byChoice([a, b, pb, c], pb)), 'pb,a,b,c'); // the Plan B chosen: the next in order is the secondary
+  assert.equal(ids(byChoice([a], a)), 'a');
 });

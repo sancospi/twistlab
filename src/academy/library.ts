@@ -6,7 +6,7 @@ import { IDENTITY, centerMoves, invertTokens, mirrorTokens, tokenize } from '../
 import { caseState } from './cube.ts';
 import { aufFor } from './score.ts';
 import { isDue, learnStatus, type Learning } from './store.ts';
-import type { Case, Stage } from './types.ts';
+import type { Case, Group, Method, Phase, Stage } from './types.ts';
 
 /** The first of `among` that `tokens` solves (with an AUF before, like every algorithm here). */
 const solvedBy = (kpuzzle: KPuzzle, tokens: string[], among: Case[]): Case | undefined =>
@@ -39,10 +39,13 @@ export const STATUSES: CaseStatus[] = ['new', 'learning', 'known', 'due'];
 
 /** The set a case's algorithm belongs to, by what it solves (the beginner's yellow cross is the OLL's first look). */
 export function caseSet(stage: Stage): CaseSet {
-  if (stage === 'f2l') return 'f2l';
-  if (stage === 'oll-cross' || stage === 'oll-corners') return 'oll';
-  if (stage === 'pll-corners' || stage === 'pll-edges') return 'pll';
-  return 'beginner';
+  switch (stage) {
+    case 'f2l': return 'f2l';
+    case 'oll-cross': case 'oll-corners': return 'oll';
+    case 'pll-corners': case 'pll-edges': return 'pll';
+    case 'first-layer': case 'second-layer': case 'll-edges': case 'll-corners-placed': case 'll-corners-twist': return 'beginner';
+    default: { const unlisted: never = stage; return unlisted; } // a new Stage: pick its set here (tsc fails until then)
+  }
 }
 
 export interface LibraryFilter {
@@ -71,3 +74,21 @@ export function matches(c: Case, algs: string[], f: LibraryFilter, learning: Lea
   const text = ' ' + fold([loc(c.name), loc(c.recognition)].join(' ')).replace(/[^\p{L}\p{N}]+/gu, ' ') + ' ';
   return q.split(' ').every((w) => w === code || text.includes(w.length < 3 ? ` ${w} ` : ` ${w}`));
 }
+
+// --- Library: what's listed and how it's grouped ---
+
+/** method: method -> phase -> group, as the methods teach them; set: F2L / OLL / PLL / beginner, across methods. */
+export type GroupBy = 'method' | 'set';
+export const GROUP_BYS: GroupBy[] = ['method', 'set'];
+
+/** A case as listed: under its method (the same set's cases of two methods are both listed, each with its method). */
+export interface Entry { method: Method; phase: Phase; group: Group; c: Case }
+
+/** Every case of `methods`, only the method with id `method` when given, in their order. */
+export const libraryEntries = (methods: Method[], method: string): Entry[] =>
+  methods.filter((m) => !method || m.id === method).flatMap((m) =>
+    m.phases.flatMap((phase) => phase.groups.flatMap((group) => group.cases.map((c) => ({ method: m, phase, group, c })))));
+
+/** The entries by set, in SETS' order, without empty sets; inside, the methods' order. */
+export const bySet = (entries: Entry[]): { set: CaseSet; entries: Entry[] }[] =>
+  SETS.map((set) => ({ set, entries: entries.filter((e) => caseSet(e.c.stage) === set) })).filter((s) => s.entries.length);
