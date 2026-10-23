@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Result } from './timer.ts';
-import { activity, appData, daily, dayOf, estimateGoal, packBackup, parseGoal, replaceAppData, unpackBackup, type Day, type StorageLike } from './progress.ts';
+import { activity, appData, daily, dayOf, estimateGoal, streak, packBackup, parseGoal, replaceAppData, unpackBackup, type Day, type StorageLike } from './progress.ts';
 
 const DAY = 86_400_000;
 const NOW = new Date(2026, 9, 21, 18).getTime(); // a Wednesday, 18:00 local
@@ -63,6 +63,14 @@ test('activity: whole weeks from Monday to today, counted per local day', () => 
   assert.equal(a.at(-1)!.n, 2);
   assert.equal(a.at(-3)!.n, 1);
   assert.equal(a.reduce((s, x) => s + x.n, 0), 3);
+});
+
+test('streak: days in a row up to today, or up to yesterday while today is still empty', () => {
+  assert.equal(streak([], NOW), 0);
+  assert.equal(streak([daysAgo(0, 1), daysAgo(1), daysAgo(1, 2), daysAgo(2)], NOW), 3);
+  assert.equal(streak([daysAgo(1), daysAgo(2)], NOW), 2); // today not practised yet: the streak still stands
+  assert.equal(streak([daysAgo(2), daysAgo(3)], NOW), 0); // yesterday missed
+  assert.equal(streak([daysAgo(0), daysAgo(2)], NOW), 1);
 });
 
 const fakeStorage = (init: Record<string, string>, quota = Infinity): StorageLike & { map: Map<string, string> } => {

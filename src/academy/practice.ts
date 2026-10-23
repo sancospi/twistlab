@@ -13,13 +13,13 @@ import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
 import { describe, nextStep, PathGuide } from '../guide.ts';
-import { IDENTITY, YELLOW_UP, centerMoves, expand, formatAlg, htm, invertTokens, mapMove, tokenize, triggerSegments, turnCount, unmapMove } from '../notation.ts';
+import { CAMERA, IDENTITY, YELLOW_UP, caseSetup, centerMoves, expand, formatAlg, htm, mapMove, tokenize, triggerSegments, turnCount, unmapMove } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView } from '../notation-view.ts';
 import { inlineText } from '../rich-text-view.ts';
 import { loc, t, tp, type MessageKey } from '../i18n.ts';
 import { caseState, goalReached, practiceSpec, quizPattern, type QuizSpec } from './cube.ts';
-import { caseDiagram, type DiagramOpts } from './diagram.ts';
+import { caseDiagram, isoTurns, type DiagramOpts } from './diagram.ts';
 import { StepFollower } from './follow.ts';
 import { cube, type CubeListener } from './link.ts';
 import { addCustom, average, byChoice, preferred, recordRep, removeCustom, save, setPreferred, setting, statsFor, STREAK_GOAL, variants, type Rep } from './store.ts';
@@ -75,12 +75,23 @@ export function setPuzzle(p: TwistyPlayer, puzzle: Puzzle): void {
   puzzles.set(p, puzzle);
 }
 
-/** Sets a player up: `alg` from the state `setup` leads to (user frame: yellow up, green front), the stage's pieces in color. */
-export function loadCase(p: TwistyPlayer, stage: Stage, setup: string[], alg: string[]): void {
+/** Points a 3D player at the figures' corner (CAMERA: yellow up, green front, orange right), or, for a stage whose iso
+ *  figure turns (an F2L back slot), at the corner it turns to: the view moves, the cube stays held green front, so the
+ *  algorithm still reads as written. Also undoes a drag left over from the last case. `setup`: user frame. */
+export function aim(p: TwistyPlayer, kpuzzle?: KPuzzle, stage?: Stage, setup: string[] = []): void {
+  const turns = kpuzzle && stage ? isoTurns(stage, () => patternToFacelets(kpuzzle.defaultPattern().applyAlg(setup.join(' ')))) : 0;
+  p.cameraLatitude = CAMERA.latitude;
+  p.cameraLongitude = CAMERA.longitude + 90 * turns;
+}
+
+/** Sets a player up: `alg` from the state `setup` leads to (user frame: yellow up, green front; face turns, as from
+ *  caseSetup, so it starts held like the figure), the stage's pieces in color, seen from the figure's corner. */
+export function loadCase(p: TwistyPlayer, kpuzzle: KPuzzle, stage: Stage, setup: string[], alg: string[]): void {
   setPuzzle(p, puzzleOf(stage));
   p.experimentalSetupAlg = ['z2', ...setup].join(' '); // the player starts white up: z2 is the plan's yellow up
   p.alg = alg.join(' ');
   p.experimentalStickeringMaskOrbits = MASKS[stage];
+  aim(p, kpuzzle, stage, setup);
   p.jumpToStart();
 }
 
@@ -263,7 +274,7 @@ function showContent() {
 }
 
 // Practicar: from this repetition's scramble; Memoria muscular: the algorithm backwards, as on the case page.
-const anim = new Animation($('practice-player'), (p) => loadCase(p, kase.stage, tab === 'practice' ? rep.spec.moves : invertTokens(tokens), active()));
+const anim = new Animation($('practice-player'), (p) => loadCase(p, kpuzzle, kase.stage, tab === 'practice' ? rep.spec.moves : caseSetup(tokens), active()));
 $('practice-anim').append(anim.button());
 
 function showStatic() {

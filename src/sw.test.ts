@@ -92,3 +92,18 @@ test('a waiting version activates when told to', async () => {
   await fire('message', { data: 'skip-waiting' });
   assert.equal(skipped, true);
 });
+
+test('the daily reminder: a push shows its notification, tapping it opens /hoy', async () => {
+  const shown: [string, { body: string; data: { url: string } }][] = [];
+  const opened: string[] = [];
+  const sw = (globalThis as unknown as { self: Record<string, unknown> }).self;
+  Object.assign(sw.registration as object, { showNotification: async (title: string, o: never) => void shown.push([title, o]) });
+  sw.clients = { matchAll: async () => [], openWindow: async (url: string) => void opened.push(url) };
+  await fire('push', { data: { json: () => ({ title: 'Hora de practicar', body: '3 casos', url: '/hoy' }) } });
+  await fire('push', { data: { json: () => { throw new SyntaxError(); } } });
+  assert.deepEqual(shown.map(([t, o]) => [t, o.body, o.data.url]), [['Hora de practicar', '3 casos', '/hoy'], ['TwistLab', '', '/hoy']]);
+  let closed = false;
+  await fire('notificationclick', { notification: { data: { url: '/hoy' }, close: () => { closed = true; } } });
+  assert.ok(closed);
+  assert.deepEqual(opened, [`${ORIGIN}/hoy`]);
+});

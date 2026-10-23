@@ -43,7 +43,7 @@ export async function body(req, max) {
 /** The Set-Cookie that ends the session. @param {Request} req */
 export const clearCookie = (req) => ({ 'Set-Cookie': sessionCookie(null, isSecure(req.url)) });
 
-/** @typedef {{ id: number, email: string, headers: Record<string, string> }} Session */
+/** @typedef {{ id: number, email: string, name: string | null, headers: Record<string, string> }} Session */
 
 /** The signed-in user, from the session cookie; null without a live session. The session slides: each use moves its
  * end SESSION_DAYS ahead and sends the cookie again (`headers`), written at most once an hour to spare the database.
@@ -52,15 +52,15 @@ export async function session(req) {
   const token = readCookie(req.headers.get('cookie'));
   if (!token) return null;
   const hash = tokenHash(token);
-  const [s] = await db()`SELECT u.id, u.email, s.last_used_at < now() - interval '1 hour' AS stale
+  const [s] = await db()`SELECT u.id, u.email, u.name, s.last_used_at < now() - interval '1 hour' AS stale
     FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ${hash} AND s.expires_at > now()`;
   if (!s) return null;
-  if (!s.stale) return { id: s.id, email: s.email, headers: {} };
+  if (!s.stale) return { id: s.id, email: s.email, name: s.name, headers: {} };
   await db().transaction([
     db()`UPDATE sessions SET expires_at = now() + make_interval(days => ${SESSION_DAYS}), last_used_at = now() WHERE token_hash = ${hash}`,
     db()`UPDATE users SET last_seen_at = now() WHERE id = ${s.id}`,
   ]);
-  return { id: s.id, email: s.email, headers: { 'Set-Cookie': sessionCookie(token, isSecure(req.url)) } };
+  return { id: s.id, email: s.email, name: s.name, headers: { 'Set-Cookie': sessionCookie(token, isSecure(req.url)) } };
 }
 
 /** Rate limits: each rule is [what, window in seconds, max requests in it]. If every one is under its max, the request

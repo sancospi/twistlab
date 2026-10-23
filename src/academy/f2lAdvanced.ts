@@ -147,11 +147,11 @@ export const f2lAdvanced: Method = {
   orientation: tr(
     [
       '**Cruz blanca abajo, amarillo arriba y verde al frente.** Los algoritmos se hacen siempre así.',
-      'Las figuras se giran hacia la ranura que se resuelve: **la figura gira, tú no.**',
+      'Las figuras y la animación 3D miran desde la ranura que se resuelve: **la vista gira, tú no.**',
     ].join('\n'),
     [
       '**White cross on the bottom, yellow on top and green in front.** The algorithms are always done like that.',
-      "The figures turn towards the slot being solved: **the figure turns, you don't.**",
+      "The figures and the 3D animation look from the slot being solved: **the view turns, you don't.**",
     ].join('\n'),
   ),
   before: { path: '/academia/cfop-completo#academy-cfopc-f2l', label: tr('Paso previo: el F2L de CFOP completo', 'Previous step: Full CFOP\'s F2L') },
@@ -163,7 +163,7 @@ export const f2lAdvanced: Method = {
         [
           '**16 casos** de los 41 de F2L, insertados atrás sin girar el cubo. Las ranuras de adelante ya están resueltas.',
           '## Cómo leer la figura',
-          'La figura mira desde la esquina de la ranura que se resuelve:',
+          'La figura (y la animación 3D) mira desde la esquina de la ranura que se resuelve:',
           '- **Atrás-derecha:** naranja a la izquierda, azul a la derecha.',
           '- **Atrás-izquierda:** azul a la izquierda, rojo a la derecha.',
           'El reconocimiento describe esa vista. Tú sigues con **verde al frente** y haces el algoritmo tal cual.',
@@ -175,7 +175,7 @@ export const f2lAdvanced: Method = {
         [
           '**16 cases** out of the 41 F2L, inserted at the back without rotating the cube. The front slots are already solved.',
           '## How to read the figure',
-          'The figure looks from the corner of the slot being solved:',
+          'The figure (and the 3D animation) looks from the corner of the slot being solved:',
           '- **Back-right:** orange on the left, blue on the right.',
           '- **Back-left:** blue on the left, red on the right.',
           'The recognition describes that view. You keep **green in front** and do the algorithm as written.',

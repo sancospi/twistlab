@@ -1,7 +1,7 @@
 // Reusable notation: an algorithm as tappable moves. Each move opens a tooltip with a small 3D cube doing that
 // move in a loop (camera on the turning layer) and a short caption: what turns and which way.
 import type { TwistyPlayer } from 'cubing/twisty';
-import { algParts, explainMove, moveCamera, tokenize, type AlgPart } from './notation.ts';
+import { CAMERA, algParts, explainMove, tokenize, type AlgPart } from './notation.ts';
 import { showTip } from './tooltip.ts';
 import { t } from './i18n.ts';
 
@@ -79,11 +79,10 @@ function showMove(anchor: HTMLElement, token: string, frame: NotationFrame) {
   const puzzle = anchor.closest<HTMLElement>('[data-puzzle]')?.dataset.puzzle === '2x2x2' ? '2x2x2' : '3x3x3';
   if (puzzle !== shownPuzzle) p.puzzle = shownPuzzle = puzzle; // setting it reloads the model: only on a change
   const { what, how } = explainMove(token);
-  const cam = moveCamera(token);
   p.experimentalSetupAlg = frame === 'yellow-up' ? 'z2' : '';
   p.alg = token;
-  p.cameraLatitude = cam.latitude;
-  p.cameraLongitude = cam.longitude;
+  p.cameraLatitude = CAMERA.latitude;
+  p.cameraLongitude = CAMERA.longitude;
   caption ??= Object.assign(document.createElement('div'), { className: 'tip-text' });
   caption.replaceChildren(Object.assign(document.createElement('strong'), { textContent: token }),
     Object.assign(document.createElement('span'), { textContent: what }),

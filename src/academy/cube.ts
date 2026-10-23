@@ -9,8 +9,8 @@ import { METHODS, allCases } from './methods.ts';
 import { is2x2, isRoux, type AlgVariant, type Case, type Puzzle, type Stage, type Stage2x2, type StageRoux } from './types.ts';
 
 // cubing.js 3x3x3 orbit slot order; orientation 0 = the piece's U/D (or F/B) sticker on the slot's U/D (F/B) face.
-const EDGES = 'UF UR UB UL DF DR DB DL FR FL BR BL'.split(' ');
-const CORNERS = 'UFR URB UBL ULF DRF DFL DLB DBR'.split(' ');
+export const EDGES = 'UF UR UB UL DF DR DB DL FR FL BR BL'.split(' ');
+export const CORNERS = 'UFR URB UBL ULF DRF DFL DLB DBR'.split(' ');
 
 export type Auf = '' | 'U' | "U'" | 'U2';
 const AUFS: Auf[] = ['', 'U', "U'", 'U2'];
@@ -35,7 +35,7 @@ function pieces(p: KPattern, llFace: Face, ll: boolean) {
 // The pattern under each of the four turns of the last layer (AUF before or after doesn't matter).
 const llTurns = (p: KPattern, llFace: Face) => AUFS.map((a) => (a ? p.applyMove(llFace + a.slice(1)) : p));
 
-const OPPOSITE: Record<Face, Face> = { U: 'D', D: 'U', R: 'L', L: 'R', F: 'B', B: 'F' };
+export const OPPOSITE: Record<Face, Face> = { U: 'D', D: 'U', R: 'L', L: 'R', F: 'B', B: 'F' };
 
 // The whole-cube turn that brings a side face to U: orientation 0 is about U/D stickers, so a goal on a side face
 // is checked on the state as seen from there.
@@ -46,6 +46,8 @@ function seenAfter(p: KPattern, rot: string): KPattern {
   const r = p.kpuzzle.algToTransformation(rot);
   return KPattern.fromTransformation(r.invert().applyTransformation(p.experimentalToTransformation()!).applyTransformation(r));
 }
+/** `p` turned whole so its `face` is U: a last layer as the cases (llSteps) see it. */
+export const withUp = (p: KPattern, face: Face): KPattern => (face === 'U' ? p : seenAfter(p, TO_U[face] ?? 'x2'));
 
 // --- 2x2: the corners of a 3x3 state, up to a turn of the whole cube ---
 

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { Alg } from 'cubing/alg';
-import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertTokens, mapMove, merge, tokenize, unmapMove, compact, turnCount, explainMove, moveCamera, repeats, formatAlg, mirrorTokens, triggerSegments, algTags } from './notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertTokens, mapMove, merge, tokenize, unmapMove, compact, turnCount, explainMove, repeats, formatAlg, mirrorTokens, triggerSegments, algTags } from './notation.ts';
 
 const ALGS = [
   "r U R' U' r' F R F'", "M2 U M U2 M' U M2", "U M' U' M2 U' M2 U' M' U2 M2", "y' U R U' R' U' R",
@@ -115,14 +115,6 @@ test('explainMove: what turns and which way, for every kind of token', () => {
   assert.equal(explainMove("y'").what, 'Todo el cubo · gira como U');
   assert.equal(explainMove('x').how, 'Horario, mirando la cara derecha de frente');
   assert.throws(() => explainMove('Q'));
-});
-
-test('moveCamera: the turning layer is in view', () => {
-  assert.deepEqual(moveCamera('R'), { latitude: 30, longitude: 30 });
-  assert.equal(moveCamera("L'").longitude, -30);
-  assert.equal(moveCamera('d').latitude, -30);
-  assert.equal(moveCamera('B2').longitude, 150);
-  assert.deepEqual(moveCamera('M'), { latitude: 30, longitude: 30 });
 });
 
 test('repeats: blocks repeated in a row are grouped for display, the rest stays as is', () => {

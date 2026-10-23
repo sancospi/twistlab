@@ -79,6 +79,16 @@ export function activity(times: number[], now: number, weeks: number): { day: nu
   return out;
 }
 
+/** Days in a row with something in `times`, up to today (or up to yesterday while today has nothing yet). */
+export function streak(times: number[], now: number): number {
+  const days = new Set(times.map(dayOf));
+  const d = new Date(dayOf(now));
+  if (!days.has(d.getTime())) d.setDate(d.getDate() - 1);
+  let n = 0;
+  for (; days.has(d.getTime()); d.setDate(d.getDate() - 1)) n++;
+  return n;
+}
+
 // --- Backup: one JSON file with every key of this app in localStorage ---
 
 export const BACKUP_APP = 'cube';

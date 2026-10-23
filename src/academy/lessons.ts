@@ -2,7 +2,7 @@
 // the texts): Notación from the glossary's moves, La cruz blanca from crossGuide.ts, Método principiante from
 // beginner.ts. Pure (no DOM): lessonView.ts plays them, view.ts lists them.
 import { loc, t, type MessageKey } from '../i18n.ts';
-import { explainMove, invertTokens, tokenize } from '../notation.ts';
+import { caseSetup, explainMove } from '../notation.ts';
 import { beginner } from './beginner.ts';
 import { cfopReduced } from './cfop.ts';
 import { bases2x2 } from './bases2x2.ts';
@@ -165,7 +165,7 @@ function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
         ...cases.map((c): LessonStep => {
           const alg = algOf(c);
           const text = [`**${t('practice.recognition')}:** ${loc(c.recognition)}`, ...(c.note ? [loc(c.note)] : [])].join('\n');
-          return { kind: 'cube', title: caseTitle(c), text, setup: invertTokens(tokenize(alg)).join(' '), alg, doSetup: false, stage: c.stage };
+          return { kind: 'cube', title: caseTitle(c), text, setup: caseSetup(alg).join(' '), alg, doSetup: false, stage: c.stage };
         }),
         ...asked.map((i): LessonStep => ({
           kind: 'case', caseId: cases[i].id, alg: cases[i].algs[0].alg, stage: cases[i].stage, diagram, // the case's own state: what its recognition reads
@@ -212,3 +212,14 @@ export function parseDone(raw: unknown): Record<string, string[]> {
 
 /** The recommended lesson: the first one not finished yet (null when all are). */
 export const nextLesson = (lessons: Lesson[], done: string[]): Lesson | null => lessons.find((l) => !done.includes(l.id)) ?? null;
+
+/** Hoy's next lesson: the first unfinished one of the most recently practised course (`recent`: guide ids, newest
+ *  first), else of a course already started, else of the white cross, then the beginner's method. Null when all done. */
+export function suggestedLesson(recent: string[], done: Record<string, string[]>, algOf?: (c: Case) => string): { course: Course; lesson: Lesson } | null {
+  for (const id of new Set([...recent, ...Object.keys(done), crossGuide.id, beginner.id])) {
+    const course = courseFor(id, algOf);
+    const lesson = course && nextLesson(course.lessons, done[id] ?? []);
+    if (lesson) return { course: course!, lesson };
+  }
+  return null;
+}

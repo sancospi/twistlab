@@ -100,6 +100,10 @@ export function expand(alg: string | string[], frame0: Frame): { steps: Step[]; 
 export const centerMoves = (alg: string | string[], frame0: Frame): string[] =>
   expand(alg, frame0).steps.flatMap((s) => s.moves);
 
+/** The state an algorithm solves, as face turns from solved: its rotations (y', and wide or slice turns) become center
+ *  turns first, so the cube starts held as the figures draw it (yellow up, green front), not turned by the rotation. */
+export const caseSetup = (alg: string | string[]): string[] => invertTokens(centerMoves(alg, IDENTITY));
+
 const AXIS: Record<string, number> = { U: 0, D: 0, R: 1, L: 1, F: 2, B: 2 };
 
 /** Merges consecutive turns on one axis ("U U'" vanishes, "R R" is "R2", "R L R L" is "R2 L2"): opposite
@@ -222,12 +226,9 @@ export function explainMove(token: string): { what: string; how: string } {
   return { what, how };
 }
 
-/** Camera (degrees) that faces the turning layer: the default front-right-up view hides L, D and B. */
-export function moveCamera(token: string): { latitude: number; longitude: number } {
-  const { kind, ref } = moveKind(token);
-  if (kind === 'slice' || kind === 'rotation') return { latitude: 30, longitude: 30 };
-  return { latitude: ref === 'D' ? -30 : 30, longitude: ref === 'L' ? -30 : ref === 'B' ? 150 : 30 };
-}
+/** The 3D cubes' camera (degrees): always the same corner, yellow up, green front, orange right (the diagrams'), even
+ *  for an L, D or B turn, which shows on the stickers around it. */
+export const CAMERA = { latitude: 30, longitude: 30 } as const;
 
 // --- Reading an algorithm: its well-known triggers and what kind of moves it uses ---
 

@@ -1,16 +1,18 @@
-// Routes: clean URLs with the History API. The server answers every path with index.html (vercel.json; Vite
-// does it in dev). Links are real <a href>: same-origin clicks are handled here, the rest behave as usual.
+// Routes: clean URLs with the History API. The server answers every path with the app's page (vercel.json: app.html,
+// index.html without '/''s canonical; Vite does it in dev). Links are real <a href>: same-origin clicks are handled here, the rest behave as usual.
 
 export type AcademyPage =
   | { kind: 'home' } | { kind: 'notation' } | { kind: 'cross' } | { kind: 'bases2x2' } | { kind: 'triggers' } | { kind: 'method'; id: string }
   | { kind: 'lesson'; course: string; id: string } // course: the guide's segment, e.g. /academia/cruz/leccion/que-es
   | { kind: 'library' } // every case of every method, with search: /algoritmos (its own menu entry, drawn by the academy)
-  | { kind: 'trainer'; id: Trainer } // a trainer of the Academia's "Entrenadores": /academia/reconocer-pll, /academia/auf
-  | { kind: 'case'; method: string; id: string }; // a case's page: /academia/cfop-completo/caso/cfopc-oll-27
+  | { kind: 'trainer'; id: Trainer } // a trainer of the Academia's "Entrenadores": /academia/reconocer-pll, /academia/auf, /academia/anticipacion
+  | { kind: 'case'; method: string; id: string } // a case's page: /academia/cfop-completo/caso/cfopc-oll-27
+  | { kind: 'today' } // Hoy, the day's practice: /hoy (its own menu entry, drawn by the academy like the library)
+  | { kind: 'howto' }; // the beginner's article for search: /como-resolver-el-cubo-de-rubik (drawn by the academy, outside /academia)
 export type Route = { mod: 'solve' } | { mod: 'cube'; page?: 'paint' } | { mod: 'academy'; page: AcademyPage } | { mod: 'progress' } | { mod: 'about' }; // paint: /cubo/pintar; about: /acerca
 
 /** The Academia's trainers, by their URL segment. */
-export const TRAINERS = ['reconocer-pll', 'auf'] as const;
+export const TRAINERS = ['reconocer-pll', 'auf', 'anticipacion'] as const;
 export type Trainer = (typeof TRAINERS)[number];
 
 const NOTATION = 'notacion';
@@ -25,6 +27,8 @@ const CASE = 'caso';
 const PAINT = 'pintar';
 const PROGRESS = 'progreso';
 const ABOUT = 'acerca';
+const TODAY = 'hoy';
+const HOWTO = 'como-resolver-el-cubo-de-rubik';
 
 export type GuidePage = Extract<AcademyPage, { kind: 'notation' | 'cross' | 'bases2x2' | 'triggers' | 'method' }>;
 const GUIDES = { notation: NOTATION, cross: CROSS, bases2x2: BASES_2X2, triggers: TRIGGERS } as const;
@@ -44,7 +48,9 @@ export function parseRoute(pathname: string): Route {
   if (first === 'cubo' || first === 'guia') return { mod: 'cube' };
   if (first === PROGRESS) return { mod: 'progress' };
   if (first === ABOUT) return { mod: 'about' };
+  if (first === HOWTO) return { mod: 'academy', page: { kind: 'howto' } };
   if (first === LIBRARY) return { mod: 'academy', page: { kind: 'library' } };
+  if (first === TODAY) return { mod: 'academy', page: { kind: 'today' } };
   if (first === 'academia') {
     if (!second) return { mod: 'academy', page: { kind: 'home' } };
     if (second === LIBRARY) return { mod: 'academy', page: { kind: 'library' } };
@@ -65,6 +71,8 @@ export function routePath(r: Route): string {
   if (p.kind === 'home') return '/academia';
   if (p.kind === 'lesson') return `/academia/${encodeURIComponent(p.course)}/${LESSON}/${encodeURIComponent(p.id)}`;
   if (p.kind === 'library') return `/${LIBRARY}`;
+  if (p.kind === 'today') return `/${TODAY}`;
+  if (p.kind === 'howto') return `/${HOWTO}`;
   if (p.kind === 'case') return `/academia/${encodeURIComponent(p.method)}/${CASE}/${encodeURIComponent(p.id)}`;
   if (p.kind === 'trainer') return `/academia/${p.id}`;
   return `/academia/${encodeURIComponent(guideSegment(p))}`;

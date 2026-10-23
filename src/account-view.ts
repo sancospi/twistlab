@@ -1,6 +1,6 @@
 // Progreso → Cuenta: the optional account, only to keep the progress on every device (sync.ts). No password: the
 // email gets a 6-digit code (api/auth), checked as soon as its 6 digits are typed. Signed in: how the sync goes, sign
-// out, delete the account.
+// out, delete the account, and the public name of the daily challenge's ranking (daily-view.ts).
 import { lang, t, tp } from './i18n.ts';
 import { el } from './el.ts';
 import { api, forget, onStatus, signedIn, status } from './sync.ts';
@@ -57,7 +57,8 @@ export function accountSection(): HTMLElement {
       email = input.value.trim().toLowerCase();
       codeStep();
     };
-    box.replaceChildren(el('h3', { textContent: t('account.title') }), el('p', { className: 'hint', textContent: t('account.hint') }), form, live);
+    box.replaceChildren(el('h3', { textContent: t('account.title') }), el('p', { className: 'hint', textContent: t('account.hint') }),
+      el('p', { className: 'hint', textContent: t('account.dailyHint') }), form, live);
   };
 
   // 2. The code: verified as soon as it has 6 digits
@@ -133,6 +134,19 @@ export function accountSection(): HTMLElement {
       emailStep();
       say(t('account.loggedOut'));
     };
+    // The name in the daily challenge's ranking: read from the account (api/me.js), '' = "Anónimo"
+    const nameInput = el('input', { name: 'name', autocomplete: 'off', maxLength: 20 });
+    nameInput.setAttribute('aria-describedby', 'account-name-hint');
+    void api('GET', '/api/me').then((r) => r.json()).then((d) => void (nameInput.value ||= d.name ?? ''), () => {});
+    const nameForm = el('form', { className: 'row account-form' }, field(t('account.name'), nameInput),
+      el('button', { textContent: t('account.nameSave') }));
+    nameForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const r = await call('/api/account/name', { name: nameInput.value });
+      if (r?.ok) return void ((nameInput.value = String(r.data.name)), say(t('account.nameSaved')));
+      if (r?.data.error === 'name') return say(t('account.badName'));
+      fail(r);
+    };
     const confirm = el('div', { className: 'backup-confirm', role: 'alert' });
     confirm.hidden = true;
     const remove = el('button', { type: 'button', textContent: t('account.delete') });
@@ -151,7 +165,7 @@ export function accountSection(): HTMLElement {
       no.focus();
     };
     box.replaceChildren(el('h3', { textContent: t('account.title') }), el('p', { textContent: t('account.signedIn', { email: status.email }) }),
-      syncLine, el('div', { className: 'row' }, logout, remove), confirm, live);
+      syncLine, nameForm, el('p', { className: 'hint', id: 'account-name-hint', textContent: t('account.nameHint') }), el('div', { className: 'row' }, logout, remove), confirm, live);
     say('');
     draw();
   };

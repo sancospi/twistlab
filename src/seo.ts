@@ -1,15 +1,24 @@
-// Build-time pages for crawlers (vite.config.ts writes them into dist/): every case, method, the triggers and the algorithm library
-// gets its own index.html, the app's page with its title, description, canonical URL, Open Graph tags and its content
-// as static HTML inside the module's container. The app replaces that content when it boots. Pure: no DOM, no fs.
+// Build-time pages for crawlers (vite.config.ts writes them into dist/): every case, method, guide, trainer, the algorithm
+// library and the app's other screens get their own index.html, the app's page with its title, description, canonical
+// URL, Open Graph tags, structured data (JSON-LD) and its content as static HTML inside the module's container. The app
+// replaces that content when it boots. Methods and cases also get a social preview card (ogSvg; vite.config.ts makes
+// the PNG). Pure: no DOM, no fs.
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { loc, t, tp } from './i18n.ts';
 import { TRAINERS, parseRoute, routePath, type AcademyPage, type Route, type Trainer } from './router.ts';
 import { METHODS, allCases } from './academy/methods.ts';
 import { bases2x2 } from './academy/bases2x2.ts';
 import { period, triggerGuide } from './academy/triggers.ts';
-import type { TextGuide } from './academy/crossGuide.ts';
+import { crossGuide, type TextGuide } from './academy/crossGuide.ts';
+import { beginner } from './academy/beginner.ts';
+import { figureSvg, howToSolve } from './academy/howToSolve.ts';
+import { caseState } from './academy/cube.ts';
+import { caseDiagram } from './academy/diagram.ts';
+import { patternToFacelets } from './facelets.ts';
+import { IDENTITY } from './notation.ts';
+import { parseBlocks, type Inline } from './rich-text.ts';
 import { caseProbability, formatProbability } from './academy/probability.ts';
-import type { Case, Method } from './academy/types.ts';
+import type { Case, Method, Phase } from './academy/types.ts';
 
 export const ORIGIN = 'https://twistlab.app';
 
@@ -18,7 +27,13 @@ export interface SeoPage {
   title: string;
   description: string;
   body: string; // HTML for the module's container
+  trail: Crumb[]; // from the home to this page (the last one): its BreadcrumbList
+  article?: boolean; // a guide to read: an Article too
+  og?: OgCard; // its social preview, a PNG at ogImagePath(path); without one it keeps the home's image
 }
+export interface Crumb { name: string; path: string }
+/** A social preview card: case diagrams (SVG strings) on the left; a line of context and the page's name on the right. */
+export interface OgCard { figures: string[]; kicker: string; heading: string }
 
 export const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 /** Markdown-ish data text as one plain line: no **bold**, `code` or line breaks. */
@@ -31,15 +46,30 @@ const inAcademy = (page: string) => pageTitle(t('app.pageTitle', { page, app: t(
 const link = (href: string, text: string) => `<a href="${esc(href)}">${esc(text)}</a>`;
 const list = (items: string[]) => `<ul>${items.map((x) => `<li>${x}</li>`).join('')}</ul>`;
 const caseLink = (m: Method, c: Case) => link(academy({ kind: 'case', method: m.id, id: c.id }), label(c));
+const home = (): Crumb => ({ name: t('app.title'), path: '/' });
+const inAcademyTrail = (name: string, path: string): Crumb[] => [home(), { name: t('menu.academy'), path: academy({ kind: 'home' }) }, { name, path }];
+// a case's figure as its card draws it (its main algorithm undone), at the preview's size
+const figure = (phase: Phase, c: Case, kpuzzle: KPuzzle) =>
+  caseDiagram(phase.diagram, c.stage, patternToFacelets(caseState(kpuzzle, c.algs[0].alg, IDENTITY)), { size: 400, arrows: true });
+// a method's: the first case of each phase, as its Academia tile
+const methodFigures = (m: Method, kpuzzle: KPuzzle) => m.phases.flatMap((p) => p.groups.flatMap((g) => g.cases).slice(0, 1).map((c) => figure(p, c, kpuzzle)));
+
+/** Rich text (rich-text.ts) as HTML: paragraphs, lists, subheadings, bold and moves. */
+const inline = (xs: Inline[]) => xs.map((x) => (x.kind === 'strong' ? `<strong>${esc(x.text)}</strong>` : x.kind === 'alg' ? `<code>${esc(x.text)}</code>` : esc(x.text))).join('');
+const rich = (s: string) => parseBlocks(s).map((b) => ('items' in b ? `<${b.kind}>${b.items.map((i) => `<li>${inline(i)}</li>`).join('')}</${b.kind}>`
+  : b.kind === 'h' ? `<h3>${inline(b.inline)}</h3>` : `<p>${inline(b.inline)}</p>`)).join('');
 
 function casePage(m: Method, c: Case, kpuzzle: KPuzzle): SeoPage {
   const phase = m.phases.find((p) => p.groups.some((g) => g.cases.includes(c)))!;
   const group = phase.groups.find((g) => g.cases.includes(c))!;
   const p = caseProbability(c.id, kpuzzle);
   const siblings = group.cases.filter((x) => x !== c);
+  const path = academy({ kind: 'case', method: m.id, id: c.id });
   return {
-    path: academy({ kind: 'case', method: m.id, id: c.id }),
-    title: inAcademy(label(c)),
+    path,
+    title: pageTitle(t('app.pageTitle', { page: label(c), app: loc(m.name) })), // the method, not "Academia": OLL cases share names across methods
+    trail: [...inAcademyTrail(loc(m.name), academy({ kind: 'method', id: m.id })), { name: label(c), path }],
+    og: { figures: [figure(phase, c, kpuzzle)], kicker: `${loc(m.name)} · ${loc(phase.name)}`, heading: label(c) },
     description: t('seo.caseDescription', { name: label(c), method: loc(m.name), phase: loc(phase.name), recognition: plain(loc(c.recognition)), alg: c.algs[0].alg }),
     body: [
       `<h2>${esc(label(c))}</h2>`,
@@ -58,22 +88,27 @@ function casePage(m: Method, c: Case, kpuzzle: KPuzzle): SeoPage {
 const casesByPhase = (m: Method, heading: 'h3' | 'h4') => m.phases.filter((p) => p.groups.some((g) => g.cases.length))
   .map((p) => `<${heading}>${esc(loc(p.name))}</${heading}>${list(p.groups.flatMap((g) => g.cases).map((c) => caseLink(m, c)))}`).join('');
 
-function methodPage(m: Method): SeoPage {
+function methodPage(m: Method, kpuzzle: KPuzzle): SeoPage {
   const description = plain(loc(m.summary ?? m.description).split('\n')[0]);
+  const path = academy({ kind: 'method', id: m.id });
   return {
-    path: academy({ kind: 'method', id: m.id }),
+    path,
     title: inAcademy(loc(m.name)),
     description,
+    trail: inAcademyTrail(loc(m.name), path),
+    og: { figures: methodFigures(m, kpuzzle), kicker: `${t('menu.academy')} · ${tp('academy.tileCases', allCases(m).length)}`, heading: loc(m.name) },
     body: `<h2>${esc(loc(m.name))}</h2><p>${esc(description)}</p>${casesByPhase(m, 'h3')}`,
   };
 }
 
-/** A guide page (the 2x2's basics): its intro and its lessons' titles. */
-function guidePage(g: TextGuide, page: AcademyPage): SeoPage {
+/** A guide page (the white cross, the 2x2's basics): its intro and its lessons' titles. `name`: the one the app's title uses. */
+function guidePage(g: TextGuide, page: AcademyPage, name = loc(g.name)): SeoPage {
   return {
     path: academy(page),
-    title: inAcademy(loc(g.name)),
+    title: inAcademy(name),
     description: plain(loc(g.summary)),
+    trail: inAcademyTrail(name, academy(page)),
+    article: true,
     body: `<h2>${esc(loc(g.name))}</h2>${loc(g.intro).split('\n').map((x) => `<p>${esc(plain(x))}</p>`).join('')}`
       + (g.lessons.length ? list(g.lessons.map((l) => esc(loc(l.title)))) : ''),
   };
@@ -86,6 +121,8 @@ function triggersPage(kpuzzle: KPuzzle): SeoPage {
     path: academy({ kind: 'triggers' }),
     title: inAcademy(loc(g.name)),
     description: plain(loc(g.summary)),
+    trail: inAcademyTrail(loc(g.name), academy({ kind: 'triggers' })),
+    article: true,
     body: `<h2>${esc(loc(g.name))}</h2>${loc(g.intro).split('\n').map((x) => `<p>${esc(plain(x.replace(/^## /, '')))}</p>`).join('')}`
       + list(g.triggers.map((x) => `<strong>${esc(loc(x.name))}</strong> <code>${esc(x.alg)}</code>: ${esc(plain(loc(x.does)))} ${esc(tp('triggers.period', period(kpuzzle, x.alg)))}`)),
   };
@@ -94,7 +131,46 @@ function triggersPage(kpuzzle: KPuzzle): SeoPage {
 /** A trainer's page: its name and what it trains (the app draws the trainer itself). */
 function trainerPage(id: Trainer): SeoPage {
   const [title, description] = [t(`trainer.${id}.title`), t(`trainer.${id}.summary`)];
-  return { path: academy({ kind: 'trainer', id }), title: inAcademy(title), description, body: `<h2>${esc(title)}</h2><p>${esc(description)}</p>` };
+  const path = academy({ kind: 'trainer', id });
+  return { path, title: inAcademy(title), description, trail: inAcademyTrail(title, path), body: `<h2>${esc(title)}</h2><p>${esc(description)}</p>` };
+}
+
+/** "Cómo resolver el cubo de Rubik paso a paso" (howToSolve.ts): the whole article, each step with its case's diagram. */
+function howToPage(kpuzzle: KPuzzle): SeoPage {
+  const g = howToSolve;
+  const path = routePath({ mod: 'academy', page: { kind: 'howto' } });
+  return {
+    path,
+    title: pageTitle(loc(g.name)),
+    description: loc(g.summary),
+    trail: inAcademyTrail(loc(g.name), path), // the app draws it in the Academia, with its crumbs
+    article: true,
+    og: { figures: methodFigures(beginner, kpuzzle), kicker: `${t('menu.academy')} · ${loc(beginner.name)}`, heading: loc(g.name) },
+    body: g.sections.map((s) => {
+      const f = s.figure ? figureSvg(kpuzzle, s.figure) : null;
+      return `<h2 id="como-${esc(s.id)}">${esc(loc(s.title))}</h2>`
+        + (f ? `<figure class="howto-figure">${f.svg}<figcaption class="hint">${esc(f.caption)}</figcaption></figure>` : '')
+        + `<div class="prose">${rich(loc(s.body))}</div>`
+        + (s.more ? `<p>${link(s.more.href, `${loc(s.more.label)} →`)}</p>` : '');
+    }).join(''),
+  };
+}
+
+/** The Academia's home: what it teaches, with a link to each guide, method and trainer. */
+function academyHome(): SeoPage {
+  const a = (page: AcademyPage, name: string) => link(academy(page), name);
+  return {
+    path: academy({ kind: 'home' }),
+    title: pageTitle(t('menu.academy')),
+    description: t('seo.academyDescription'),
+    trail: [home(), { name: t('menu.academy'), path: academy({ kind: 'home' }) }],
+    body: `<h2>${esc(t('menu.academy'))}</h2><p>${esc(t('seo.academyDescription'))}</p>` + list([
+      a({ kind: 'howto' }, loc(howToSolve.name)), a({ kind: 'cross' }, loc(crossGuide.name)),
+      ...METHODS.map((m) => a({ kind: 'method', id: m.id }, loc(m.name))),
+      a({ kind: 'notation' }, t('glossary.title')), a({ kind: 'triggers' }, loc(triggerGuide.name)), a({ kind: 'bases2x2' }, loc(bases2x2.name)),
+      ...TRAINERS.map((id) => a({ kind: 'trainer', id }, t(`trainer.${id}.title`))),
+    ]),
+  };
 }
 
 function libraryPage(): SeoPage {
@@ -102,18 +178,86 @@ function libraryPage(): SeoPage {
     path: academy({ kind: 'library' }),
     title: pageTitle(t('library.title')),
     description: t('library.intro'),
+    trail: [home(), { name: t('library.title'), path: academy({ kind: 'library' }) }],
     body: `<h2>${esc(t('library.title'))}</h2><p class="hint">${esc(t('library.intro'))}</p>`
       + METHODS.map((m) => `<h3>${esc(loc(m.name))}</h3>${casesByPhase(m, 'h4')}`).join(''),
   };
 }
 
-/** Every page written at build time. /acerca: its title and description (index.html already has its content). */
+/** A screen outside the Academia: its title and description (/acerca, /cubo and /cubo/pintar: index.html already has
+ *  their content, so `body` only fills an empty container, as /progreso's). */
+const screen = (route: Route, name: string, description: string): SeoPage => ({
+  path: routePath(route), title: pageTitle(name), description, trail: [home(), { name, path: routePath(route) }],
+  body: `<h2>${esc(name)}</h2><p>${esc(description)}</p>`,
+});
+
+/** Every page written at build time. */
 export function seoPages(kpuzzle: KPuzzle): SeoPage[] {
-  const about: SeoPage = {
-    path: '/acerca', title: pageTitle(t('about.title')), description: t('seo.aboutDescription'),
-    body: `<h2>${esc(t('about.title'))}</h2><p>${esc(t('seo.aboutDescription'))}</p>`,
+  const notation = academy({ kind: 'notation' });
+  return [
+    howToPage(kpuzzle), academyHome(), libraryPage(),
+    guidePage(crossGuide, { kind: 'cross' }, t('cross.title')), guidePage(bases2x2, { kind: 'bases2x2' }), triggersPage(kpuzzle),
+    { path: notation, title: inAcademy(t('glossary.title')), description: t('glossary.tileSummary'), trail: inAcademyTrail(t('glossary.title'), notation),
+      body: `<h2>${esc(t('glossary.title'))}</h2><p>${esc(t('glossary.tileSummary'))}</p>` },
+    ...TRAINERS.map(trainerPage), ...METHODS.flatMap((m) => [methodPage(m, kpuzzle), ...allCases(m).map((c) => casePage(m, c, kpuzzle))]),
+    screen({ mod: 'cube' }, t('menu.cube'), t('seo.cubeDescription')), screen({ mod: 'cube', page: 'paint' }, t('paint.title'), t('paint.summary')),
+    screen({ mod: 'progress' }, t('nav.progress'), t('progress.intro')), screen({ mod: 'about' }, t('about.title'), t('seo.aboutDescription')),
+  ];
+}
+
+/** Where a page's preview image is served: /og/<its path>.png. */
+export const ogImagePath = (path: string): string => `/og${path}.png`;
+export const OG_SIZE = { width: 1200, height: 630 };
+
+/** Greedy word wrap at about `max` characters a line; past `lines` lines the last one ends in "…". */
+function wrap(s: string, max: number, lines: number): string[] {
+  const out: string[] = [];
+  for (const w of s.split(' ')) {
+    if (out.length && `${out.at(-1)} ${w}`.length <= max) out[out.length - 1] += ` ${w}`;
+    else out.push(w);
+  }
+  if (out.length > lines) out.splice(lines - 1, Infinity, `${out.slice(lines - 1).join(' ').slice(0, max - 1).trimEnd()}…`);
+  return out;
+}
+
+/** The preview card as an SVG (1200x630, the app's colors, Inter): the figures on the left, the text and the TwistLab mark
+ *  (`icon`: public/icon.svg) on the right. vite.config.ts renders it to a PNG. */
+export function ogSvg(card: OgCard, icon: string): string {
+  const { width: W, height: H } = OG_SIZE;
+  const box = 420, bx = 70, by = (H - box) / 2;
+  const cols = Math.min(3, card.figures.length), rows = Math.ceil(card.figures.length / cols);
+  const cell = box / Math.max(cols, rows);
+  const oy = by + (box - rows * cell) / 2;
+  // each diagram fills its cell (its viewBox keeps its shape, centered)
+  const figures = card.figures.map((svg, i) => svg.replace(/ width="[^"]*" height="[^"]*"/,
+    ` x="${bx + (i % cols) * cell + 8}" y="${oy + Math.floor(i / cols) * cell + 8}" width="${cell - 16}" height="${cell - 16}"`)).join('');
+  const tx = 560;
+  const kicker = wrap(card.kicker, 38, 2), heading = wrap(card.heading, 18, 3);
+  const text = (lines: string[], y: number, step: number, attrs: string) =>
+    lines.map((l, i) => `<text x="${tx}" y="${y + i * step}" ${attrs}>${esc(l)}</text>`).join('');
+  const hy = 190 + kicker.length * 38 + 54;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Inter, sans-serif">`
+    + `<rect width="${W}" height="${H}" fill="#121620"/>${figures}` // flat: a gradient makes each PNG ~4x bigger
+    + text(kicker, 190, 38, 'font-size="28" fill="#4ade80"')
+    + text(heading, hy, 64, 'font-size="56" font-weight="700" fill="#e6e8ee"')
+    + icon.replace('<svg ', `<svg x="${tx}" y="${H - 122}" width="60" height="60" `)
+    + `<text x="${tx + 76}" y="${H - 80}" font-size="34" font-weight="700" fill="#e6e8ee">${esc(t('app.title'))}</text>`
+    + `<text x="${W - 60}" y="${H - 80}" font-size="26" fill="#8a90a0" text-anchor="end">twistlab.app</text></svg>`;
+}
+
+/** The page's structured data (schema.org): where it sits (BreadcrumbList) and, for a guide, the Article. */
+export function jsonLd(page: SeoPage): Record<string, unknown>[] {
+  const url = ORIGIN + page.path;
+  const org = { '@type': 'Organization', name: t('app.title'), url: `${ORIGIN}/` };
+  const crumbs = {
+    '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+    itemListElement: page.trail.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: ORIGIN + c.path })),
   };
-  return [libraryPage(), guidePage(bases2x2, { kind: 'bases2x2' }), triggersPage(kpuzzle), ...TRAINERS.map(trainerPage), ...METHODS.flatMap((m) => [methodPage(m), ...allCases(m).map((c) => casePage(m, c, kpuzzle))]), about];
+  if (!page.article) return [crumbs];
+  return [crumbs, {
+    '@context': 'https://schema.org', '@type': 'Article', headline: page.trail.at(-1)!.name, description: page.description, inLanguage: 'es',
+    url, mainEntityOfPage: url, author: org, publisher: org, ...(page.og ? { image: ORIGIN + ogImagePath(page.path) } : {}),
+  }];
 }
 
 /** The built index.html as this page: its head tags, and its content in the module's container (shown, not hidden). */
@@ -122,18 +266,30 @@ export function prerender(html: string, page: SeoPage): string {
   const route: Route = parseRoute(page.path);
   const meta = (attr: string, value: string) => (s: string) =>
     s.replace(new RegExp(`(<meta ${attr} content=")[^"]*"`), (_, open) => `${open}${esc(value)}"`); // a function: no $ patterns
+  const ld = jsonLd(page).map((x) => `  <script type="application/ld+json">${JSON.stringify(x).replace(/</g, '\\u003c')}</script>\n`).join(''); // no </script> inside
   let out = [
     // no data-i18n: boot.ts would put the app's name back
     (s: string) => s.replace(/<title[^>]*>[^<]*<\/title>/, `<title>${esc(page.title)}</title>`),
     meta('name="description"', page.description),
+    meta('property="og:type"', page.article ? 'article' : 'website'),
     meta('property="og:title"', page.title),
     meta('property="og:description"', page.description),
-    (s: string) => s.replace(/(<meta name="description"[^>]*>)/, `$1\n  <link rel="canonical" href="${esc(url)}" />\n  <meta property="og:url" content="${esc(url)}" />`),
+    ...(page.og ? [
+      meta('property="og:image"', ORIGIN + ogImagePath(page.path)),
+      (s: string) => s.replace(/(<meta property="og:image"[^>]*>)/, `$1\n  <meta property="og:image:width" content="${OG_SIZE.width}" />\n  <meta property="og:image:height" content="${OG_SIZE.height}" />`),
+      meta('name="twitter:card"', 'summary_large_image'),
+    ] : []),
+    (s: string) => canonical(s, url),
+    (s: string) => s.replace('</head>', () => `${ld}</head>`),
   ].reduce((s, f) => f(s), html);
   // data-prerendered: English visitors don't see this Spanish until the app renders over it (index.html's CSS)
   out = out.replace(new RegExp(`(<(\\w+) id="mod-${route.mod}"[^>]*?)(?: hidden)?>(</\\2>)`), (_, open, _tag, close) => `${open}><div data-prerendered lang="es">${page.body}</div>${close}`);
   return out;
 }
+
+/** The page's canonical URL and og:url, after its description. */
+export const canonical = (html: string, url: string): string =>
+  html.replace(/(<meta name="description"[^>]*>)/, `$1\n  <link rel="canonical" href="${esc(url)}" />\n  <meta property="og:url" content="${esc(url)}" />`);
 
 /** The sitemap: the hand-kept one's URLs (public/sitemap.xml) and the pages', each once. */
 export function sitemap(base: string, paths: string[]): string {

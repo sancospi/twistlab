@@ -21,9 +21,12 @@ test('routes: each screen has its path, and paths round-trip', () => {
     { mod: 'academy', page: { kind: 'lesson', course: 'notacion', id: 'caras' } },
     { mod: 'academy', page: { kind: 'lesson', course: 'principiante', id: 'capa1' } },
     { mod: 'academy', page: { kind: 'library' } },
+    { mod: 'academy', page: { kind: 'today' } },
     { mod: 'academy', page: { kind: 'case', method: 'cfop-completo', id: 'cfopc-oll-27' } },
     { mod: 'academy', page: { kind: 'trainer', id: 'reconocer-pll' } },
     { mod: 'academy', page: { kind: 'trainer', id: 'auf' } },
+    { mod: 'academy', page: { kind: 'trainer', id: 'anticipacion' } },
+    { mod: 'academy', page: { kind: 'howto' } },
   ];
   for (const r of routes) assert.deepEqual(parseRoute(routePath(r)), r);
   assert.equal(routePath({ mod: 'academy', page: { kind: 'method', id: 'cfop-reducido' } }), '/academia/cfop-reducido');
@@ -34,6 +37,8 @@ test('routes: each screen has its path, and paths round-trip', () => {
   assert.deepEqual(guidePage('2x2'), { kind: 'bases2x2' });
   assert.equal(routePath({ mod: 'academy', page: { kind: 'triggers' } }), '/academia/gatillos');
   assert.deepEqual(parseRoute('/academia/gatillos/'), { mod: 'academy', page: { kind: 'triggers' } });
+  assert.equal(routePath({ mod: 'academy', page: { kind: 'howto' } }), '/como-resolver-el-cubo-de-rubik');
+  assert.equal(routePath({ mod: 'academy', page: { kind: 'today' } }), '/hoy');
 });
 
 test('routes: trailing slashes, the old /resolver and unknown paths', () => {

@@ -16,6 +16,7 @@ import { METHODS, allCases } from './academy/methods.ts';
 import { courseFor, parseDone } from './academy/lessons.ts';
 import { parseHistory } from './academy/score.ts';
 import { accountSection } from './account-view.ts';
+import { analysisSection } from './analysis-view.ts';
 import { parseCrossHistory } from './academy/crossScore.ts';
 
 // The other screens' storage keys (persisted, so they never change)
@@ -40,7 +41,7 @@ export function showProgress(root: HTMLElement): void {
     el('h2', { textContent: t('progress.title') }),
     text(t('progress.intro'), 'hint'),
     text(t('pwa.offline'), 'hint'),
-    timesSection(results), practiceSection(results), learningSection(), goalSection(results), accountSection(), backupSection());
+    timesSection(results), analysisSection(results), practiceSection(results), learningSection(), goalSection(results), accountSection(), backupSection());
 }
 
 // --- Tiempos: one event at a time (the Resolver's, else the first with times) ---
@@ -84,15 +85,20 @@ function eventTimes(res: Result[], event: EventId): Node[] {
 
 // --- Práctica: which days, and how much ---
 
+/** When something was practised: the Resolver's solves, quiz and cross sessions, each case's last practice (also /hoy's streak). */
+export function practiceTimes(results = parseStored(load(RESULTS_KEY))): number[] {
+  return [
+    ...results.flatMap((r) => (r.at === undefined ? [] : [r.at])), ...parseHistory(load(QUIZ_KEY)).map((s) => s.at),
+    ...parseCrossHistory(load(CROSS_KEY)).map((s) => s.at),
+    ...Object.values(parseStats(load(STATS_KEY))).map((s) => s.lastPracticed), // ponytail: only each case's last practice is stored, not every day it was drilled
+  ];
+}
+
 function practiceSection(results: Result[]): HTMLElement {
   const quiz = parseHistory(load(QUIZ_KEY));
   const cross = parseCrossHistory(load(CROSS_KEY));
   const stats = Object.values(parseStats(load(STATS_KEY)));
-  const times = [
-    ...results.flatMap((r) => (r.at === undefined ? [] : [r.at])), ...quiz.map((s) => s.at), ...cross.map((s) => s.at),
-    ...stats.map((s) => s.lastPracticed), // ponytail: only each case's last practice is stored, not every day it was drilled
-  ];
-  const days = activity(times, Date.now(), WEEKS);
+  const days = activity(practiceTimes(results), Date.now(), WEEKS);
   const active = days.filter((d) => d.n).length;
   const label = t('progress.calendar', { n: active, days: days.length });
   const calendar = el('div', { className: 'activity', role: 'img', ariaLabel: label },

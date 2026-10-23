@@ -5,7 +5,7 @@
 import { TwistyPlayer } from 'cubing/twisty';
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
-import { IDENTITY, YELLOW_UP, expand, explainMove, moveCamera, tokenize, unmapMove, type Frame } from '../notation.ts';
+import { IDENTITY, YELLOW_UP, expand, explainMove, tokenize, unmapMove, type Frame } from '../notation.ts';
 import { algView } from '../notation-view.ts';
 import { prose } from '../rich-text-view.ts';
 import { t, tp } from '../i18n.ts';
@@ -14,8 +14,9 @@ import { caseState } from './cube.ts';
 import { caseDiagram } from './diagram.ts';
 import { StepFollower } from './follow.ts';
 import { minutes, nextLesson, parseDone, type Course, type Lesson, type LessonStep } from './lessons.ts';
+import type { Stage } from './types.ts';
 import { cube, type CubeListener } from './link.ts';
-import { el, MASKS, setPuzzle } from './practice.ts';
+import { aim, el, MASKS, setPuzzle } from './practice.ts';
 import { load, save } from './store.ts';
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -154,15 +155,13 @@ function show() {
 
 const heading = (title?: string) => (title ? [el('h3', { textContent: title })] : []);
 
-/** The 3D cube at `setup` (yellow up), ready to play `alg`; with `move`, the camera faces the turning layer. */
-function cubeAt(setup: string, alg: string, mask = FULL[puzzle()], move?: string) {
+/** The 3D cube at `setup` (yellow up), ready to play `alg`; a case's stage: seen from its figure's corner. */
+function cubeAt(setup: string, alg: string, mask = FULL[puzzle()], caseStage?: Stage) {
   stage.hidden = false; // before the player: a 3D view set up at zero size stays blank
   player ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start', hintFacelets: 'none' });
   if (!player.isConnected) stage.append(player);
   setPuzzle(player, puzzle());
-  const cam = move ? moveCamera(move) : { latitude: 30, longitude: 30 };
-  player.cameraLatitude = cam.latitude;
-  player.cameraLongitude = cam.longitude;
+  aim(player, kpuzzle, caseStage, tokenize(setup));
   player.experimentalSetupAlg = `z2 ${setup}`;
   player.alg = alg;
   player.experimentalStickeringMaskOrbits = mask;
@@ -182,7 +181,7 @@ function playOnce(delay = 0) {
 
 function cubeStep(s: Extract<LessonStep, { kind: 'cube' }>) {
   textBox.replaceChildren(...heading(s.title), prose(s.text));
-  cubeAt(s.setup, s.alg, s.stage ? MASKS[s.stage] : FULL[puzzle()], tokenize(s.alg).length === 1 ? s.alg : undefined);
+  cubeAt(s.setup, s.alg, s.stage ? MASKS[s.stage] : FULL[puzzle()], s.stage);
   const area = el('div', { className: 'lesson-do', ariaLive: 'polite' }); // the next move and corrections, as in practice
   const virtual = el('button', { type: 'button', textContent: t('lesson.virtual') });
   const mine = el('button', { type: 'button', textContent: t('lesson.onCube') });
@@ -310,7 +309,7 @@ function choices(options: { label: string; right: boolean }[], wrongText: string
 
 function moveStep(s: Extract<LessonStep, { kind: 'move' }>) {
   textBox.replaceChildren(el('h3', { textContent: t('lesson.whichMove') }), el('p', { className: 'hint', textContent: t('lesson.whichMoveHint') }));
-  cubeAt('', s.move, FULL[puzzle()], s.move);
+  cubeAt('', s.move);
   playOnce(600); // the start first, then the move
   const { how } = explainMove(s.move);
   body.replaceChildren(

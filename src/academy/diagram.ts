@@ -253,6 +253,11 @@ function f2lTurns(facelets: string): number {
   return scores.indexOf(Math.max(...scores));
 }
 
+/** How many y turns a stage's iso figure turns (an F2L slot to the front-right, Roux's first block to the front-left);
+ *  the 3D players turn their camera the same (practice.ts's aim). `facelets`: the state, only read for F2L. */
+export const isoTurns = (stage: Stage, facelets: () => string): number =>
+  stage === 'f2l' ? f2lTurns(facelets()) : stage === 'roux-fb' ? -1 : 0;
+
 /** A case's figure as the academy draws it: `view` is its phase's ('iso' for the first layers, F2L and Roux's blocks,
  *  'top' for the last layer), the puzzle and mask come from its stage; `arrows`: PLL/PBL arrows if the stage has them
  *  (COLL and CMLL: the corners'). The iso turns to what the stage builds: an F2L back slot, Roux's left block. */
@@ -262,9 +267,7 @@ export function caseDiagram(view: 'iso' | 'top', stage: Stage, facelets: string,
   const o = { ...opts, n, arrows: !!opts.arrows && (mask === 'pll' || mask === 'coll' || mask === 'cmll'), bottom: stage === '2x2-pbl' } as const;
   if (isRoux(stage)) facelets = rouxHeld(facelets);
   if (view === 'top') return topSVG(facelets, mask, o);
-  if (stage === 'f2l') facelets = turned(facelets, 'y', f2lTurns(facelets));
-  if (stage === 'roux-fb') facelets = turned(facelets, 'y', -1); // from the front-left: the L face in view
-  return isoSVG(facelets, mask, o);
+  return isoSVG(turned(facelets, 'y', isoTurns(stage, () => facelets)), mask, o);
 }
 
 /** PLL recognition from two sides, as a cube in your hands shows it: the iso with only the front and right faces' top

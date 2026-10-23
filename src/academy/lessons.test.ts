@@ -4,7 +4,7 @@ import { tokenize } from '../notation.ts';
 import { beginner } from './beginner.ts';
 import { cfopReduced } from './cfop.ts';
 import { crossGuide } from './crossGuide.ts';
-import { caseChoices, courseFor, minutes, moveQuestion, nextLesson, parseDone, splitSteps } from './lessons.ts';
+import { caseChoices, courseFor, minutes, moveQuestion, nextLesson, parseDone, splitSteps, suggestedLesson } from './lessons.ts';
 import type { Case } from './types.ts';
 
 test('lessons: a guide text splits into one idea per step', () => {
@@ -94,4 +94,15 @@ test('lessons: CFOP reducido gets a lesson per group in big phases, every case s
   assert.equal(shown.length, cases.length);
   for (const l of c.lessons) assert.ok(l.steps.filter((s) => s.kind === 'cube').length <= 8, l.id); // short lessons
   assert.equal(new Set(c.lessons.map((l) => l.id)).size, c.lessons.length); // ids unique (progress keys)
+});
+
+test('suggestedLesson: the recent course first, then one started, then the cross; finished courses are skipped', () => {
+  assert.equal(suggestedLesson([], {})!.course.id, 'cruz'); // a new user
+  assert.equal(suggestedLesson(['cfop-completo'], {})!.course.id, 'cruz'); // a reference without lessons
+  const first = suggestedLesson(['principiante'], {})!;
+  assert.equal(first.course.id, 'principiante');
+  assert.equal(first.lesson.id, first.course.lessons[0].id);
+  assert.equal(suggestedLesson([], { notacion: ['x'] })!.course.id, 'notacion');
+  const cross = courseFor('cruz')!.lessons.map((l) => l.id);
+  assert.equal(suggestedLesson([], { cruz: cross })!.course.id, 'principiante'); // the cross done: the beginner's method next
 });

@@ -43,3 +43,33 @@ CREATE TABLE IF NOT EXISTS rate_events (
   at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS rate_events_bucket_at ON rate_events (bucket, at);
+
+-- The daily challenge (api/daily.js): the account's public name in its ranking (null = "Anónimo") and one result per
+-- account and UTC day, the first sent. penalty: '0', '2000' (+2) or 'DNF'; verified: a smart cube's moves solved it.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name text;
+CREATE TABLE IF NOT EXISTS daily_results (
+  day date NOT NULL,
+  user_id integer NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  ms integer NOT NULL,
+  penalty text NOT NULL CHECK (penalty IN ('0', '2000', 'DNF')),
+  verified boolean NOT NULL DEFAULT false,
+  at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (day, user_id)
+);
+
+-- The daily reminder (api/push.js, api/cron/reminders.js): one Web Push subscription per browser. hour: the local hour
+-- chosen (0–23); tz_offset: the browser's getTimezoneOffset() (minutes); due: the cases due at the next reminder as the
+-- page last saw them (due_at), null if unknown; user_id: the account signed in when it subscribed, if any.
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  endpoint text PRIMARY KEY,
+  p256dh text NOT NULL,
+  auth text NOT NULL,
+  hour smallint NOT NULL CHECK (hour BETWEEN 0 AND 23),
+  tz_offset smallint NOT NULL,
+  due integer,
+  due_at timestamptz NOT NULL DEFAULT now(),
+  lang text NOT NULL DEFAULT 'es',
+  user_id integer REFERENCES users (id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_sent timestamptz
+);

@@ -135,7 +135,7 @@ const guide = new PathGuide(() => cube.pattern(), () => {
 // The explanation's animation: the item's state and its solution.
 const anim = new Animation($('quiz-player'), (pl) => {
   const item = items[index];
-  loadCase(pl, item.c.stage, item.spec.moves, tokenize(solution(item)));
+  loadCase(pl, kpuzzle, item.c.stage, item.spec.moves, tokenize(solution(item)));
 });
 
 /** Opens a quiz on its setup screen; `onDone` runs when the dialog closes (the history may have changed). */
@@ -182,7 +182,7 @@ function initialSelection(): Selection {
   const retry = scope.id.endsWith(':retry');
   if (oneCase()) return retry ? 'one' : 'all';
   if (scope.cases.length < scopeCases(scope).length) return 'pick';
-  if (retry) return 'all'; // every case is being retried
+  if (retry || scope.id === 'today') return 'all'; // every case is being retried, or is due (Hoy's review)
   const last = setting<Selection>('quiz-select', 'all', (v) => SELECTIONS.includes(v));
   return last !== 'one' && selected(last).length ? last : selected('due').length ? 'due' : 'all';
 }

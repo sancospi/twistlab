@@ -36,10 +36,10 @@ export function hash(s: string | null): string {
   return `${(4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36)}:${s.length}`;
 }
 
-// Lists of dated entries ('at', ms), merged as a union: -1 newest first (main.ts), 1 oldest first (score.ts, crossScore.ts)
-const LISTS: Record<string, 1 | -1> = { 'cube-results': -1, 'cube-rounds': -1, 'academy-quiz-history': 1, 'academy-cross-history': 1 };
-// Records by case, course or trigger id (store.ts, lessons.ts, triggers.ts): merged entry by entry, the newer side's entry winning
-const RECORDS = ['academy-stats', 'academy-learning', 'academy-prefs', 'academy-custom-algs', 'academy-lessons', 'academy-triggers'];
+// Lists of dated entries ('at', ms), merged as a union: -1 newest first (main.ts, solve-analysis.ts), 1 oldest first (score.ts, crossScore.ts)
+const LISTS: Record<string, 1 | -1> = { 'cube-results': -1, 'cube-rounds': -1, 'cube-analysis': -1, 'academy-quiz-history': 1, 'academy-cross-history': 1 };
+// Records by case, course, trigger id or day (store.ts, lessons.ts, triggers.ts, daily-view.ts): merged entry by entry, the newer side's entry winning
+const RECORDS = ['academy-stats', 'academy-learning', 'academy-prefs', 'academy-custom-algs', 'academy-lessons', 'academy-triggers', 'cube-daily'];
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const atOf = (x: unknown) => (isObj(x) && typeof x.at === 'number' ? x.at : undefined);
@@ -156,7 +156,7 @@ let again: boolean | null = null; // another sync was asked for meanwhile (true:
 let wired = false;
 
 /** A call to the API: JSON in and out, the session cookie goes along. */
-export function api(method: 'GET' | 'POST', path: string, body?: unknown, keepalive = false): Promise<Response> {
+export function api(method: 'GET' | 'POST' | 'DELETE', path: string, body?: unknown, keepalive = false): Promise<Response> {
   return fetch(path, { method, keepalive, credentials: 'same-origin', ...(body !== undefined && { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) });
 }
 

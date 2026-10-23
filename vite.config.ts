@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { es, type MessageKey } from './src/i18n/es.ts';
 
@@ -33,7 +33,7 @@ const enPreload: Plugin = {
 };
 
 // public/sw.js precaches the whole build (every file in dist, the solver worker's too, and '/' for index.html; not the
-// crawlers' files: robots, sitemap, the pages src/seo.ts writes): written in once the build is on disk. The version is a hash of all of it, so any change makes a new worker (and cache).
+// crawlers' files: robots, sitemap, the pages src/seo.ts writes and their og/ preview images): written in once the build is on disk. The version is a hash of all of it, so any change makes a new worker (and cache).
 const swPrecache: Plugin = {
   name: 'sw-precache',
   apply: 'build',
@@ -41,7 +41,7 @@ const swPrecache: Plugin = {
     order: 'post',
     handler({ dir = 'dist' }) {
       const files = (readdirSync(dir, { recursive: true }) as string[]).map((f) => f.split('\\').join('/'))
-        .filter((f) => f !== 'sw.js' && !/\.(xml|txt)$|.\/index\.html$/.test(f) && statSync(join(dir, f)).isFile()).sort();
+        .filter((f) => f !== 'sw.js' && !/\.(xml|txt)$|.\/index\.html$|^og\//.test(f) && statSync(join(dir, f)).isFile()).sort();
       const hash = createHash('sha256');
       for (const f of files) hash.update(f).update(readFileSync(join(dir, f)));
       const version = `const VERSION = '${hash.digest('hex').slice(0, 12)}';`;
@@ -63,8 +63,11 @@ const prerender: Plugin = {
   configResolved: (c) => void ((outDir = join(c.root, c.build.outDir)), (building = c.command === 'build')),
   async closeBundle() {
     if (!building) return;
-    const [{ cube3x3x3 }, { prerender: render, seoPages, sitemap }] = await Promise.all([import('cubing/puzzles'), import('./src/seo.ts')]);
+    const [{ cube3x3x3 }, { prerender: render, seoPages, sitemap, canonical, ORIGIN }] = await Promise.all([import('cubing/puzzles'), import('./src/seo.ts')]);
     const html = await readFile(join(outDir, 'index.html'), 'utf8');
+    // '/' gets its canonical; every other path vercel.json sends to app.html, the same page without one (not "this is /")
+    await writeFile(join(outDir, 'app.html'), html);
+    await writeFile(join(outDir, 'index.html'), canonical(html, `${ORIGIN}/`));
     const pages = seoPages(await cube3x3x3.kpuzzle());
     await Promise.all(pages.map(async (p) => {
       const dir = join(outDir, p.path);
@@ -73,6 +76,7 @@ const prerender: Plugin = {
     }));
     const map = join(outDir, 'sitemap.xml');
     await writeFile(map, sitemap(await readFile(map, 'utf8'), pages.map((p) => p.path)));
+    await ogImages(pages);
   },
   // vite preview as Vercel: /x serves x/index.html (sirv only does it for /x/)
   configurePreviewServer: (server) => void server.middlewares.use((req, _res, next) => {
@@ -81,6 +85,26 @@ const prerender: Plugin = {
     next();
   }),
 };
+
+// Methods' and cases' social previews (src/seo.ts's ogSvg, 1200x630) as PNGs in og/, drawn with Inter (bundled: build
+// machines may have no fonts). Each is kept in node_modules/.cache/og by its SVG's hash, so a build only draws what changed.
+// ponytail: the cache isn't pruned; delete the folder if it ever grows too big.
+async function ogImages(pages: import('./src/seo.ts').SeoPage[]) {
+  const [{ renderAsync }, { ogImagePath, ogSvg }] = await Promise.all([import('@resvg/resvg-js'), import('./src/seo.ts')]);
+  const icon = await readFile('public/icon.svg', 'utf8');
+  const cache = 'node_modules/.cache/og';
+  await mkdir(cache, { recursive: true });
+  const font = { fontFiles: ['400Regular/Inter_400Regular.ttf', '700Bold/Inter_700Bold.ttf'].map((f) => `node_modules/@expo-google-fonts/inter/${f}`), loadSystemFonts: false, defaultFontFamily: 'Inter' };
+  await Promise.all(pages.map(async (p) => {
+    if (!p.og) return;
+    const svg = ogSvg(p.og, icon);
+    const png = join(cache, `${createHash('sha256').update(svg).digest('hex').slice(0, 24)}.png`);
+    if (!existsSync(png)) await writeFile(png, (await renderAsync(svg, { font })).asPng()); // libuv's threads: 4 at a time
+    const out = join(outDir, ogImagePath(p.path));
+    await mkdir(dirname(out), { recursive: true });
+    await copyFile(png, out);
+  }));
+}
 
 // /api in dev: on Vercel each api/**/*.js is a function; here Vite answers with the same handlers (no `vercel dev`),
 // with .env.local's variables (DATABASE_URL, AUTH_SECRET…) in process.env. Files and folders starting with _ aren't routes.

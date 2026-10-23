@@ -20,7 +20,7 @@ import {
   type CrossAttempt, type CrossMode, type CrossSession,
 } from './crossScore.ts';
 import { cube, type CubeListener } from './link.ts';
-import { el, setPuzzle } from './practice.ts';
+import { aim, el, setPuzzle } from './practice.ts';
 import { load, save, setting } from './store.ts';
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -341,6 +341,7 @@ export function show3D(title: string, setup: string, alg: string, puzzle: Puzzle
   setPuzzle(viewerPlayer, puzzle);
   viewerPlayer.experimentalSetupAlg = `z2 ${setup}`;
   viewerPlayer.alg = alg;
+  aim(viewerPlayer); // the figures' corner, whatever the last drag left
   viewerPlayer.jumpToStart();
   clearTimeout(autoplay);
   autoplay = window.setTimeout(() => viewerPlayer!.play(), 600); // the start first, then the solution once

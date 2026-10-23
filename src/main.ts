@@ -5,12 +5,12 @@ import { randomScrambleForEvent } from 'cubing/scramble';
 import { cube3x3x3, wcaEvents } from 'cubing/puzzles';
 import type { KPattern } from 'cubing/kpuzzle';
 import type { Quaternion, Scene } from 'three';
-import type { GanCubeConnection, GanCubeEvent, MacAddressProvider } from 'gan-web-bluetooth';
+import type { MacAddressProvider } from 'gan-web-bluetooth';
 import { faceletsToPattern, patternToFacelets, SOLVED_FACELETS } from './facelets.ts';
 // Emits cubing.js's solver worker as a self-contained bundle where cubing.js looks for it (see vite.config.ts)
 import searchWorkerUrl from '../node_modules/cubing/dist/lib/cubing/chunks/search-worker-entry.js?worker&url';
 import { axisAngle, describe, mul, nextStep, PathGuide, toView, type Quat, type Vec } from './guide.ts';
-import { trustFirstMove } from './gan-fix.ts';
+import { connectCube, requestCube, type CubeEvent, type SmartCube } from './smart-cube.ts';
 import { average, EVENTS, eventField, eventOf, formatAverage, formatResult, formatTime, hasInspection, HOLD_MS, INSPECTION_MS, inspectionCall, inspectionPenalty, is333, isEvent, isMo3, recordTime, resultValue, type EventId, type Penalty, type Result } from './timer.ts';
 import { histogramSvg, rolling, summary, trendSvg } from './stats.ts';
 import { ATTEMPTS, attemptValue, parseRounds, roundFormat, roundResult, storedResult, type RoundOpts, type StoredRound } from './round.ts';
@@ -229,19 +229,20 @@ async function onFacelets(facelets: string) {
   const firstSync = !pattern;
   pattern = p;
   if (firstSync && mod === 'solve' && phase === 'ready' && is333(event)) void newScramble(); // now it can be guided on the cube
-  if (conn) saveMac(conn.deviceName, conn.deviceMAC); // valid state decoded => the MAC is right
+  if (conn?.deviceMAC) saveMac(conn.deviceName, conn.deviceMAC); // valid state decoded => the MAC is right
   render();
   void guide.replan(); // state was corrected: the old plan no longer applies
   if (mod === 'academy') academyCube.listener?.sync();
 }
 
-function onMove(move: string) {
+function onMove(move: string, at = performance.now()) {
   lastMoveAt = performance.now();
   if (mod === 'solve' && is333(event) && hasInspection(event)) startSolve(); // first turn after the scramble starts the clock (blindfolded: Space did, before memorising)
   mixed = false;
   player?.experimentalAddMove(move, { cancel: false }); // built before connecting (see connect)
   pattern = pattern?.applyMove(move) ?? null;
   moves.push(move);
+  if (phase === 'solving' && solveFrom >= 0) solveTimes.push(at - solveStart); // the solve analysis's (cheap: the clock never waits)
   guide.onMove(move);
   if (mod === 'academy') academyCube.listener?.move(move);
   if (mod === 'solve' && phase === 'solving' && is333(event) && isSolved(pattern)) stopSolve();
@@ -252,7 +253,7 @@ academyCube.pattern = () => (conn ? pattern : null); // only a connected cube ca
 academyCube.label = label;
 
 // --- Connection ---
-let conn: GanCubeConnection | null = null;
+let conn: SmartCube | null = null;
 let liveMoveSeen = false;
 
 // The MAC salts the encryption key. Chrome rarely exposes it, so ask once and remember it per cube.
@@ -277,7 +278,7 @@ const macProvider: MacAddressProvider = async (device, isFallback) => {
   return mac;
 };
 
-function handle(e: GanCubeEvent) {
+function handle(e: CubeEvent) {
   switch (e.type) {
     case 'GYRO': return onGyro(e.quaternion);
     case 'MOVE':
@@ -286,7 +287,7 @@ function handle(e: GanCubeEvent) {
       // They're already part of the synced state, so applying them would double them.
       if (e.localTimestamp === null && !liveMoveSeen) return;
       liveMoveSeen ||= e.localTimestamp !== null;
-      return onMove(e.move);
+      return onMove(e.move, e.localTimestamp ?? undefined);
     case 'FACELETS': return void onFacelets(e.facelets).catch(() => {});
     case 'BATTERY': $('battery').textContent = `${e.batteryLevel}%`; return;
     case 'HARDWARE': $('device').textContent = [e.hardwareName, e.softwareVersion].filter(Boolean).join(' · '); return;
@@ -309,6 +310,7 @@ function disconnected() {
   $('moves').textContent = '';
   $('connect').textContent = t('cube.connect');
   btn('reset-gyro').disabled = btn('reset-state').disabled = true;
+  $('cube-note').hidden = true;
   if (mod === 'solve' && phase === 'scramble') void newScramble();
 }
 
@@ -319,21 +321,22 @@ $('ios-ble').hidden = !!navigator.bluetooth || !ios;
 
 $('connect').onclick = async () => {
   if (conn) return conn.disconnect();
-  if (!navigator.bluetooth) {
+  const sim = import.meta.env.DEV && new URLSearchParams(location.search).get('simcube'); // dev only, see smart-cube-sim.ts
+  if (!navigator.bluetooth && !sim) {
     $('status').textContent = t(ios ? 'cube.noBluetoothIos' : 'cube.noBluetooth');
     return;
   }
   try {
     $('status').textContent = t('cube.connecting');
     void loadTwisty(); // the 3D cube mirrors every move: it loads while the device picker is open
-    const { connectGanCube } = await import('gan-web-bluetooth'); // usually prefetched by the Cubo screen
-    const c = (conn = await connectGanCube(macProvider));
+    const c = (conn = sim ? (await import('./smart-cube-sim.ts')).simulate(sim) : await connectCube(await requestCube(), macProvider, loadMac));
     render3d(); // the model mirrors the smart cube: a 3x3, whatever the event
-    trustFirstMove((c as unknown as { driver: unknown }).driver);
     c.events$.subscribe(handle); // right away: events$ doesn't replay, a DISCONNECT here must not be lost
-    $('device').textContent = `${c.deviceName} (${c.deviceMAC})`;
+    $('device').textContent = `${c.brand} · ${c.deviceName}` + (c.deviceMAC ? ` (${c.deviceMAC})` : '');
     $('connect').textContent = t('cube.disconnect');
-    btn('reset-gyro').disabled = btn('reset-state').disabled = false;
+    btn('reset-state').disabled = false;
+    btn('reset-gyro').disabled = !c.gyro; // GiiKER, QiYi: no gyroscope, the view stays where the arrows put it
+    $('cube-note').hidden = c.facelets;
     $('status').textContent = t('cube.connected');
     for (const type of ['REQUEST_HARDWARE', 'REQUEST_FACELETS', 'REQUEST_BATTERY'] as const) {
       await c.sendCubeCommand({ type });
@@ -347,7 +350,8 @@ $('connect').onclick = async () => {
     }, 5000);
   } catch (err) {
     conn = null;
-    $('status').textContent = t('cube.error', { message: (err as Error).message });
+    // NotFoundError: the device picker was closed, nothing went wrong
+    $('status').textContent = (err as Error).name === 'NotFoundError' ? t('cube.disconnected') : t('cube.error', { message: (err as Error).message });
   }
 };
 
@@ -499,10 +503,27 @@ btn('round-stop').onclick = () => ((round = null), renderResults(), renderTimer(
 
 let scrambleId = 0;
 
+// Reto del día (daily-view.ts, its card loaded with the Resolver): Jugar makes its scramble the next one; that solve goes
+// back to it, with the smart cube's moves (for the server to verify)
+let daily: typeof import('./daily-view.ts') | undefined;
+let dailyNext = ''; // the scramble newScramble uses next instead of a random one
+let dailyScramble = ''; // the one shown is the daily challenge's
+let solveFrom = -1; // this solve's first move in `moves`; -1: no cube
+let solveTimes: number[] = []; // ms from solveStart of each of those moves (the solve analysis, analysis-view.ts)
+function playDaily(scramble: string) {
+  if (round || phase === 'inspect' || phase === 'solving') return;
+  dailyNext = scramble;
+  if (event === '333') return void newScramble();
+  eventSelect.value = '333';
+  eventSelect.dispatchEvent(new Event('change')); // switching the event makes the next scramble
+}
+
 async function newScramble() {
   if (round && roundResult(roundValues(), round.format, round.opts).done) finishRound(); // the last attempt was already timed
   const id = ++scrambleId;
-  scrambleText = '';
+  scrambleText = dailyScramble = '';
+  const fixed = dailyNext;
+  dailyNext = '';
   guide.stop();
   stopInspection(); // e.g. N during inspection: no call may still be spoken
   const cube = !!conn && is333(event); // the smart cube only plays 3x3 events
@@ -514,11 +535,12 @@ async function newScramble() {
   // WCA scrambles (cubing.js, per event). With the cube, a 3x3 one is made from its target state, which the guide needs:
   // a uniformly random state written as a sequence from solved, like cubing's own "333" (blindfolded: without the
   // random orientation at the end, which the cube couldn't follow).
-  const target = cube ? await random333Pattern() : null;
-  const alg = target ? (await experimentalSolve3x3x3IgnoringCenters(target)).invert() : await randomScrambleForEvent(event);
+  const target = cube ? (fixed ? (await cube3x3x3.kpuzzle()).defaultPattern().applyAlg(fixed) : await random333Pattern()) : null;
+  const alg = fixed || (target ? (await experimentalSolve3x3x3IgnoringCenters(target)).invert() : await randomScrambleForEvent(event));
   const scramble = alg.toString().replace(/2'/g, '2'); // half turns have no direction in WCA notation
   if (id !== scrambleId) return; // superseded by a newer scramble
   scrambleText = scramble;
+  dailyScramble = fixed;
   // 3x3: tappable moves (white up, green front, as WCA scrambles); other puzzles: text. Big ones (6x6, 7x7, Megaminx…)
   // get smaller, scrollable text, keeping Megaminx's lines.
   $('scramble-text').replaceChildren(is333(event) ? algView(scramble, { frame: 'white-up' }) : scramble);
@@ -556,6 +578,8 @@ function startSolve() {
   if (canSpeak) speechSynthesis.cancel(); // a late call mustn't talk over the solve
   phase = 'solving';
   solveStart = performance.now();
+  solveFrom = conn ? moves.length : -1;
+  solveTimes = [];
   renderTimer();
 }
 
@@ -565,6 +589,20 @@ function stopSolve() {
   if (round && attemptValue(solve, round.opts.limit) === Infinity) solve.penalty = 'DNF'; // over the time limit
   all.unshift(solve);
   round?.solves.push(solve);
+  if (dailyScramble && scrambleText === dailyScramble) {
+    daily?.solved(solve, conn && solveFrom >= 0 ? moves.slice(solveFrom).join(' ') : null);
+    dailyScramble = '';
+  }
+  // With the smart cube, a 3x3 solve that ended solved is split into CFOP's steps, once the clock has stopped
+  const log = conn && solveFrom >= 0 && is333(event) && hasInspection(event) && isSolved(pattern) ? moves.slice(solveFrom) : [];
+  const times = solveTimes;
+  $('analysis').hidden = true;
+  if (log.length && log.length === times.length) {
+    idle(() => void import('./analysis-view.ts').then((m) => m.recordSolve(solve.at!, log, times)).then((view) => {
+      $('analysis').replaceChildren(...view);
+      $('analysis').hidden = !view.length;
+    }));
+  }
   phase = 'done';
   renderResults(); // first: the timer shows the event's newest result
   renderTimer();
@@ -641,6 +679,7 @@ function renderResults() {
     li.append(formatResult(r), del);
     return li;
   }));
+  daily?.render(); // a penalty on the daily solve
 }
 renderResults();
 // First visit (body.fresh, see index.html): each of the welcome card's choices hides it for good
@@ -832,8 +871,11 @@ function setModule(m: Mod) {
   $('mod-progress').hidden = m !== 'progress';
   if (!conn) setAlg(''); // the solve module's text scramble only applies there
   render();
-  if (m === 'solve') void newScramble();
-  if (m === 'cube') idle(() => { void loadTwisty(); void import('gan-web-bluetooth'); }); // ready for Conectar (requestDevice needs the tap's activation, ~5 s)
+  if (m === 'solve') {
+    void newScramble();
+    idle(() => void import('./daily-view.ts').then((d) => (daily = d).showDaily($('daily'), playDaily))); // fetched again on each visit
+  }
+  if (m === 'cube') idle(() => { void loadTwisty(); void import('gan-web-bluetooth'); }); // ready for Conectar: GAN, the usual cube, connects without waiting for its library
 }
 // Each screen has its URL (router.ts): the menu and the Academia tiles are plain links.
 const pageTitle = (page: string) => t('app.pageTitle', { page, app: t('app.title') });
@@ -851,9 +893,10 @@ async function onRoute(r: Route, scroll: number | null = null) {
   const menu = $('header-menu');
   if (menu.matches(':popover-open')) menu.hidePopover(); // phones: following a link closes the menu
   setModule(r.mod);
-  // the menu entry: the algorithm library is drawn by the academy but has its own entry
-  const entry = r.mod === 'academy' && r.page.kind === 'library' ? 'library' : r.mod;
-  document.querySelectorAll<HTMLElement>('[data-mod]').forEach((a) => (a.dataset.mod === entry ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
+  // the menu entry: the algorithm library and Hoy are drawn by the academy but have their own entries (Hoy has no tab: Academia's there)
+  const entry = r.mod === 'academy' && (r.page.kind === 'library' || r.page.kind === 'today') ? r.page.kind : r.mod;
+  document.querySelectorAll<HTMLElement>('[data-mod]').forEach((a) => (a.dataset.mod === entry || (entry === 'today' && a.dataset.mod === 'academy' && a.closest('.tabbar'))
+    ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
   $('header-module').textContent = t(entry === 'progress' ? 'nav.progress' : entry === 'about' ? 'about.menu' : (`menu.${entry}` as MessageKey)); // shown next to ☰ on phones
   // "Pinta tu cubo" (/cubo/pintar): a page of the Cubo screen, full width like the Academia
   const painting = r.mod === 'cube' && r.page === 'paint';

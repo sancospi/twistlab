@@ -26,6 +26,10 @@ import { libraryView, showCase, stopCase } from './caseView.ts';
 import { caseDiagram, netSVG, twoSidesSVG } from './diagram.ts';
 import { pllRecognitionView, stopPllRecognition } from './pllRecognition.ts';
 import { aufTrainerView, stopAufTrainer } from './aufTrainer.ts';
+import { lookaheadView, stopLookahead } from './lookahead.ts';
+import { howToSolve } from './howToSolve.ts';
+import { howToSections } from './howToView.ts';
+import { dueCases, todayView } from './todayView.ts';
 import { METHODS, allCases } from './methods.ts';
 import { el } from './practice.ts';
 import { caseLabel, lastResult, openQuiz, percent, scopeId, type QuizScope } from './quiz.ts';
@@ -38,6 +42,7 @@ export { stopCase, stopLesson }; // for main.ts, which loads the academy with it
 const TRAINER_VIEWS: Record<Trainer, { view: (k: KPuzzle) => HTMLElement; stop: () => void }> = {
   'reconocer-pll': { view: pllRecognitionView, stop: stopPllRecognition },
   auf: { view: aufTrainerView, stop: stopAufTrainer },
+  anticipacion: { view: lookaheadView, stop: stopLookahead },
 };
 /** Leaving a trainer's page (for main.ts too). */
 export const stopTrainers = (): void => Object.values(TRAINER_VIEWS).forEach((x) => x.stop());
@@ -64,9 +69,21 @@ export async function showAcademy(root: HTMLElement, page: AcademyPage): Promise
     root.replaceChildren(libraryView(kpuzzle)); // a menu entry of its own: no Academia crumbs
     return t('library.title');
   }
+  if (page.kind === 'today') {
+    root.replaceChildren(await todayView()); // a menu entry of its own, like the library
+    return t('today.title');
+  }
   if (page.kind === 'home') {
     root.replaceChildren(homeView());
     return t('menu.academy');
+  }
+  if (page.kind === 'howto') {
+    const sections = howToSections(kpuzzle);
+    const nav = el('nav', { className: 'academy-nav', ariaLabel: loc(howToSolve.nav) },
+      ...sections.map((s) => el('a', { href: `#${s.id}`, textContent: s.querySelector('h2')!.textContent! })));
+    root.replaceChildren(crumbs(loc(howToSolve.name)), el('div', { className: 'academy-layout' }, nav, el('div', { className: 'academy-body' }, ...sections)));
+    followPhase(root, nav);
+    return loc(howToSolve.name); // its URL is outside /academia: "… · TwistLab", as seo.ts writes it
   }
   if (page.kind === 'triggers') {
     root.replaceChildren(crumbs(loc(triggerGuide.name)), triggersView(kpuzzle));
@@ -159,7 +176,7 @@ function casePage(root: HTMLElement, methodId: string, id: string): string {
   }
   root.dataset.puzzle = puzzleOf(c.stage);
   root.replaceChildren(crumbs(caseLabel(c), { kind: 'method', id: m.id }, loc(m.name)), showCase(m, c, kpuzzle));
-  return inAcademy(caseLabel(c));
+  return t('app.pageTitle', { page: caseLabel(c), app: loc(m.name) }); // "Sune · OLL 27 · CFOP completo": OLL cases share names across methods (seo.ts)
 }
 
 const inAcademy = (page: string) => t('app.pageTitle', { page, app: t('menu.academy') }); // "CFOP reducido · Academia"
@@ -227,6 +244,11 @@ function homeView(): HTMLElement {
     el('strong', { textContent: t('paint.title') }),
     text(t('paint.summary'), 'hint'),
     el('span', { className: 'tile-meta', textContent: t('paint.tileMeta') }));
+  // the beginner's article (where searches for "how to solve a Rubik's cube" land): the whole method in one read
+  const howto = el('a', { className: 'tile', href: academyLink({ kind: 'howto' }) },
+    el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: '1 2 3 4 5 6 7' }),
+    el('strong', { textContent: loc(howToSolve.name) }),
+    text(loc(howToSolve.summary), 'hint'));
   // the cross comes first: it is the first step of CFOP and of most methods
   const cross = el('a', { className: 'tile', href: academyLink({ kind: 'cross' }) },
     el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: "R′ F R" }),
@@ -248,13 +270,19 @@ function homeView(): HTMLElement {
   const trainers = el('section', { className: 'academy-puzzle', ariaLabel: t('trainers.title') },
     el('h3', { textContent: t('trainers.title') }), el('div', { className: 'tiles' },
       trainer('reconocer-pll', el('div', { className: 'tile-strip', ariaHidden: 'true', innerHTML: twoSidesSVG(tperm, { size: 64 }) })),
-      trainer('auf', el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: "U · U′ · U2" }))));
+      trainer('auf', el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: "U · U′ · U2" })),
+      trainer('anticipacion', el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: '♩ ♩ ♩ ♩' }))));
   const group = (puzzle: Puzzle, ...items: HTMLElement[]) => el('section', { className: 'academy-puzzle', ariaLabel: t(`library.puzzle.${puzzle}`) },
     el('h3', { textContent: t(`library.puzzle.${puzzle}`) }), el('div', { className: 'tiles' }, ...items));
+  // Hoy on top: the day's review and session (/hoy)
+  const due = dueCases().length;
+  const today = el('a', { className: 'tile tile-today', href: academyLink({ kind: 'today' }) },
+    el('strong', { textContent: due ? tp('today.homeDue', due) : t('today.homeNone') }), text(t('today.homeHint'), 'hint'));
   return el('section', { className: 'academy-home' },
     el('h2', { textContent: t('menu.academy') }),
     text(t('academy.homeIntro'), 'prose hint'),
-    group('3x3x3', cross, ...tiles('3x3x3'), notation, triggers, paint),
+    today,
+    group('3x3x3', howto, cross, ...tiles('3x3x3'), notation, triggers, paint),
     group('2x2x2', basics, ...tiles('2x2x2')),
     trainers,
     el('p', { className: 'foot-link' }, el('a', { href: routePath({ mod: 'about' }), textContent: t('about.link') })));

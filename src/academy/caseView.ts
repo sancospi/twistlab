@@ -6,7 +6,7 @@
 // it's never re-attached.
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
-import { IDENTITY, algTags, centerMoves, htm, invertTokens, tokenize, triggerSegments } from '../notation.ts';
+import { IDENTITY, algTags, caseSetup, centerMoves, htm, tokenize, triggerSegments } from '../notation.ts';
 import { algView } from '../notation-view.ts';
 import { inlineText } from '../rich-text-view.ts';
 import { lang, loc, t, tp, type MessageKey } from '../i18n.ts';
@@ -32,7 +32,7 @@ let kpuzzle: KPuzzle;
 let shown: Case | null = null; // the case on screen: callbacks of a dialog closed by leaving the page must not redraw it
 const anim = new Animation(stage, (p) => {
   const tokens = tokenize(preferred(shown!).alg);
-  loadCase(p, shown!.stage, invertTokens(tokens), tokens);
+  loadCase(p, kpuzzle, shown!.stage, caseSetup(tokens), tokens);
 });
 $('case-anim').append(anim.button());
 
