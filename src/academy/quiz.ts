@@ -322,6 +322,20 @@ function solvedByHand() {
   next();
 }
 
+/** Without a cube, "Lo resolví" without stopping a clock: graded good like Siguiente. A running clock is stopped and
+ *  counted; never started, nothing is timed (left out of the averages). */
+function solvedNoClock() {
+  if (clockAt) {
+    toggleClock();
+    return solvedByHand();
+  }
+  const item = items[index];
+  Object.assign(attempts.at(-1)!, { untimed: true });
+  if (!retried) gradeItem(item, 'good');
+  logs.push({ item, n: index + 1, done, skipped: false, assisted: false });
+  next();
+}
+
 function retryClock() {
   retried = true;
   clockAt = 0;
@@ -677,7 +691,8 @@ function renderClock(): Node[] {
     progress(), steps(clockAt || stopped ? 2 : 1), p(t(stopped ? 'quiz.helpClockDone' : 'quiz.helpClock'), 'hint'),
     ...holdHint(item), diagram(item), ...itemScramble(), clock,
   ];
-  if (!stopped) return [...out, el('div', { className: 'row' }, action('skip', t('quiz.skip'), skip), stuckButton('quiz.showAnswer'))];
+  if (!stopped) return [...out, el('div', { className: 'row' }, action('solved', t('quiz.solvedNoClock'), solvedNoClock),
+    action('skip', t('quiz.skip'), skip), stuckButton('quiz.showAnswer'))];
   const go = action('next', t(index + 1 < items.length ? 'quiz.next' : 'quiz.finish'), solvedByHand);
   go.className = 'primary';
   go.dataset.focus = '';

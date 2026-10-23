@@ -16,6 +16,7 @@ export interface Attempt {
   moves?: number; // quarter turns reported by the cube
   htm?: number; // the same moves in half-turn metric
   refHtm?: number; // shortest known solution from that state
+  untimed?: boolean; // marked solved without the clock (no cube): counts as correct, not in the time averages
 }
 
 /** 1 = as short as the best known algorithm; never above 1 (a shorter solve is just as good). */
@@ -39,9 +40,9 @@ export function score(attempts: Attempt[]): Score {
     n: attempts.length,
     correct: ok.length,
     accuracy: attempts.length ? ok.length / attempts.length : 0,
-    recognitionMs: mean(ok.map((a) => a.recognitionMs)),
+    recognitionMs: mean(ok.flatMap((a) => (a.untimed ? [] : [a.recognitionMs]))),
     executionMs: mean(ok.flatMap((a) => a.executionMs ?? [])),
-    ms: mean(ok.map((a) => a.recognitionMs + (a.executionMs ?? 0))),
+    ms: mean(ok.flatMap((a) => (a.untimed ? [] : [a.recognitionMs + (a.executionMs ?? 0)]))),
     efficiency: mean(ok.flatMap((a) => (a.htm != null && a.refHtm != null ? efficiency(a.refHtm, a.htm) : []))),
   };
 }
