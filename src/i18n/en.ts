@@ -58,6 +58,17 @@ export const en: Record<MessageKey, string> = {
   'solve.applyScramble': 'Apply the scramble with white on top and green in front.',
   'solve.spaceToInspect': 'Start inspection (Space)',
   'solve.options': 'Options',
+  // The timer as a search landing page ("/": title, description and the section under the tool, index.html)
+  'solve.seoTitle': "Online Rubik's cube timer",
+  'solve.seoDescription': "Free online Rubik's cube timer: official WCA scrambles, 15-second inspection, ao5 and ao12 averages, statistics and smart cubes. No ads, no sign-up.",
+  'solve.about': 'A speedcubing timer on your phone or computer: hold Space (or your finger on the screen), let go to start and press again when you finish.',
+  'solve.aboutWca': 'Official WCA scrambles for every event: 2x2 to 7x7, blindfolded, one-handed, Megaminx, Pyraminx, Skewb, Square-1 and Clock.',
+  'solve.aboutInspection': '15-second inspection as in competition, with 8 and 12 second calls and +2 and DNF penalties.',
+  'solve.aboutAverages': 'ao5, ao12 and mo3 averages, your best time, a histogram and your progress. Import your times from csTimer or Twisty Timer.',
+  'solve.aboutSmart': 'With a smart cube (GAN, MoYu, QiYi…) the timer starts when you turn and stops when it is solved, with a breakdown of each CFOP step.',
+  'solve.aboutFree': 'Free, no ads and no account: your times are saved in your browser and it works offline.',
+  'solve.aboutLearn': 'Can’t solve it yet? Learn step by step',
+  'solve.tileSummary': 'Official WCA scrambles, 15 s inspection and ao5 and ao12 averages.',
 
   // Full-screen timer hints
   'timer.release': 'Release to start',
@@ -268,6 +279,16 @@ export const en: Record<MessageKey, string> = {
   'paint.modes': 'Solution type',
   'paint.shortest': 'Shortest',
   'paint.guided': 'Beginner method',
+  // The solver as a search landing page (/cubo/pintar: title, description, heading and the section under the tool)
+  'paint.seoTitle': "Rubik's cube solver online",
+  'paint.seoDescription': "Solve your Rubik's cube online: paint its colors or type the scramble and get the solution step by step, with every turn animated in 3D. The shortest one or the beginner method. Free.",
+  'paint.aboutTitle': 'How the solver works',
+  'paint.aboutPaint': 'Copy your cube’s colors onto the net, or type the scramble in notation (R U F2…) and I’ll paint it.',
+  'paint.aboutCheck': 'Before solving I check that your cube is possible: too many of a color, pieces that don’t exist, twisted corners or flipped edges.',
+  'paint.aboutSolution': 'Pick the shortest solution, worked out by the computer, or the beginner method, explained step by step.',
+  'paint.aboutAnim': 'Follow every turn on the 3D cube, forward and back, at your own pace.',
+  'paint.aboutFree': 'Free and ad-free, on your phone or computer.',
+  'paint.aboutLearn': 'Want to solve it yourself? Learn step by step',
   'bsolve.note.one': '1 step with the beginner method’s cases: longer, but you can learn it. In italics, the moves that set up each case.',
   'bsolve.note.other': '{n} steps with the beginner method’s cases: longer, but you can learn it. In italics, the moves that set up each case.',
   'bsolve.learn': 'Learn the beginner method',
@@ -1025,7 +1046,7 @@ export const en: Record<MessageKey, string> = {
   'about.welcomeLearn': 'Learn from scratch',
   'about.welcomeCfop': 'I can already solve it',
   'about.welcomeTimer': 'I just want the timer',
-  // Language switch (ES · EN: index.html's .lang-switch)
+  // Language switch (ES · EN · PT: index.html's .lang-switch)
   'lang.label': 'Language',
   'text.label': 'Text size',
   'text.normal': 'Normal text',

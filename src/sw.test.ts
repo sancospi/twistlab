@@ -65,6 +65,7 @@ test('navigations: network first (a waiting version takes over), the cached shel
   assert.deepEqual(posted, ['skip-waiting']);
   online = false;
   assert.equal(await get('/academia/cfop', 'navigate'), 'net /');
+  assert.equal(await get('/en/academia/cfop', 'navigate'), 'net /'); // any language: the shell reads it from the URL
   assert.deepEqual(posted, ['skip-waiting']); // offline: the open version stays
   online = true;
 });
@@ -106,4 +107,12 @@ test('the daily reminder: a push shows its notification, tapping it opens /hoy',
   await fire('notificationclick', { notification: { data: { url: '/hoy' }, close: () => { closed = true; } } });
   assert.ok(closed);
   assert.deepEqual(opened, [`${ORIGIN}/hoy`]);
+  // an open window: /hoy there, in its language
+  const went: string[] = [];
+  const win = (path: string) => ({ url: `${ORIGIN}${path}`, focus: async () => {}, navigate: async (url: string) => void went.push(url) });
+  for (const path of ['/en/academia', '/academia']) {
+    sw.clients = { matchAll: async () => [win(path)], openWindow: async (url: string) => void opened.push(url) };
+    await fire('notificationclick', { notification: { data: { url: '/hoy' }, close() {} } });
+  }
+  assert.deepEqual(went, [`${ORIGIN}/en/hoy`, `${ORIGIN}/hoy`]);
 });

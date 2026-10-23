@@ -1,5 +1,8 @@
 // Routes: clean URLs with the History API. The server answers every path with the app's page (vercel.json: app.html,
 // index.html without '/''s canonical; Vite does it in dev). Links are real <a href>: same-origin clicks are handled here, the rest behave as usual.
+// Languages: the Spanish paths, under /en or /pt for the others (i18n.ts splitLang/langPath). The app writes Spanish
+// paths; links (localizeLinks) and navigate() add the current language's prefix, so every page stays in it.
+import { lang, langPath, splitLang, type Lang } from './i18n.ts';
 
 export type AcademyPage =
   | { kind: 'home' } | { kind: 'notation' } | { kind: 'cross' } | { kind: 'bases2x2' } | { kind: 'triggers' } | { kind: 'method'; id: string }
@@ -42,8 +45,9 @@ export const guideSegment = (p: GuidePage): string => (p.kind === 'method' ? p.i
 
 const decode = (s: string) => { try { return decodeURIComponent(s); } catch { return s; } }; // a bad deep link must not throw
 
+/** A path's route, in any language (/en/academia is /academia's). */
 export function parseRoute(pathname: string): Route {
-  const [first, second, third, fourth] = pathname.split('/').filter(Boolean).map(decode);
+  const [first, second, third, fourth] = splitLang(pathname).path.split('/').filter(Boolean).map(decode);
   if (first === 'cubo' && second === PAINT) return { mod: 'cube', page: 'paint' };
   if (first === 'cubo' || first === 'guia') return { mod: 'cube' };
   if (first === PROGRESS) return { mod: 'progress' };
@@ -78,6 +82,24 @@ export function routePath(r: Route): string {
   return `/academia/${encodeURIComponent(guideSegment(p))}`;
 }
 
+/** An app link in language `l`: a Spanish path gets its prefix; other languages' paths, #anchors and other sites stay.
+ *  ponytail: every root-relative link is a page (the app links no files). */
+export function localHref(href: string, l: Lang): string {
+  return l !== 'es' && /^\/(?!\/)/.test(href) && splitLang(href.split(/[?#]/)[0]).lang === 'es' ? langPath(href, l) : href;
+}
+
+/** Keeps every <a href> of the page in the current language: now and as views add links (not needed in Spanish). */
+export function localizeLinks(): void {
+  if (lang === 'es') return;
+  const fix = (a: Element) => { const h = a.getAttribute('href'); if (h && localHref(h, lang) !== h) a.setAttribute('href', localHref(h, lang)); };
+  const all = (root: ParentNode) => root.querySelectorAll('a[href]').forEach(fix);
+  all(document);
+  new MutationObserver((records) => records.forEach((r) => {
+    if (r.type === 'attributes') fix(r.target as Element);
+    else r.addedNodes.forEach((n) => { if (n instanceof Element) { if (n.matches('a[href]')) fix(n); all(n); } });
+  })).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['href'] });
+}
+
 let current = '';
 let apply: (r: Route, scroll: number | null) => void = () => {};
 let readScroll: () => number = () => 0;
@@ -89,8 +111,8 @@ const saveLast = (scroll = 0) => {
 
 /** `back`: from back/forward, so the page's saved scroll (if any) comes back; a new page starts at the top. */
 function go(back = false) {
-  const moved = ALIASES[location.pathname.replace(/\/+$/, '')];
-  if (moved) history.replaceState(null, '', moved + location.hash);
+  const moved = ALIASES[splitLang(location.pathname).path.replace(/\/+$/, '')];
+  if (moved) history.replaceState(null, '', localHref(moved, lang) + location.hash);
   if (location.pathname === current) return; // e.g. an in-page #anchor: the browser just scrolls
   current = location.pathname;
   saveLast();
@@ -101,6 +123,7 @@ function go(back = false) {
 /** Goes to an app path (pushes history), e.g. from code rather than a link. The page being left keeps its scroll in
  *  its history entry, for Back. A link to the page we just came from (a crumb) is Back itself: same scroll as left. */
 export function navigate(path: string): void {
+  path = localHref(path, lang);
   if ((history.state as { from?: unknown } | null)?.from === path) return history.back();
   history.replaceState({ ...(history.state ?? {}), scroll: readScroll() }, '');
   history.pushState({ from: location.pathname + location.search }, '', path);

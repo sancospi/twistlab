@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { guidePage, guideSegment, parseRoute, routePath, type Route } from './router.ts';
+import { guidePage, guideSegment, localHref, parseRoute, routePath, type Route } from './router.ts';
+import { langPath } from './i18n.ts';
 
 test('routes: each screen has its path, and paths round-trip', () => {
   const routes: Route[] = [
@@ -28,7 +29,10 @@ test('routes: each screen has its path, and paths round-trip', () => {
     { mod: 'academy', page: { kind: 'trainer', id: 'anticipacion' } },
     { mod: 'academy', page: { kind: 'howto' } },
   ];
-  for (const r of routes) assert.deepEqual(parseRoute(routePath(r)), r);
+  for (const r of routes) {
+    assert.deepEqual(parseRoute(routePath(r)), r);
+    for (const l of ['en', 'pt'] as const) assert.deepEqual(parseRoute(langPath(routePath(r), l)), r, `${l} ${routePath(r)}`); // same slugs under /en, /pt
+  }
   assert.equal(routePath({ mod: 'academy', page: { kind: 'method', id: 'cfop-reducido' } }), '/academia/cfop-reducido');
   assert.equal(routePath({ mod: 'academy', page: { kind: 'notation' } }), '/academia/notacion');
   assert.equal(routePath({ mod: 'academy', page: { kind: 'cross' } }), '/academia/cruz');
@@ -83,4 +87,23 @@ test('routes: the trainers live under /academia, next to the methods', () => {
   assert.equal(routePath({ mod: 'academy', page: { kind: 'trainer', id: 'auf' } }), '/academia/auf');
   assert.deepEqual(parseRoute('/academia/auf/'), { mod: 'academy', page: { kind: 'trainer', id: 'auf' } });
   assert.deepEqual(parseRoute('/academia/roux'), { mod: 'academy', page: { kind: 'method', id: 'roux' } });
+});
+
+test('routes: a language prefix is just the language', () => {
+  assert.deepEqual(parseRoute('/en/'), { mod: 'solve' });
+  assert.deepEqual(parseRoute('/en'), { mod: 'solve' });
+  assert.deepEqual(parseRoute('/pt/academia/cruz/'), { mod: 'academy', page: { kind: 'cross' } });
+  assert.deepEqual(parseRoute('/en/cubo/pintar'), { mod: 'cube', page: 'paint' });
+  assert.deepEqual(parseRoute('/english'), { mod: 'solve' }); // not a prefix: unknown, the Resolver
+});
+
+test('links: Spanish paths get the current language\'s prefix; the rest stay', () => {
+  assert.equal(localHref('/academia/cruz', 'es'), '/academia/cruz');
+  assert.equal(localHref('/academia/cruz', 'en'), '/en/academia/cruz');
+  assert.equal(localHref('/', 'en'), '/en/');
+  assert.equal(localHref('/academia/principiante#academy-prin-capa1', 'pt'), '/pt/academia/principiante#academy-prin-capa1');
+  assert.equal(localHref('/hoy?x=1', 'en'), '/en/hoy?x=1');
+  assert.equal(localHref('/en/academia', 'en'), '/en/academia'); // already in a language: idempotent
+  assert.equal(localHref('/academia', 'pt'), '/pt/academia');
+  for (const href of ['#academy-x', 'https://speedcubedb.com/a/3x3/OLL27', '//cdn.example.com/x', 'blob:https://twistlab.app/1', '']) assert.equal(localHref(href, 'en'), href);
 });

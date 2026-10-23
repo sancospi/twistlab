@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { METHODS, allCases } from './academy/methods.ts';
 import { parseRoute } from './router.ts';
-import { ORIGIN, jsonLd, ogImagePath, ogSvg, prerender, seoPages, sitemap, type SeoPage } from './seo.ts';
+import { ORIGIN, jsonLd, langLinks, localizeHtml, ogImagePath, ogSvg, prerender, seoPages, sitemap, type SeoPage } from './seo.ts';
 
 const pages = seoPages(await cube3x3x3.kpuzzle());
 const html = `<head><title data-i18n="app.title">TwistLab</title>
@@ -19,10 +19,10 @@ test('a page for every case, every method and the library, each path once and ro
   const cases = METHODS.flatMap((m) => allCases(m).map((c) => `/academia/${m.id}/caso/${c.id}`));
   const paths = pages.map((p) => p.path);
   assert.equal(new Set(paths).size, paths.length);
-  for (const p of [...cases, '/algoritmos', '/academia/2x2', '/academia/gatillos', '/academia/reconocer-pll', '/academia/auf', '/academia/anticipacion', '/como-resolver-el-cubo-de-rubik',
+  for (const p of [...cases, '/', '/algoritmos', '/academia/2x2', '/academia/gatillos', '/academia/reconocer-pll', '/academia/auf', '/academia/anticipacion', '/como-resolver-el-cubo-de-rubik',
     '/academia', '/academia/cruz', '/academia/notacion', '/cubo', '/cubo/pintar', '/progreso', '/acerca', ...METHODS.map((m) => `/academia/${m.id}`)]) assert.ok(paths.includes(p), p);
   for (const p of pages) {
-    assert.notEqual(parseRoute(p.path).mod, 'solve', p.path);
+    if (p.path !== '/') assert.notEqual(parseRoute(p.path).mod, 'solve', p.path); // a path the router knows
     assert.ok(p.title && p.description && p.body.startsWith('<h2'), p.path);
   }
 });
@@ -68,11 +68,12 @@ test('/como-resolver-el-cubo-de-rubik: the article, its diagrams and its links i
 
 // Google's required and recommended fields (BreadcrumbList: 2+ items, each with a name and an absolute URL; Article: a
 // headline of 110 characters at most)
-test('structured data: a BreadcrumbList on every page, an Article on the guides, all valid JSON-LD', () => {
+test('structured data: a BreadcrumbList on every page but the home, an Article on the guides, all valid JSON-LD', () => {
   const url = (s: unknown) => typeof s === 'string' && s.startsWith(`${ORIGIN}/`) && !/\s/.test(s);
   for (const p of pages) {
     const out = [...prerender(html, p).matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map((m) => JSON.parse(m[1]));
     assert.deepEqual(out, jsonLd(p), p.path);
+    if (p.path === '/') { assert.deepEqual(out, []); continue; } // nothing above it: no breadcrumbs
     const [crumbs, article, ...rest] = out;
     assert.equal(rest.length, 0);
     assert.equal(crumbs['@context'], 'https://schema.org');
@@ -90,6 +91,7 @@ test('structured data: a BreadcrumbList on every page, an Article on the guides,
     assert.equal(article['@type'], 'Article');
     assert.ok(article.headline && article.headline.length <= 110, p.path);
     assert.ok(url(article.mainEntityOfPage) && article.author.name && article.publisher.name);
+    assert.equal(article.inLanguage, 'es');
     if (article.image) assert.ok(url(article.image));
   }
   const p = pages.find((x) => x.path === '/academia/cfop-completo/caso/cfopc-oll-27')!;
@@ -134,8 +136,45 @@ test('prerender: head tags replaced, canonical added, content shown in the conta
   assert.match(out, /<section id="mod-academy" data-i18n-aria-label="menu.academy" aria-label="Academia"><div data-prerendered lang="es"><h2>X<\/h2><\/div><\/section>/);
 });
 
-test('sitemap: the hand-kept URLs, then the pages, each once', () => {
+test('the tools as search landing pages: the timer at /, the solver at /cubo/pintar', () => {
+  const home = pages.find((x) => x.path === '/')!;
+  assert.equal(home.title, 'Cronómetro para cubo de Rubik online · TwistLab');
+  assert.match(home.description, /WCA/);
+  assert.equal(pages.find((x) => x.path === '/cubo/pintar')?.title, 'Resolver el cubo de Rubik online · TwistLab');
+  const links = (path: string) => pages.find((x) => x.path === path)!.body;
+  for (const path of ['/academia', '/como-resolver-el-cubo-de-rubik']) {
+    assert.match(links(path), /href="\/"/, path);
+    assert.match(links(path), /href="\/cubo\/pintar"/, path);
+  }
+});
+
+test('canonical and hreflang: each page is its own canonical, with every language and Spanish as x-default', () => {
+  const tags = (path: string, l: 'es' | 'en' | 'pt', langs = ['es', 'en'] as const) => [...langLinks(path, l, langs).matchAll(/<link rel="(\w+)"(?: hreflang="([\w-]+)")? href="([^"]+)" \/>/g)].map((m) => m.slice(1).join(' '));
+  assert.deepEqual(tags('/academia/cruz', 'en'), [
+    `canonical  ${ORIGIN}/en/academia/cruz`, `alternate es ${ORIGIN}/academia/cruz`, `alternate en ${ORIGIN}/en/academia/cruz`, `alternate x-default ${ORIGIN}/academia/cruz`]);
+  assert.deepEqual(tags('/', 'es'), [`canonical  ${ORIGIN}/`, `alternate es ${ORIGIN}/`, `alternate en ${ORIGIN}/en/`, `alternate x-default ${ORIGIN}/`]);
+  assert.deepEqual(tags('/', 'pt', ['es', 'en', 'pt'] as never), [`canonical  ${ORIGIN}/pt/`, `alternate es ${ORIGIN}/`, `alternate en ${ORIGIN}/en/`, `alternate pt-BR ${ORIGIN}/pt/`, `alternate x-default ${ORIGIN}/`]);
+  assert.ok(!langLinks('/', 'es').includes('/pt/')); // PT_READY false: Portuguese isn't listed
+  const out = prerender(html, pages.find((x) => x.path === '/academia/cruz')!);
+  assert.match(out, new RegExp(`<meta name="description" content="[^"]*" />\\n  <link rel="canonical" href="${ORIGIN}/academia/cruz" />\\n  <link rel="alternate" hreflang="es" href="${ORIGIN}/academia/cruz" />`));
+});
+
+test('links in the markup: the page\'s language prefix on app links only (Spanish: as built)', () => {
+  const page = '<nav><a href="/" data-mod="solve">x</a> <a class="button" href="/academia/cruz">y</a></nav><a href="#top">z</a><a href="https://speedcubedb.com/x" target="_blank">w</a><link rel="icon" href="/icon.svg" />';
+  assert.equal(localizeHtml(page, 'es'), page);
+  assert.equal(localizeHtml(page, 'en'), page.replace('href="/"', 'href="/en/"').replace('href="/academia/cruz"', 'href="/en/academia/cruz"'));
+  assert.equal(localizeHtml(localizeHtml(page, 'pt'), 'pt'), localizeHtml(page, 'pt'));
+  assert.match(prerender(html, pages.find((x) => x.path === '/academia')!), /href="\/academia\/cruz"/); // this run is Spanish
+});
+
+test('sitemap: the hand-kept URLs and the pages, each once per language, with their alternates', () => {
   const base = `<urlset><url><loc>${ORIGIN}/</loc></url><url><loc>${ORIGIN}/algoritmos</loc></url></urlset>`;
-  const locs = [...sitemap(base, ['/algoritmos', '/academia/x']).matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
-  assert.deepEqual(locs, [`${ORIGIN}/`, `${ORIGIN}/algoritmos`, `${ORIGIN}/academia/x`]);
+  const xml = sitemap(base, ['/algoritmos', '/academia/x']);
+  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  assert.deepEqual(locs, [`${ORIGIN}/`, `${ORIGIN}/en/`, `${ORIGIN}/algoritmos`, `${ORIGIN}/en/algoritmos`, `${ORIGIN}/academia/x`, `${ORIGIN}/en/academia/x`]);
+  assert.match(xml, /<urlset xmlns="http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9" xmlns:xhtml="http:\/\/www.w3.org\/1999\/xhtml">/);
+  const url = xml.split('\n').find((l) => l.includes(`<loc>${ORIGIN}/en/academia/x</loc>`))!;
+  assert.deepEqual([...url.matchAll(/hreflang="([\w-]+)" href="([^"]+)"/g)].map((m) => `${m[1]} ${m[2]}`),
+    [`es ${ORIGIN}/academia/x`, `en ${ORIGIN}/en/academia/x`, `x-default ${ORIGIN}/academia/x`]);
+  assert.equal(sitemap(base, [], ['es', 'en', 'pt']).match(/<loc>/g)?.length, 6); // once Portuguese is public
 });

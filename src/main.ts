@@ -15,7 +15,7 @@ import { average, EVENTS, eventField, eventOf, formatAverage, formatResult, form
 import { histogramSvg, rolling, summary, trendSvg } from './stats.ts';
 import { ATTEMPTS, attemptValue, parseRounds, roundFormat, roundResult, storedResult, type RoundOpts, type StoredRound } from './round.ts';
 import { mergeResults, parseImport, parseStored } from './import.ts';
-import { t, tp, type MessageKey } from './i18n.ts';
+import { LANGS, lang, langPath, t, tp, type MessageKey } from './i18n.ts';
 import { algView } from './notation-view.ts';
 import { cube as academyCube } from './academy/link.ts';
 import { el } from './el.ts';
@@ -903,7 +903,7 @@ async function onRoute(r: Route, scroll: number | null = null) {
   document.body.toggleAttribute('data-paint', painting);
   $('mod-paint').hidden = !painting;
   if (r.mod === 'cube') $('mod-cube').hidden = painting;
-  canonical.href = `https://twistlab.app${routePath(r)}`;
+  canonical.href = `https://twistlab.app${langPath(routePath(r), LANGS.includes(lang) ? lang : 'es')}`; // /pt/… before PT_READY: the Spanish
   if (painting) void import('./paint-view.ts').then((m) => id === routeId && m.showPaint());
   if (r.mod === 'progress') void import('./progress-view.ts').then((m) => id === routeId && m.showProgress($('mod-progress'))); // read again on every visit: the other screens may have saved
   if (painting || r.mod === 'progress' || r.mod === 'about') panelEl().scrollTop = scroll ?? 0;
@@ -911,7 +911,7 @@ async function onRoute(r: Route, scroll: number | null = null) {
     academy?.stopCase();
     academy?.stopLesson(); // a lesson left for another module lets go of the cube and its 3D player
     academy?.stopTrainers();
-    document.title = r.mod === 'solve' ? t('app.title') : pageTitle(t(painting ? 'paint.title' : r.mod === 'progress' ? 'nav.progress' : r.mod === 'about' ? 'about.title' : 'menu.cube'));
+    document.title = pageTitle(t(r.mod === 'solve' ? 'solve.seoTitle' : painting ? 'paint.seoTitle' : r.mod === 'progress' ? 'nav.progress' : r.mod === 'about' ? 'about.title' : 'menu.cube'));
     return;
   }
   academy = await import('./academy/view.ts');

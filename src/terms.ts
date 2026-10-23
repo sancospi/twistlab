@@ -6,7 +6,7 @@ import type { Lang } from './i18n.ts';
 export interface Term {
   key: string;
   example?: string; // shown in the glossary
-  forms: Record<Lang, string[]>; // words that name it in texts (none: listed in the glossary, never marked)
+  forms: { es: string[]; en: string[]; pt?: string[] }; // words that name it in texts (none: listed in the glossary, never marked); no pt yet: the Spanish
 }
 
 const same = (...forms: string[]) => ({ es: forms, en: forms });
@@ -43,7 +43,7 @@ const VOWELS: Record<string, string> = { a: '[aá]', e: '[eé]', i: '[ií]', o: 
 
 /** Splits a text into plain runs and terms: every occurrence, whole words only, any case, with or without accents. */
 export function termSplitter(lang: Lang, terms: Term[] = TERMS): (s: string) => TermPiece[] {
-  const keys = new Map(terms.flatMap((t) => t.forms[lang].map((f) => [fold(f), t.key] as const)));
+  const keys = new Map(terms.flatMap((t) => (t.forms[lang] ?? t.forms.es).map((f) => [fold(f), t.key] as const)));
   if (!keys.size) return (s) => (s ? [{ text: s }] : []);
   const alts = [...keys.keys()].sort((a, b) => b.length - a.length)
     .map((f) => f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[aeiou]/g, (v) => VOWELS[v]));

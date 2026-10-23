@@ -1,33 +1,36 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { Worker } from 'node:worker_threads';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { es, type MessageKey } from './src/i18n/es.ts';
+import { LANGS, PT_READY, fillI18n } from './src/i18n.ts';
 
 // The markup carries i18n keys (src/i18n.ts fills them in the browser); the build also writes the Spanish in, so the
 // first paint has every text (nothing moves when boot.ts runs) and crawlers read the page. Elements with children
-// are left to the browser.
+// are left to the browser. Portuguese, once public (PT_READY): its switch buttons and the inline script's `pt`.
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-const text = (key: string) => esc(es[key as MessageKey] ?? key);
 const i18nHtml: Plugin = {
   name: 'i18n-html',
-  transformIndexHtml: (html) => html
-    .replace(/(<(\w+)\s[^>]*\bdata-i18n="([\w.]+)"[^>]*>)[^<]*(<\/\2>)/g, (_, open, _tag, key, close) => open + text(key) + close)
-    .replace(/\sdata-i18n-(title|aria-label)="([\w.]+)"/g, (m, attr, key) => `${m} ${attr}="${text(key)}"`),
+  transformIndexHtml: (html) => {
+    const out = fillI18n(html, (key) => esc(es[key as MessageKey] ?? key));
+    return PT_READY ? out.replace(/(class="lang-pt") hidden/g, '$1').replace('pt = false', 'pt = true') : out;
+  },
 };
 
-// English visitors' dictionary (i18n/en.ts, its own chunk): index.html's inline script preloads it, so it loads alongside
-// boot.ts instead of after it (English pages stay hidden until it's in). Its hashed name is written in here.
-const enPreload: Plugin = {
-  name: 'en-preload',
+// Other languages' dictionaries (i18n/en.ts, pt.ts: a chunk each): index.html's inline script preloads the page's, so it
+// loads alongside boot.ts instead of after it (those pages stay hidden until it's in). Their hashed names go in here.
+const dictPreload: Plugin = {
+  name: 'dict-preload',
   apply: 'build',
   transformIndexHtml: {
     order: 'post',
     handler(html, { bundle }) {
-      const chunk = Object.values(bundle ?? {}).find((c) => c.type === 'chunk' && c.facadeModuleId?.endsWith('/src/i18n/en.ts'));
-      if (!chunk || !html.includes("en = ''")) throw new Error('en-preload: no en.ts chunk, or index.html\'s `en = \'\'` is gone');
-      return html.replace("en = ''", `en = '/${chunk.fileName}'`);
+      const file = (l: string) => Object.values(bundle ?? {}).find((c) => c.type === 'chunk' && c.facadeModuleId?.endsWith(`/src/i18n/${l}.ts`))?.fileName;
+      const dicts = { en: file('en'), pt: file('pt') };
+      if (!dicts.en || !dicts.pt || !html.includes('dicts = {}')) throw new Error('dict-preload: no en.ts / pt.ts chunk, or index.html\'s `dicts = {}` is gone');
+      return html.replace('dicts = {}', `dicts = ${JSON.stringify({ en: `/${dicts.en}`, pt: `/${dicts.pt}` })}`);
     },
   },
 };
@@ -54,29 +57,28 @@ const swPrecache: Plugin = {
   },
 };
 
-// Every case, method, the library and /acerca get their own index.html (src/seo.ts): crawlers read each page's title,
-// description and content without running the app; the sitemap lists them. Static files win over vercel.json's rewrite.
+// Every page (src/seo.ts) gets its own index.html in each public language: /academia/x, /en/academia/x… Crawlers read
+// each page's title, description and content without running the app; the sitemap lists them. Static files win over
+// vercel.json's rewrite. Each language is written by a worker of its own (scripts/prerender.ts): the academy's data
+// reads the language when it loads, so one process can't hold two. The rest of the paths go to app.html, the page as
+// built (no canonical: not "this is /").
 let outDir = 'dist';
+let root = '.';
 let building = false; // vite preview runs as 'serve' (its middleware below), and dev closes bundles too
 const prerender: Plugin = {
   name: 'prerender',
-  configResolved: (c) => void ((outDir = join(c.root, c.build.outDir)), (building = c.command === 'build')),
+  configResolved: (c) => void ((root = c.root), (outDir = join(c.root, c.build.outDir)), (building = c.command === 'build')),
   async closeBundle() {
     if (!building) return;
-    const [{ cube3x3x3 }, { prerender: render, seoPages, sitemap, canonical, ORIGIN }] = await Promise.all([import('cubing/puzzles'), import('./src/seo.ts')]);
     const html = await readFile(join(outDir, 'index.html'), 'utf8');
-    // '/' gets its canonical; every other path vercel.json sends to app.html, the same page without one (not "this is /")
     await writeFile(join(outDir, 'app.html'), html);
-    await writeFile(join(outDir, 'index.html'), canonical(html, `${ORIGIN}/`));
-    const pages = seoPages(await cube3x3x3.kpuzzle());
-    await Promise.all(pages.map(async (p) => {
-      const dir = join(outDir, p.path);
-      await mkdir(dir, { recursive: true });
-      await writeFile(join(dir, 'index.html'), render(html, p));
-    }));
+    const paths = await Promise.all(LANGS.map((l) => new Promise<string[]>((done, fail) => {
+      const w = new Worker(join(root, 'scripts/prerender.ts'), { workerData: { html, outDir, root }, env: { ...process.env, TWISTLAB_LANG: l } });
+      w.once('message', done).once('error', fail).once('exit', (code) => fail(new Error(`prerender ${l}: worker exited (${code})`)));
+    })));
+    const { sitemap } = await import('./src/seo.ts');
     const map = join(outDir, 'sitemap.xml');
-    await writeFile(map, sitemap(await readFile(map, 'utf8'), pages.map((p) => p.path)));
-    await ogImages(pages);
+    await writeFile(map, sitemap(await readFile(map, 'utf8'), paths[0]));
   },
   // vite preview as Vercel: /x serves x/index.html (sirv only does it for /x/)
   configurePreviewServer: (server) => void server.middlewares.use((req, _res, next) => {
@@ -85,26 +87,6 @@ const prerender: Plugin = {
     next();
   }),
 };
-
-// Methods' and cases' social previews (src/seo.ts's ogSvg, 1200x630) as PNGs in og/, drawn with Inter (bundled: build
-// machines may have no fonts). Each is kept in node_modules/.cache/og by its SVG's hash, so a build only draws what changed.
-// ponytail: the cache isn't pruned; delete the folder if it ever grows too big.
-async function ogImages(pages: import('./src/seo.ts').SeoPage[]) {
-  const [{ renderAsync }, { ogImagePath, ogSvg }] = await Promise.all([import('@resvg/resvg-js'), import('./src/seo.ts')]);
-  const icon = await readFile('public/icon.svg', 'utf8');
-  const cache = 'node_modules/.cache/og';
-  await mkdir(cache, { recursive: true });
-  const font = { fontFiles: ['400Regular/Inter_400Regular.ttf', '700Bold/Inter_700Bold.ttf'].map((f) => `node_modules/@expo-google-fonts/inter/${f}`), loadSystemFonts: false, defaultFontFamily: 'Inter' };
-  await Promise.all(pages.map(async (p) => {
-    if (!p.og) return;
-    const svg = ogSvg(p.og, icon);
-    const png = join(cache, `${createHash('sha256').update(svg).digest('hex').slice(0, 24)}.png`);
-    if (!existsSync(png)) await writeFile(png, (await renderAsync(svg, { font })).asPng()); // libuv's threads: 4 at a time
-    const out = join(outDir, ogImagePath(p.path));
-    await mkdir(dirname(out), { recursive: true });
-    await copyFile(png, out);
-  }));
-}
 
 // /api in dev: on Vercel each api/**/*.js is a function; here Vite answers with the same handlers (no `vercel dev`),
 // with .env.local's variables (DATABASE_URL, AUTH_SECRET…) in process.env. Files and folders starting with _ aren't routes.
@@ -141,7 +123,7 @@ const api: Plugin = {
 // to emit it as a self-contained worker bundle, named exactly what cubing.js looks for.
 // Without it, cubing.js falls back to a worker that shares the page's chunks and runs page code.
 export default defineConfig({
-  plugins: [i18nHtml, enPreload, swPrecache, prerender, api],
+  plugins: [i18nHtml, dictPreload, swPrecache, prerender, api],
   optimizeDeps: { exclude: ['cubing'] }, // keep cubing's files unbundled in dev so its lookup works there too
   worker: {
     format: 'es',

@@ -6,26 +6,54 @@ import { inBackup } from './progress.ts';
 // index.html's inline script (it runs before the first paint), run as is against a fake page and storage
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const code = html.match(/<body>\s*<script>([\s\S]*?)<\/script>/)![1];
-function run(pathname: string, items: Record<string, string> = {}, language = 'es-ES', userAgent = 'Mozilla/5.0') {
+function run(pathname: string, items: Record<string, string> = {}, language = 'es-ES', userAgent = 'Mozilla/5.0', { session = {} as Record<string, string>, htmlLang = 'es' } = {}) {
   const classes = new Set<string>();
   const body = { dataset: {} as Record<string, string>, setAttribute() {}, classList: { add: (c: string) => classes.add(c) } };
-  const html = { lang: 'es', classList: { add: (c: string) => classes.add(c) } };
+  const html = { lang: htmlLang, classList: { add: (c: string) => classes.add(c) } };
   const keys = Object.keys(items);
   const storage = { length: keys.length, key: (i: number) => keys[i] ?? null, getItem: (k: string) => items[k] ?? null };
-  new Function('document', 'location', 'localStorage', 'navigator', code)({ body, documentElement: html }, { pathname }, storage, { language, userAgent });
-  return { module: body.dataset.module, fresh: classes.has('fresh'), lang: html.lang, wait: classes.has('i18n-wait') };
+  const location = { pathname, search: '', hash: '' };
+  const history = { state: null, replaceState: (_: unknown, __: string, url: string) => void (location.pathname = url) };
+  const sessionStorage = { getItem: (k: string) => session[k] ?? null, setItem: (k: string, v: string) => void (session[k] = v) };
+  new Function('document', 'location', 'localStorage', 'navigator', 'history', 'sessionStorage', code)(
+    { body, documentElement: html, createElement: () => ({}), head: { appendChild() {} } }, location, storage, { language, userAgent }, history, sessionStorage);
+  return { module: body.dataset.module, fresh: classes.has('fresh'), lang: html.lang, wait: classes.has('i18n-wait'), path: location.pathname };
 }
 
-test('inline script: the language is the remembered one, else the browser\'s (en* is English)', () => {
+test('inline script: the URL decides the language', () => {
   assert.deepEqual([run('/').lang, run('/').wait], ['es', false]);
-  assert.deepEqual([run('/', {}, 'en-US').lang, run('/', {}, 'en-US').wait], ['en', true]);
-  assert.equal(run('/', {}, 'EN').lang, 'en');
-  assert.equal(run('/', {}, 'fr-FR').lang, 'es');
-  assert.equal(run('/', { lang: 'es' }, 'en-GB').lang, 'es');
-  assert.equal(run('/', { lang: 'en' }, 'es-MX').lang, 'en');
+  assert.deepEqual([run('/en/academia').lang, run('/en/academia').wait, run('/en/academia').module], ['en', true, 'academy']);
+  assert.equal(run('/en/', { lang: 'es' }).lang, 'en'); // over the remembered one
+  assert.equal(run('/pt/cubo/pintar').lang, 'pt');
+  assert.equal(run('/english').lang, 'es');
+  assert.equal(run('/en/academia', {}, 'en-US', 'Mozilla/5.0', { htmlLang: 'en' }).wait, false); // prerendered in English: nothing to wait for
+  assert.equal(run('/academia', { lang: 'en' }, 'en-US', 'Mozilla/5.0', { session: { open: '1' } }).lang, 'es'); // in the session (the ES switch): the URL
+});
+
+test('inline script: a visit starting at a Spanish URL goes to the chosen language, else the browser\'s (not crawlers)', () => {
+  assert.deepEqual(run('/', {}, 'en-US'), { module: 'solve', fresh: true, lang: 'en', wait: true, path: '/en/' });
+  assert.equal(run('/academia/cruz', {}, 'EN').path, '/en/academia/cruz');
+  assert.equal(run('/academia/cruz', {}, 'en-US').module, 'academy');
+  assert.equal(run('/', {}, 'fr-FR').path, '/');
+  assert.equal(run('/', { lang: 'es' }, 'en-GB').path, '/');
+  assert.equal(run('/cubo', { lang: 'en' }, 'es-MX').path, '/en/cubo');
   assert.equal(run('/', { lang: 'de' }, 'en-GB').lang, 'en'); // not a language of ours: the browser's
+  assert.equal(run('/', {}, 'pt-BR').path, '/'); // Portuguese isn't public yet (PT_READY)
+  assert.equal(run('/', { lang: 'pt' }).path, '/');
   assert.equal(run('/', { lang: 'en' }).fresh, true); // choosing a language isn't a returning visitor
-  assert.equal(run('/', {}, 'en-US', 'Mozilla/5.0 (compatible; Googlebot/2.1)').lang, 'es'); // crawlers read the Spanish pages
+  assert.deepEqual([run('/', {}, 'en-US', 'Mozilla/5.0 (compatible; Googlebot/2.1)').lang, run('/', {}, 'en-US', 'Googlebot').path], ['es', '/']); // crawlers read each URL as it is
+  assert.equal(run('/academia/cruz', {}, 'en-US', 'Mozilla/5.0 (compatible; Google-InspectionTool/1.0;)').path, '/academia/cruz'); // Search Console's live test too
+});
+
+test('inline script: reopened at the start page, back to the last page in that language', () => {
+  const last = (path: string) => ({ 'last-page': JSON.stringify({ path, scroll: 0 }) });
+  assert.equal(run('/', last('/academia/cruz')).path, '/academia/cruz');
+  assert.equal(run('/en/', last('/en/academia/cruz')).path, '/en/academia/cruz');
+  assert.deepEqual([run('/en/', last('/en/academia/cruz')).module, run('/en/', last('/en/cubo/pintar')).module], ['academy', 'cube']);
+  assert.equal(run('/', { lang: 'en', ...last('/en/algoritmos') }).path, '/en/algoritmos'); // the installed app: start_url / → /en/ → there
+  assert.equal(run('/en/', last('/academia/cruz')).path, '/en/'); // another language: stays
+  assert.equal(run('/', { lang: 'en', ...last('/academia/cruz') }).path, '/en/academia/cruz'); // saved before languages had URLs
+  assert.equal(run('/', last('/academia/cruz'), 'es-ES', 'Mozilla/5.0', { session: { open: '1' } }).path, '/'); // a reload or the Resolver's link
 });
 
 test('inline script: /acerca is the About page', () => {

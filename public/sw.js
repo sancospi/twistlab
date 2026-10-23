@@ -44,12 +44,16 @@ self.addEventListener('push', (e) => {
   }));
 });
 
-// Tapping it opens /hoy: in the app's window if one is open, else a new one
+// Tapping it opens /hoy: in the app's window if one is open (in that window's language: /en/hoy), else a new one
+// (index.html's script then picks the language)
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  const url = new URL(e.notification.data?.url || '/hoy', self.location.origin).href;
+  const url = new URL(e.notification.data?.url || '/hoy', self.location.origin);
   e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
     const win = wins.find((w) => new URL(w.url).origin === self.location.origin);
-    return win ? win.focus().then(() => win.navigate(url)).catch(() => self.clients.openWindow(url)) : self.clients.openWindow(url);
+    if (!win) return self.clients.openWindow(url.href);
+    const lang = /^\/(en|pt)(?=\/|$)/, pre = lang.exec(new URL(win.url).pathname);
+    if (pre && !lang.test(url.pathname)) url.pathname = pre[0] + url.pathname;
+    return win.focus().then(() => win.navigate(url.href)).catch(() => self.clients.openWindow(url.href));
   }));
 });

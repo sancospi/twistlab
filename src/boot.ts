@@ -3,12 +3,14 @@
 // the app has to be a dynamic import to keep this entry tiny.
 import { inject } from '@vercel/analytics';
 import { applyI18n, lang, loadLang, setLang, type Lang } from './i18n.ts';
+import { localizeLinks } from './router.ts';
 
-// English: its dictionary is a chunk of its own (Spanish pages don't load it); the inline script keeps the page hidden
-// until it's in (html.i18n-wait), so no Spanish shows first. Nothing below runs before it: the app renders in English.
+// English, Portuguese: the dictionary is a chunk of its own (Spanish pages don't load it); the inline script keeps a page
+// built in Spanish hidden until it's in (html.i18n-wait), so no Spanish shows first. Nothing below runs before it.
 if (lang !== 'es') await loadLang();
 applyI18n(document);
-// The ES · EN switches (☰ menu, /acerca): remember and reload
+localizeLinks(); // /en/…: the menu's and every later link stay in English
+// The ES · EN · PT switches (☰ menu, Cubo, /acerca): remember and open this page in that language
 addEventListener('click', (e) => {
   const l = (e.target as Element).closest?.('[data-lang]')?.getAttribute('data-lang');
   if (l && l !== lang) setLang(l as Lang);

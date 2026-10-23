@@ -2,10 +2,11 @@
 // library and the app's other screens get their own index.html, the app's page with its title, description, canonical
 // URL, Open Graph tags, structured data (JSON-LD) and its content as static HTML inside the module's container. The app
 // replaces that content when it boots. Methods and cases also get a social preview card (ogSvg; vite.config.ts makes
-// the PNG). Pure: no DOM, no fs.
+// the PNG). Each language has its own pages (Spanish at /path, English at /en/path…), written by a worker of its own
+// (scripts/prerender.ts) in i18n.ts's `lang`; each points at the others (hreflang). Pure: no DOM, no fs.
 import type { KPuzzle } from 'cubing/kpuzzle';
-import { loc, t, tp } from './i18n.ts';
-import { TRAINERS, parseRoute, routePath, type AcademyPage, type Route, type Trainer } from './router.ts';
+import { LANGS, fillI18n, lang, langPath, loc, t, tp, type Lang, type MessageKey } from './i18n.ts';
+import { TRAINERS, localHref, parseRoute, routePath, type AcademyPage, type Route, type Trainer } from './router.ts';
 import { METHODS, allCases } from './academy/methods.ts';
 import { bases2x2 } from './academy/bases2x2.ts';
 import { period, triggerGuide } from './academy/triggers.ts';
@@ -23,7 +24,7 @@ import type { Case, Method, Phase } from './academy/types.ts';
 export const ORIGIN = 'https://twistlab.app';
 
 export interface SeoPage {
-  path: string; // e.g. /academia/cfop-completo/caso/cfopc-oll-27
+  path: string; // the Spanish one, e.g. /academia/cfop-completo/caso/cfopc-oll-27 (its English page: /en + it)
   title: string;
   description: string;
   body: string; // HTML for the module's container
@@ -151,7 +152,7 @@ function howToPage(kpuzzle: KPuzzle): SeoPage {
       return `<h2 id="como-${esc(s.id)}">${esc(loc(s.title))}</h2>`
         + (f ? `<figure class="howto-figure">${f.svg}<figcaption class="hint">${esc(f.caption)}</figcaption></figure>` : '')
         + `<div class="prose">${rich(loc(s.body))}</div>`
-        + (s.more ? `<p>${link(s.more.href, `${loc(s.more.label)} →`)}</p>` : '');
+        + (s.more ?? []).map((m) => `<p>${link(m.href, `${loc(m.label)} →`)}</p>`).join('');
     }).join(''),
   };
 }
@@ -165,7 +166,8 @@ function academyHome(): SeoPage {
     description: t('seo.academyDescription'),
     trail: [home(), { name: t('menu.academy'), path: academy({ kind: 'home' }) }],
     body: `<h2>${esc(t('menu.academy'))}</h2><p>${esc(t('seo.academyDescription'))}</p>` + list([
-      a({ kind: 'howto' }, loc(howToSolve.name)), a({ kind: 'cross' }, loc(crossGuide.name)),
+      a({ kind: 'howto' }, loc(howToSolve.name)), link('/', t('solve.seoTitle')), link(routePath({ mod: 'cube', page: 'paint' }), t('paint.seoTitle')),
+      a({ kind: 'cross' }, loc(crossGuide.name)),
       ...METHODS.map((m) => a({ kind: 'method', id: m.id }, loc(m.name))),
       a({ kind: 'notation' }, t('glossary.title')), a({ kind: 'triggers' }, loc(triggerGuide.name)), a({ kind: 'bases2x2' }, loc(bases2x2.name)),
       ...TRAINERS.map((id) => a({ kind: 'trainer', id }, t(`trainer.${id}.title`))),
@@ -184,7 +186,7 @@ function libraryPage(): SeoPage {
   };
 }
 
-/** A screen outside the Academia: its title and description (/acerca, /cubo and /cubo/pintar: index.html already has
+/** A screen outside the Academia: its title and description (/, /acerca, /cubo and /cubo/pintar: index.html already has
  *  their content, so `body` only fills an empty container, as /progreso's). */
 const screen = (route: Route, name: string, description: string): SeoPage => ({
   path: routePath(route), title: pageTitle(name), description, trail: [home(), { name, path: routePath(route) }],
@@ -195,12 +197,14 @@ const screen = (route: Route, name: string, description: string): SeoPage => ({
 export function seoPages(kpuzzle: KPuzzle): SeoPage[] {
   const notation = academy({ kind: 'notation' });
   return [
+    // the timer: a search landing page of its own ("Cronómetro para cubo de Rubik online"), the app's name in its crumb
+    { ...screen({ mod: 'solve' }, t('solve.seoTitle'), t('solve.seoDescription')), trail: [home()] },
     howToPage(kpuzzle), academyHome(), libraryPage(),
     guidePage(crossGuide, { kind: 'cross' }, t('cross.title')), guidePage(bases2x2, { kind: 'bases2x2' }), triggersPage(kpuzzle),
     { path: notation, title: inAcademy(t('glossary.title')), description: t('glossary.tileSummary'), trail: inAcademyTrail(t('glossary.title'), notation),
       body: `<h2>${esc(t('glossary.title'))}</h2><p>${esc(t('glossary.tileSummary'))}</p>` },
     ...TRAINERS.map(trainerPage), ...METHODS.flatMap((m) => [methodPage(m, kpuzzle), ...allCases(m).map((c) => casePage(m, c, kpuzzle))]),
-    screen({ mod: 'cube' }, t('menu.cube'), t('seo.cubeDescription')), screen({ mod: 'cube', page: 'paint' }, t('paint.title'), t('paint.summary')),
+    screen({ mod: 'cube' }, t('menu.cube'), t('seo.cubeDescription')), screen({ mod: 'cube', page: 'paint' }, t('paint.seoTitle'), t('paint.seoDescription')),
     screen({ mod: 'progress' }, t('nav.progress'), t('progress.intro')), screen({ mod: 'about' }, t('about.title'), t('seo.aboutDescription')),
   ];
 }
@@ -245,54 +249,74 @@ export function ogSvg(card: OgCard, icon: string): string {
     + `<text x="${W - 60}" y="${H - 80}" font-size="26" fill="#8a90a0" text-anchor="end">twistlab.app</text></svg>`;
 }
 
-/** The page's structured data (schema.org): where it sits (BreadcrumbList) and, for a guide, the Article. */
-export function jsonLd(page: SeoPage): Record<string, unknown>[] {
-  const url = ORIGIN + page.path;
-  const org = { '@type': 'Organization', name: t('app.title'), url: `${ORIGIN}/` };
-  const crumbs = {
-    '@context': 'https://schema.org', '@type': 'BreadcrumbList',
-    itemListElement: page.trail.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: ORIGIN + c.path })),
-  };
-  if (!page.article) return [crumbs];
-  return [crumbs, {
-    '@context': 'https://schema.org', '@type': 'Article', headline: page.trail.at(-1)!.name, description: page.description, inLanguage: 'es',
-    url, mainEntityOfPage: url, author: org, publisher: org, ...(page.og ? { image: ORIGIN + ogImagePath(page.path) } : {}),
-  }];
+/** Each language's codes: hreflang and JSON-LD's inLanguage, Open Graph's og:locale. */
+const LOCALE: Record<Lang, { tag: string; og: string }> = { es: { tag: 'es', og: 'es_ES' }, en: { tag: 'en', og: 'en_US' }, pt: { tag: 'pt-BR', og: 'pt_BR' } };
+/** A page's address in a language: /academia/x in English is https://twistlab.app/en/academia/x. */
+export const pageUrl = (path: string, l: Lang): string => ORIGIN + langPath(path, l);
+
+/** The head links of a page in language `l`: its canonical (itself) and every language's version (hreflang), Spanish
+ *  as x-default. */
+export function langLinks(path: string, l: Lang, langs: readonly Lang[] = LANGS): string {
+  return [`<link rel="canonical" href="${esc(pageUrl(path, l))}" />`,
+    ...langs.map((x) => `<link rel="alternate" hreflang="${LOCALE[x].tag}" href="${esc(pageUrl(path, x))}" />`),
+    `<link rel="alternate" hreflang="x-default" href="${esc(pageUrl(path, 'es'))}" />`].join('\n  ');
 }
 
-/** The built index.html as this page: its head tags, and its content in the module's container (shown, not hidden). */
+/** The markup's links in language `l` (router.ts localHref): the menu, crumbs, cards and the page's content. */
+export const localizeHtml = (html: string, l: Lang): string =>
+  html.replace(/(<a\s[^>]*?\bhref=")([^"]*)"/g, (_, open, href) => `${open}${localHref(href, l)}"`);
+
+/** The page's structured data (schema.org): where it sits (BreadcrumbList, below the home) and, for a guide, the Article. */
+export function jsonLd(page: SeoPage): Record<string, unknown>[] {
+  const url = pageUrl(page.path, lang);
+  const org = { '@type': 'Organization', name: t('app.title'), url: pageUrl('/', lang) };
+  const crumbs = {
+    '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+    itemListElement: page.trail.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: pageUrl(c.path, lang) })),
+  };
+  return [...(page.trail.length > 1 ? [crumbs] : []), ...(page.article ? [{
+    '@context': 'https://schema.org', '@type': 'Article', headline: page.trail.at(-1)!.name, description: page.description, inLanguage: LOCALE[lang].tag,
+    url, mainEntityOfPage: url, author: org, publisher: org, ...(page.og ? { image: ORIGIN + ogImagePath(langPath(page.path, lang)) } : {}),
+  }] : [])];
+}
+
+/** The built index.html (in Spanish) as this page in i18n.ts's language: its texts and links, its head tags, and its
+ *  content in the module's container (shown, not hidden). */
 export function prerender(html: string, page: SeoPage): string {
-  const url = ORIGIN + page.path;
   const route: Route = parseRoute(page.path);
   const meta = (attr: string, value: string) => (s: string) =>
     s.replace(new RegExp(`(<meta ${attr} content=")[^"]*"`), (_, open) => `${open}${esc(value)}"`); // a function: no $ patterns
   const ld = jsonLd(page).map((x) => `  <script type="application/ld+json">${JSON.stringify(x).replace(/</g, '\\u003c')}</script>\n`).join(''); // no </script> inside
   let out = [
+    // another language: <html lang> (index.html's inline script then doesn't wait for the texts) and the texts
+    (s: string) => (lang === 'es' ? s : fillI18n(s.replace('<html lang="es">', `<html lang="${lang}">`), (k) => esc(t(k as MessageKey)))),
     // no data-i18n: boot.ts would put the app's name back
     (s: string) => s.replace(/<title[^>]*>[^<]*<\/title>/, `<title>${esc(page.title)}</title>`),
     meta('name="description"', page.description),
     meta('property="og:type"', page.article ? 'article' : 'website'),
     meta('property="og:title"', page.title),
     meta('property="og:description"', page.description),
+    meta('property="og:locale"', LOCALE[lang].og),
     ...(page.og ? [
-      meta('property="og:image"', ORIGIN + ogImagePath(page.path)),
+      meta('property="og:image"', ORIGIN + ogImagePath(langPath(page.path, lang))),
       (s: string) => s.replace(/(<meta property="og:image"[^>]*>)/, `$1\n  <meta property="og:image:width" content="${OG_SIZE.width}" />\n  <meta property="og:image:height" content="${OG_SIZE.height}" />`),
       meta('name="twitter:card"', 'summary_large_image'),
     ] : []),
-    (s: string) => canonical(s, url),
+    // after the description: its canonical URL, the other languages' and og:url
+    (s: string) => s.replace(/(<meta name="description"[^>]*>)/, (m) => `${m}\n  ${langLinks(page.path, lang)}\n  <meta property="og:url" content="${esc(pageUrl(page.path, lang))}" />`),
     (s: string) => s.replace('</head>', () => `${ld}</head>`),
   ].reduce((s, f) => f(s), html);
-  // data-prerendered: English visitors don't see this Spanish until the app renders over it (index.html's CSS)
-  out = out.replace(new RegExp(`(<(\\w+) id="mod-${route.mod}"[^>]*?)(?: hidden)?>(</\\2>)`), (_, open, _tag, close) => `${open}><div data-prerendered lang="es">${page.body}</div>${close}`);
-  return out;
+  // data-prerendered lang: index.html's CSS hides it from other languages (offline, the cached '/') until the app renders
+  out = out.replace(new RegExp(`(<(\\w+) id="mod-${route.mod}"[^>]*?)(?: hidden)?>(</\\2>)`), (_, open, _tag, close) => `${open}><div data-prerendered lang="${lang}">${page.body}</div>${close}`);
+  return localizeHtml(out, lang);
 }
 
-/** The page's canonical URL and og:url, after its description. */
-export const canonical = (html: string, url: string): string =>
-  html.replace(/(<meta name="description"[^>]*>)/, `$1\n  <link rel="canonical" href="${esc(url)}" />\n  <meta property="og:url" content="${esc(url)}" />`);
-
-/** The sitemap: the hand-kept one's URLs (public/sitemap.xml) and the pages', each once. */
-export function sitemap(base: string, paths: string[]): string {
-  const locs = [...new Set([...[...base.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]), ...paths.map((p) => esc(ORIGIN + p))])];
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${locs.map((l) => `  <url><loc>${l}</loc></url>`).join('\n')}\n</urlset>\n`;
+/** The sitemap: the hand-kept one's URLs (public/sitemap.xml) and the pages', each once, in every language, each URL
+ *  with its alternates (xhtml:link, as the pages' hreflang). */
+export function sitemap(base: string, paths: string[], langs: readonly Lang[] = LANGS): string {
+  const all = [...new Set([...[...base.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].slice(ORIGIN.length) || '/'), ...paths])];
+  const alternates = (path: string) => [...langs.map((x) => [LOCALE[x].tag, x] as const), ['x-default', 'es'] as const]
+    .map(([tag, x]) => `<xhtml:link rel="alternate" hreflang="${tag}" href="${esc(pageUrl(path, x))}"/>`).join('');
+  const urls = all.flatMap((path) => langs.map((l) => `  <url><loc>${esc(pageUrl(path, l))}</loc>${alternates(path)}</url>`));
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.join('\n')}\n</urlset>\n`;
 }

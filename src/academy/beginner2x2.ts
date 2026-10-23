@@ -2,17 +2,16 @@
 // corners, each in place), the yellow face (OLL) and the last layer's corners (permuted). Every algorithm is the
 // beginner's full sequence, with its repetitions written out; cfop.validate.test.ts checks each one in the simulator.
 // Case ids: 'p2-<phase>-<slug>'. 2x2 notation only: R U F L D B and x y z (no slices, no wide moves).
-import { loc, type Localized } from '../i18n.ts';
+import { fromSpanish, loc, type Localized } from '../i18n.ts';
 import { EN } from './beginner2x2.en.ts';
+import { PT } from './beginner2x2.pt.ts';
 import { IDENTITY, centerMoves, invertTokens } from '../notation.ts';
 import type { Case, Method, Stage } from './types.ts';
 
 const tr = (es: string, en: string): Localized => ({ es, en });
-// Spanish written first; English comes from EN line by line (see beginner2x2.en.ts), the Spanish if a line is missing.
-const es = (s: string): Localized => {
-  const en = s.split('\n').map((line) => EN[line]);
-  return en.includes(undefined as never) ? { es: s } : { es: s, en: en.join('\n') };
-};
+// Spanish written first; English and Portuguese come from EN and PT line by line (see beginner2x2.en.ts), the Spanish
+// if a line is missing.
+const es = (s: string): Localized => fromSpanish(s, { en: EN, pt: PT });
 const doc = (lines: string[]): Localized => es(lines.join('\n'));
 // A case code is a plain string shown as is: the visitor's language, picked when the data loads.
 const word = (s: string, en: string) => loc(tr(s, en));

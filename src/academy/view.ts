@@ -241,9 +241,14 @@ function homeView(): HTMLElement {
   // no smart cube: paint yours and get its solution (a page of the Cubo screen)
   const paint = el('a', { className: 'tile', href: routePath({ mod: 'cube', page: 'paint' }) },
     el('div', { className: 'tile-strip tile-net', ariaHidden: 'true', innerHTML: netSVG(patternToFacelets(kpuzzle.defaultPattern().applyAlg("R U F' L2"))) }),
-    el('strong', { textContent: t('paint.title') }),
+    el('strong', { textContent: t('paint.seoTitle') }),
     text(t('paint.summary'), 'hint'),
     el('span', { className: 'tile-meta', textContent: t('paint.tileMeta') }));
+  // the timer, named as people search for it
+  const timer = el('a', { className: 'tile', href: routePath({ mod: 'solve' }) },
+    el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: '0:12.34' }),
+    el('strong', { textContent: t('solve.seoTitle') }),
+    text(t('solve.tileSummary'), 'hint'));
   // the beginner's article (where searches for "how to solve a Rubik's cube" land): the whole method in one read
   const howto = el('a', { className: 'tile', href: academyLink({ kind: 'howto' }) },
     el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: '1 2 3 4 5 6 7' }),
@@ -282,7 +287,7 @@ function homeView(): HTMLElement {
     el('h2', { textContent: t('menu.academy') }),
     text(t('academy.homeIntro'), 'prose hint'),
     today,
-    group('3x3x3', howto, cross, ...tiles('3x3x3'), notation, triggers, paint),
+    group('3x3x3', howto, cross, ...tiles('3x3x3'), notation, triggers, paint, timer),
     group('2x2x2', basics, ...tiles('2x2x2')),
     trainers,
     el('p', { className: 'foot-link' }, el('a', { href: routePath({ mod: 'about' }), textContent: t('about.link') })));

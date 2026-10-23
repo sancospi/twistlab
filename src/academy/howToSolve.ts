@@ -15,13 +15,16 @@ const doc = (es: string[], en: string[]): Localized => tr(es.join('\n'), en.join
 const academy = (page: AcademyPage, hash = '') => routePath({ mod: 'academy', page }) + hash;
 const step = (phase: string) => academy({ kind: 'method', id: beginner.id }, `#academy-${phase}`); // view.ts's phase anchors
 const inMethod = (phase: string) => ({ href: step(phase), label: tr('Este paso en el método principiante', 'This step in the beginner method') });
+// the tools for the big searches ("cronómetro…", "resolver el cubo de Rubik online"), from where the article meets them
+const solver = { href: routePath({ mod: 'cube', page: 'paint' }), label: tr('Resolver el cubo de Rubik online: pinta tu cubo y te doy la solución', "Rubik's cube solver online: paint your cube and get the solution") };
+const timer = { href: routePath({ mod: 'solve' }), label: tr('Cronómetro para cubo de Rubik online, con mezclas oficiales', "Online Rubik's cube timer, with official scrambles") };
 
 export interface HowToSection {
   id: string;
   title: Localized;
   body: Localized;
   figure?: string; // a beginner case's id: its diagram, as on its card
-  more?: { href: string; label: Localized };
+  more?: { href: string; label: Localized }[]; // links to where the Academia (or a tool) takes it further
 }
 
 export const howToSolve = {
@@ -53,6 +56,7 @@ export const howToSolve = {
           "- Knowing how to read the turns: `R`, `U`, `R'`… It's explained below and takes five minutes.",
         ],
       ),
+      more: [solver], // stuck with a scrambled cube: the solver gets you back to solved
     },
     {
       id: 'antes',
@@ -83,7 +87,7 @@ export const howToSolve = {
           '**How to hold the cube:** throughout this guide, white cross on the bottom, yellow on top and green in front.',
         ],
       ),
-      more: { href: academy({ kind: 'notation' }), label: tr('Toda la notación, con cada giro animado', 'All the notation, with every turn animated') },
+      more: [{ href: academy({ kind: 'notation' }), label: tr('Toda la notación, con cada giro animado', 'All the notation, with every turn animated') }],
     },
     {
       id: 'cruz',
@@ -100,7 +104,7 @@ export const howToSolve = {
           "If the white face looks complete but the side colors don't match their centers, the cross is wrong.",
         ],
       ),
-      more: { href: academy({ kind: 'cross' }), label: tr('La guía de la cruz blanca, con entrenador', 'The white cross guide, with a trainer') },
+      more: [{ href: academy({ kind: 'cross' }), label: tr('La guía de la cruz blanca, con entrenador', 'The white cross guide, with a trainer') }],
     },
     {
       id: 'esquinas-blancas',
@@ -116,7 +120,7 @@ export const howToSolve = {
         ],
       ),
       figure: 'prin-capa1-blanco-derecha',
-      more: inMethod('prin-capa1'),
+      more: [inMethod('prin-capa1')],
     },
     {
       id: 'segunda-capa',
@@ -136,7 +140,7 @@ export const howToSolve = {
         ],
       ),
       figure: 'prin-capa2-derecha',
-      more: inMethod('prin-capa2'),
+      more: [inMethod('prin-capa2')],
     },
     {
       id: 'cruz-amarilla',
@@ -156,7 +160,7 @@ export const howToSolve = {
         ],
       ),
       figure: 'prin-cruz-l',
-      more: inMethod('prin-cruz'),
+      more: [inMethod('prin-cruz')],
     },
     {
       id: 'aristas-amarillas',
@@ -170,7 +174,7 @@ export const howToSolve = {
         ],
       ),
       figure: 'prin-aristas-vecinas',
-      more: inMethod('prin-aristas'),
+      more: [inMethod('prin-aristas')],
     },
     {
       id: 'esquinas-amarillas',
@@ -184,7 +188,7 @@ export const howToSolve = {
         ],
       ),
       figure: 'prin-esquinas-antihorario',
-      more: inMethod('prin-esquinas'),
+      more: [inMethod('prin-esquinas')],
     },
     {
       id: 'orientar',
@@ -200,7 +204,7 @@ export const howToSolve = {
         ],
       ),
       figure: 'prin-orientar-sune',
-      more: inMethod('prin-orientar'),
+      more: [inMethod('prin-orientar')],
     },
     {
       id: 'despues',
@@ -213,7 +217,7 @@ export const howToSolve = {
           "Once you can solve it without looking at the guide, time yourself with official scrambles to see yourself improve. The next method is **reduced CFOP**: the same steps, merged into fewer algorithms, to get under 1 minute.",
         ],
       ),
-      more: { href: academy({ kind: 'method', id: 'cfop-reducido' }), label: tr('El CFOP reducido', 'Reduced CFOP') },
+      more: [timer, { href: academy({ kind: 'method', id: 'cfop-reducido' }), label: tr('El CFOP reducido', 'Reduced CFOP') }],
     },
   ] satisfies HowToSection[] as HowToSection[],
 };

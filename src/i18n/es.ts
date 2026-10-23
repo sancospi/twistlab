@@ -56,6 +56,17 @@ export const es = {
   'solve.applyScramble': 'Aplica la mezcla con blanco arriba y verde al frente.',
   'solve.spaceToInspect': 'Empezar la inspección (Espacio)',
   'solve.options': 'Opciones',
+  // The timer as a search landing page ("/": title, description and the section under the tool, index.html)
+  'solve.seoTitle': 'Cronómetro para cubo de Rubik online',
+  'solve.seoDescription': 'Cronómetro para cubo de Rubik online y gratis: mezclas oficiales de la WCA, inspección de 15 segundos, medias ao5 y ao12, estadísticas y cubos inteligentes. Sin anuncios y sin registro.',
+  'solve.about': 'Un cronómetro de speedcubing en el móvil o el ordenador: mantén pulsado Espacio (o el dedo en la pantalla), suelta para empezar y vuelve a pulsar al terminar.',
+  'solve.aboutWca': 'Mezclas oficiales de la WCA para cada categoría: de 2x2 a 7x7, a ciegas, a una mano, Megaminx, Pyraminx, Skewb, Square-1 y Clock.',
+  'solve.aboutInspection': 'Inspección de 15 segundos como en competición, con avisos a los 8 y 12 segundos y penalizaciones +2 y DNF.',
+  'solve.aboutAverages': 'Medias ao5, ao12 y mo3, tu mejor tiempo, histograma y evolución. Importa tus tiempos de csTimer o Twisty Timer.',
+  'solve.aboutSmart': 'Con un cubo inteligente (GAN, MoYu, QiYi…) el tiempo empieza al girar y se detiene al resolverlo, con el análisis de cada paso de CFOP.',
+  'solve.aboutFree': 'Gratis, sin anuncios y sin cuenta: tus tiempos se guardan en tu navegador y funciona sin conexión.',
+  'solve.aboutLearn': '¿Aún no sabes resolverlo? Aprende paso a paso',
+  'solve.tileSummary': 'Mezclas oficiales de la WCA, inspección de 15 s y medias ao5 y ao12.',
 
   // Full-screen timer hints
   'timer.release': 'Suelta para empezar',
@@ -268,6 +279,16 @@ export const es = {
   'paint.modes': 'Tipo de solución',
   'paint.shortest': 'La más corta',
   'paint.guided': 'Método principiante',
+  // The solver as a search landing page (/cubo/pintar: title, description, heading and the section under the tool)
+  'paint.seoTitle': 'Resolver el cubo de Rubik online',
+  'paint.seoDescription': 'Resuelve tu cubo de Rubik online: pinta sus colores o escribe la mezcla y te doy la solución paso a paso, con cada giro animado en 3D. La más corta o con el método principiante. Gratis.',
+  'paint.aboutTitle': 'Cómo funciona el solucionador',
+  'paint.aboutPaint': 'Copia los colores de tu cubo en la red, o escribe la mezcla en notación (R U F2…) y la pinto yo.',
+  'paint.aboutCheck': 'Antes de resolver compruebo que tu cubo sea posible: colores de más, piezas que no existen, esquinas giradas o aristas dadas la vuelta.',
+  'paint.aboutSolution': 'Elige la solución más corta, calculada por el ordenador, o la del método principiante, explicada paso a paso.',
+  'paint.aboutAnim': 'Sigue cada giro en el cubo 3D, adelante y atrás, a tu ritmo.',
+  'paint.aboutFree': 'Gratis y sin anuncios, en el móvil o el ordenador.',
+  'paint.aboutLearn': '¿Quieres resolverlo tú mismo? Aprende paso a paso',
   'bsolve.note.one': '1 paso con los casos del método principiante: más larga, pero la puedes aprender. En cursiva, los giros que preparan cada caso.',
   'bsolve.note.other': '{n} pasos con los casos del método principiante: más larga, pero la puedes aprender. En cursiva, los giros que preparan cada caso.',
   'bsolve.learn': 'Aprende el método principiante',
@@ -1028,7 +1049,7 @@ export const es = {
   'about.welcomeLearn': 'Aprende desde cero',
   'about.welcomeCfop': 'Ya resuelvo el cubo',
   'about.welcomeTimer': 'Solo quiero el cronómetro',
-  // Language switch (ES · EN: index.html's .lang-switch)
+  // Language switch (ES · EN · PT: index.html's .lang-switch)
   'lang.label': 'Idioma',
   'text.label': 'Tamaño del texto',
   'text.normal': 'Texto normal',

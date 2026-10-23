@@ -576,11 +576,17 @@
     #mod-about details p { margin-top: 6px; line-height: 1.55; color: #c9cdd8; }
     #mod-about a, .foot-link a { color: var(--accent); }
     .foot-link { margin: 0; font-size: 0.8571rem; }
+    /* The Resolver's and Pinta tu cubo's "what this tool does" (for search too), under the tool: small, never above it */
+    .tool-about { display: grid; gap: 6px; font-size: 0.8571rem; color: var(--muted); }
+    .tool-about :is(h2, h3, p, ul) { margin: 0; }
+    .tool-about :is(h2, h3) { font-size: 1rem; color: var(--fg); }
+    .tool-about ul { padding-left: 1.2em; display: grid; gap: 2px; }
+    .tool-about a { color: var(--accent); }
     /* ES · EN (boot.ts): in the ☰ menu's foot and on /acerca. English pages wait hidden for their texts (inline script) */
     .i18n-wait body { visibility: hidden; animation: i18n-show 0s 3s forwards; }
     @keyframes i18n-show { to { visibility: visible; } }
-    /* src/seo.ts's prerendered (Spanish) content: hidden for English until the app renders over it, or after 10 s */
-    html[lang="en"] [data-prerendered] { visibility: hidden; animation: i18n-show 0s 10s forwards; }
+    /* src/seo.ts's prerendered content in Spanish (app.html, offline): hidden for other languages until the app renders over it, or after 10 s */
+    html:not([lang="es"]) [data-prerendered][lang="es"] { visibility: hidden; animation: i18n-show 0s 10s forwards; }
     .lang-switch { color: var(--muted); }
     .lang-switch button { padding: 4px 8px; background: none; color: var(--muted); }
     .lang-switch button[aria-pressed="true"] { color: var(--fg); font-weight: 600; }
@@ -711,29 +717,39 @@
   <script>
     // The layout depends on these (main.ts sets them too): set before the first paint so nothing moves when the app loads
     (function (b, p) {
-      // Language (i18n.ts reads <html lang>): the remembered one, else the browser's (en* → English), but not for crawlers:
-      // the URLs are the Spanish pages (title, description, prerendered content), so they read them in Spanish. English
-      // waits hidden (html.i18n-wait) for boot.ts to swap the build's Spanish texts, so they never flash; CSS shows it
-      // anyway after 3 s. Its dictionary chunk (`en`, written in by the build: vite.config.ts) is fetched alongside the app.
-      var h = document.documentElement, l, en = '';
-      try { l = localStorage.getItem('lang'); } catch (x) {}
-      if (l !== 'es' && l !== 'en') l = /^en/i.test(navigator.language || '') && !/bot|crawl|spider|slurp/i.test(navigator.userAgent || '') ? 'en' : 'es';
+      // Language (i18n.ts reads <html lang>): the URL's (/en/…, /pt/…; Spanish at the root). A visit that starts at a Spanish
+      // URL goes to the chosen language's (else the browser's: en* → English) with replaceState, but not for crawlers:
+      // they read each language at its own URL. A page the build wrote in Spanish waits hidden (html.i18n-wait) for
+      // boot.ts to swap its texts, so they never flash (CSS shows it anyway after 3 s); one prerendered in its language
+      // (<html lang> already it) doesn't. Its dictionary chunk (`dicts`, written in by the build: vite.config.ts) is
+      // fetched alongside the app. `pt`: Portuguese is public (i18n.ts PT_READY, written in by the build).
+      var h = document.documentElement, dicts = {}, pt = false, pre = /^\/(en|pt)(\/|$)/.exec(p), l = pre ? pre[1] : 'es', want, first;
+      try { first = !sessionStorage.getItem('open'); } catch (x) {}
+      if (!pre && first && !/bot|crawl|spider|slurp|google|lighthouse/i.test(navigator.userAgent || '')) {
+        try { want = localStorage.getItem('lang'); } catch (x) {}
+        if (want !== 'es' && want !== 'en' && !(pt && want === 'pt')) want = /^en/i.test(navigator.language || '') ? 'en' : pt && /^pt/i.test(navigator.language || '') ? 'pt' : 'es';
+        if (want !== 'es') { l = want; history.replaceState(history.state, '', '/' + l + p + location.search + location.hash); p = location.pathname; }
+      }
+      if (l !== 'es' && h.lang !== l) h.classList.add('i18n-wait');
       h.lang = l;
       try { var tx = localStorage.getItem('ui-text'); if (tx === 'l' || tx === 'xl') h.dataset.text = tx; } catch (x) {} // Tamaño del texto, before the first paint
-      if (l === 'en') h.classList.add('i18n-wait');
-      if (l === 'en' && en) { var k = document.createElement('link'); k.rel = 'modulepreload'; k.crossOrigin = ''; k.href = en; document.head.appendChild(k); }
+      if (dicts[l]) { var k = document.createElement('link'); k.rel = 'modulepreload'; k.crossOrigin = ''; k.href = dicts[l]; document.head.appendChild(k); }
       // Reopened (the installed app, or a new tab: nothing in this tab's session yet) at the start page: back where it
-      // was left (router.ts saves it). A link to a page, a reload or the Resolver's own link still go where they say.
+      // was left (router.ts saves it), if that was in this language. A link to a page, a reload or the Resolver's own
+      // link still go where they say. `q`: the path without its language.
+      var q = p.replace(/^\/(en|pt)(?=\/|$)/, '') || '/';
       try {
-        if (p === '/' && !location.search && !location.hash && !sessionStorage.getItem('open')) {
-          var last = JSON.parse(localStorage.getItem('last-page'));
-          if (last && typeof last.path === 'string' && /^\/[^\/]/.test(last.path)) { history.replaceState({ scroll: +last.scroll || 0 }, '', last.path); p = location.pathname; }
+        if (q === '/' && !location.search && !location.hash && first) {
+          var last = JSON.parse(localStorage.getItem('last-page')), lp = last && typeof last.path === 'string' && /^\/[^\/]/.test(last.path) && /^(?:\/(en|pt)(?=\/|$))?/.exec(last.path);
+          // An unprefixed one saved before languages had URLs, by someone just sent to theirs (`want`): there in it
+          if (lp && !lp[1] && want === l && l !== 'es') last.path = '/' + l + last.path, lp[1] = l;
+          if (lp && (lp[1] || 'es') === l) { history.replaceState({ scroll: +last.scroll || 0 }, '', last.path); p = location.pathname; q = p.replace(/^\/(en|pt)(?=\/|$)/, '') || '/'; }
         }
         sessionStorage.setItem('open', '1');
       } catch (x) {}
-      var m = /^\/(academia|algoritmos|hoy)(\/|$)/.test(p) ? 'academy' : /^\/progreso(\/|$)/.test(p) ? 'progress' : /^\/acerca(\/|$)/.test(p) ? 'about' : /^\/(cubo|guia)(\/|$)/.test(p) ? 'cube' : 'solve';
+      var m = /^\/(academia|algoritmos|hoy)(\/|$)/.test(q) ? 'academy' : /^\/progreso(\/|$)/.test(q) ? 'progress' : /^\/acerca(\/|$)/.test(q) ? 'about' : /^\/(cubo|guia)(\/|$)/.test(q) ? 'cube' : 'solve';
       b.dataset.module = m;
-      if (/^\/cubo\/pintar(\/|$)/.test(p)) b.setAttribute('data-paint', '');
+      if (/^\/cubo\/pintar(\/|$)/.test(q)) b.setAttribute('data-paint', '');
       try { var e = JSON.parse(localStorage.getItem('cube-event')); if (m === 'solve' && typeof e === 'string' && e.slice(0, 3) !== '333' && e !== '222') b.classList.add('other-puzzle'); } catch (x) {}
       // First visit (none of the app's keys, as progress.ts's inBackup, but the empty times main.ts writes on load):
       // the Resolver's welcome card, laid out before the first paint so nothing moves. Dismissed: 'cube-welcome'.
@@ -757,7 +773,7 @@
         <a href="/cubo" data-mod="cube" data-i18n="menu.cube"></a>
       </nav>
       <a class="menu-about" href="/acerca" data-mod="about" data-i18n="about.link"></a><!-- the ☰ menu's foot only -->
-      <p class="lang-switch" role="group" data-i18n-aria-label="lang.label"><button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button></p>
+      <p class="lang-switch" role="group" data-i18n-aria-label="lang.label"><button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button><span class="lang-pt" hidden> · <button type="button" data-lang="pt" lang="pt" aria-label="Português">PT</button></span></p>
     </div>
     <!-- always in the bar, phones included (there only the status) -->
     <dl class="header-status">
@@ -809,6 +825,18 @@
         <button id="reset-results" class="small" hidden data-i18n="results.deleteAll"></button>
       </div>
       <ol id="results" class="results" reversed></ol>
+      <section class="tool-about" aria-labelledby="solve-about-title">
+        <h2 id="solve-about-title" data-i18n="solve.seoTitle"></h2>
+        <p data-i18n="solve.about"></p>
+        <ul>
+          <li data-i18n="solve.aboutWca"></li>
+          <li data-i18n="solve.aboutInspection"></li>
+          <li data-i18n="solve.aboutAverages"></li>
+          <li data-i18n="solve.aboutSmart"></li>
+          <li data-i18n="solve.aboutFree"></li>
+        </ul>
+        <p><a href="/como-resolver-el-cubo-de-rubik" data-i18n="solve.aboutLearn"></a> · <a href="/cubo/pintar" data-i18n="paint.seoTitle"></a></p>
+      </section>
       <p class="foot-link"><a href="/acerca" data-i18n="about.link"></a></p>
     </section>
     <section id="mod-cube" class="cube-screen" data-i18n-aria-label="menu.cube" hidden>
@@ -839,7 +867,7 @@
         <p class="hint" data-i18n="cube.resetGyroHint"></p>
         <p class="hint" data-i18n="cube.resetStateHint"></p>
         <!-- phones have no ☰ menu (the tab bar replaces it): the language switch lives here too -->
-        <p class="lang-switch" role="group" aria-labelledby="cube-lang"><span id="cube-lang" data-i18n="lang.label"></span> <button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button></p>
+        <p class="lang-switch" role="group" aria-labelledby="cube-lang"><span id="cube-lang" data-i18n="lang.label"></span> <button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button><span class="lang-pt" hidden> · <button type="button" data-lang="pt" lang="pt" aria-label="Português">PT</button></span></p>
         <p class="lang-switch" role="group" aria-labelledby="cube-text"><span id="cube-text" data-i18n="text.label"></span> <button type="button" data-text="" data-i18n-aria-label="text.normal">A</button> · <button type="button" data-text="l" data-i18n-aria-label="text.large">A+</button> · <button type="button" data-text="xl" data-i18n-aria-label="text.xlarge">A++</button></p>
       </section>
       <section id="guide-actions" class="cube-block">
@@ -859,7 +887,7 @@
     <!-- Pinta tu cubo (paint-view.ts) -->
     <section id="mod-paint" aria-labelledby="paint-title" hidden>
       <nav class="crumbs" data-i18n-aria-label="academy.crumbs"><a href="/cubo" data-i18n="menu.cube"></a> › <span aria-current="page" data-i18n="paint.title"></span></nav>
-      <h2 id="paint-title" data-i18n="paint.title"></h2>
+      <h2 id="paint-title" data-i18n="paint.seoTitle"></h2>
       <p class="hint" data-i18n="paint.intro"></p>
       <form id="paint-scramble" class="row goal-form">
         <label class="library-field"><span class="hint" data-i18n="paint.scrambleLabel"></span><input id="paint-scramble-input" autocomplete="off" autocapitalize="characters" spellcheck="false" required /></label>
@@ -893,6 +921,17 @@
           <button id="paint-all" data-i18n="paint.all"></button>
         </div>
       </section>
+      <section class="tool-about" aria-labelledby="paint-about-title">
+        <h3 id="paint-about-title" data-i18n="paint.aboutTitle"></h3>
+        <ul>
+          <li data-i18n="paint.aboutPaint"></li>
+          <li data-i18n="paint.aboutCheck"></li>
+          <li data-i18n="paint.aboutSolution"></li>
+          <li data-i18n="paint.aboutAnim"></li>
+          <li data-i18n="paint.aboutFree"></li>
+        </ul>
+        <p><a href="/como-resolver-el-cubo-de-rubik" data-i18n="paint.aboutLearn"></a> · <a href="/" data-i18n="solve.seoTitle"></a></p>
+      </section>
     </section>
     <section id="mod-academy" data-i18n-aria-label="menu.academy" hidden></section>
     <section id="mod-progress" class="cube-screen" data-i18n-aria-label="nav.progress" hidden></section>
@@ -900,7 +939,7 @@
     <section id="mod-about" class="cube-screen" aria-labelledby="about-title">
       <h2 id="about-title" data-i18n="about.title"></h2>
       <p data-i18n="about.intro"></p>
-      <p class="lang-switch" role="group" aria-labelledby="about-lang"><span id="about-lang" data-i18n="lang.label"></span> <button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button></p>
+      <p class="lang-switch" role="group" aria-labelledby="about-lang"><span id="about-lang" data-i18n="lang.label"></span> <button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button><span class="lang-pt" hidden> · <button type="button" data-lang="pt" lang="pt" aria-label="Português">PT</button></span></p>
       <p class="lang-switch" role="group" aria-labelledby="about-text"><span id="about-text" data-i18n="text.label"></span> <button type="button" data-text="" data-i18n-aria-label="text.normal">A</button> · <button type="button" data-text="l" data-i18n-aria-label="text.large">A+</button> · <button type="button" data-text="xl" data-i18n-aria-label="text.xlarge">A++</button></p>
       <ul class="about-points">
         <li data-i18n="about.pointFree"></li>

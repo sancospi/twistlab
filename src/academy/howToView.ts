@@ -13,5 +13,5 @@ export const howToSections = (kpuzzle: KPuzzle): HTMLElement[] => howToSolve.sec
     el('h2', { textContent: loc(s.title) }),
     ...(figure ? [el('figure', { className: 'howto-figure', innerHTML: figure.svg }, el('figcaption', { className: 'hint', textContent: figure.caption }))] : []),
     prose(loc(s.body), 'prose', 'h3'),
-    ...(s.more ? [el('p', {}, el('a', { href: s.more.href, textContent: `${loc(s.more.label)} →` }))] : []));
+    ...(s.more ?? []).map((m) => el('p', {}, el('a', { href: m.href, textContent: `${loc(m.label)} →` }))));
 });
