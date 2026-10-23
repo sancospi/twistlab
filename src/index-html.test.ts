@@ -38,7 +38,7 @@ test('inline script: a visit starting at a Spanish URL goes to the chosen langua
   assert.equal(run('/', { lang: 'es' }, 'en-GB').path, '/');
   assert.equal(run('/cubo', { lang: 'en' }, 'es-MX').path, '/en/cubo');
   assert.equal(run('/', { lang: 'de' }, 'en-GB').lang, 'en'); // not a language of ours: the browser's
-  assert.equal(run('/', {}, 'pt-BR').path, '/'); // Portuguese isn't public yet (PT_READY)
+  assert.equal(run('/', {}, 'pt-BR').path, '/'); // the source's `pt = false` (the build sets it from PT_READY)
   assert.equal(run('/', { lang: 'pt' }).path, '/');
   assert.equal(run('/', { lang: 'en' }).fresh, true); // choosing a language isn't a returning visitor
   assert.deepEqual([run('/', {}, 'en-US', 'Mozilla/5.0 (compatible; Googlebot/2.1)').lang, run('/', {}, 'en-US', 'Googlebot').path], ['es', '/']); // crawlers read each URL as it is

@@ -14,7 +14,7 @@ export type { MessageKey };
  *     third argument) and the `{ es, en }` literals; the maps keyed by Spanish (cfop.pt.ts, beginner2x2.pt.ts, beside
  *     their *.en.ts); terms.ts's `pt` forms. Missing ones show the Spanish.
  *  3. Set this to true, then npm test and npm run build (it prerenders /pt/…). */
-export const PT_READY = false;
+export const PT_READY = true;
 /** The languages with public URLs, Spanish first (x-default). */
 export const LANGS: readonly Lang[] = PT_READY ? ['es', 'en', 'pt'] : ['es', 'en'];
 

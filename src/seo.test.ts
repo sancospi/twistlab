@@ -154,7 +154,7 @@ test('canonical and hreflang: each page is its own canonical, with every languag
     `canonical  ${ORIGIN}/en/academia/cruz`, `alternate es ${ORIGIN}/academia/cruz`, `alternate en ${ORIGIN}/en/academia/cruz`, `alternate x-default ${ORIGIN}/academia/cruz`]);
   assert.deepEqual(tags('/', 'es'), [`canonical  ${ORIGIN}/`, `alternate es ${ORIGIN}/`, `alternate en ${ORIGIN}/en/`, `alternate x-default ${ORIGIN}/`]);
   assert.deepEqual(tags('/', 'pt', ['es', 'en', 'pt'] as never), [`canonical  ${ORIGIN}/pt/`, `alternate es ${ORIGIN}/`, `alternate en ${ORIGIN}/en/`, `alternate pt-BR ${ORIGIN}/pt/`, `alternate x-default ${ORIGIN}/`]);
-  assert.ok(!langLinks('/', 'es').includes('/pt/')); // PT_READY false: Portuguese isn't listed
+  assert.ok(langLinks('/', 'es').includes(`hreflang="pt-BR" href="${ORIGIN}/pt/"`)); // PT_READY: Portuguese is listed
   const out = prerender(html, pages.find((x) => x.path === '/academia/cruz')!);
   assert.match(out, new RegExp(`<meta name="description" content="[^"]*" />\\n  <link rel="canonical" href="${ORIGIN}/academia/cruz" />\\n  <link rel="alternate" hreflang="es" href="${ORIGIN}/academia/cruz" />`));
 });
@@ -169,7 +169,7 @@ test('links in the markup: the page\'s language prefix on app links only (Spanis
 
 test('sitemap: the hand-kept URLs and the pages, each once per language, with their alternates', () => {
   const base = `<urlset><url><loc>${ORIGIN}/</loc></url><url><loc>${ORIGIN}/algoritmos</loc></url></urlset>`;
-  const xml = sitemap(base, ['/algoritmos', '/academia/x']);
+  const xml = sitemap(base, ['/algoritmos', '/academia/x'], ['es', 'en']);
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
   assert.deepEqual(locs, [`${ORIGIN}/`, `${ORIGIN}/en/`, `${ORIGIN}/algoritmos`, `${ORIGIN}/en/algoritmos`, `${ORIGIN}/academia/x`, `${ORIGIN}/en/academia/x`]);
   assert.match(xml, /<urlset xmlns="http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9" xmlns:xhtml="http:\/\/www.w3.org\/1999\/xhtml">/);
