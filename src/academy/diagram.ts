@@ -10,6 +10,7 @@ export interface DiagramOpts {
   size?: number; // rendered width in px
   title?: string; // accessible name; callers pass an already translated string
   arrows?: boolean; // top view: PLL arrows (not in recognition questions, where they'd give the answer away)
+  cornerArrows?: boolean; // only the corners' arrows: the edges aren't the case's (COLL, CMLL, 2-look PLL's corners)
   colors?: Record<string, string>; // sticker color per face letter, default COLORS (heldColors: the cube held another way)
 }
 
@@ -160,7 +161,7 @@ export function topSVG(facelets: string, mask: Mask, opts: DiagramOpts = {}): st
       const fade = grey.has(idx) ? ' fill-opacity="0.35"' : '';
       body += `<rect data-facelet="${idx}" x="${r2(x)}" y="${r2(y)}" width="${r2(w)}" height="${r2(h)}" rx="1" fill="${fill(idx)}"${fade} stroke="${PLASTIC}" stroke-width="0.5"/>`;
     }
-    if (opts.arrows) body += arrowsSVG(llArrows(facelets, view, mask === 'coll' || mask === 'cmll'), view, s);
+    if (opts.arrows) body += arrowsSVG(llArrows(facelets, view, opts.cornerArrows), view, s);
     return dx ? `<g transform="translate(${dx} 0)">${body}</g>` : body;
   };
   const m = (GAP + BAR) * 10 + 1;
@@ -173,18 +174,31 @@ const FACE_OF = 'URFDLB'; // Kociemba face order: facelet i belongs to FACE_OF[i
 const colorsKey = (letters: string[]) => [...letters].sort().join('');
 
 /** PLL/PBL arrows as [from, to] facelets of a layer: each of its pieces goes home (where the algorithm takes it). Its
- *  colors name its home slot, so a twisted corner (COLL, CMLL) gets one too. `corners`: the corners' arrows only. */
+ *  colors name its home slot, so a twisted corner (COLL, CMLL) gets one too. `corners`: the corners' arrows only.
+ *  Home up to a turn of the layer (the AUF after the algorithm): the one moving fewest pieces, so a case with an AUF
+ *  still draws its own permutation (a T-perm a U away is a T seen from another side, not eight pieces cycling). */
 export function llArrows(facelets: string, view = layerView(3, 'U'), corners = false): [number, number][] {
   const key = (idx: number, sides: number[], color: (i: number) => string) => colorsKey([idx, ...sides].map(color));
   const home = new Map(view.slots.map(([idx, sides]) => [key(idx, sides, (i) => FACE_OF[Math.floor(i / 9)]), idx]));
-  const out: [number, number][] = [];
-  for (const [idx, sides] of view.slots) {
-    if (corners && sides.length < 2) continue;
-    const to = home.get(key(idx, sides, (i) => facelets[i]));
-    if (to !== undefined && to !== idx) out.push([idx, to]);
+  let best: [number, number][] | null = null, bestScore = Infinity;
+  for (let k = 0; k < 4; k++) {
+    const turned = (c: string) => (SIDES.includes(c) ? SIDES[(SIDES.indexOf(c) + k) % 4] : c); // colors as k turns of the layer would place them
+    const out: [number, number][] = [];
+    let cornersMoved = 0;
+    for (const [idx, sides] of view.slots) {
+      if (corners && sides.length < 2) continue;
+      const to = home.get(key(idx, sides, (i) => turned(facelets[i])));
+      if (to === undefined || to === idx) continue;
+      out.push([idx, to]);
+      if (sides.length > 1) cornersMoved++;
+    }
+    // a tie (H: edges swapped, or corners swapped a U2 away) goes to corners staying home, as PLLs are recognized
+    const score = out.length * 100 + cornersMoved;
+    if (score < bestScore) [best, bestScore] = [out, score];
   }
-  return out;
+  return best!;
 }
+const SIDES = 'FRBL'; // around the U-D axis
 
 // Lines between sticker centers, a head at the target; a swap is one line with two heads.
 function arrowsSVG(moves: [number, number][], view: LayerView, s: number): string {
@@ -264,7 +278,8 @@ export const isoTurns = (stage: Stage, facelets: () => string): number =>
 export function caseDiagram(view: 'iso' | 'top', stage: Stage, facelets: string, opts: DiagramOpts = {}): string {
   const mask = maskFor(stage);
   const n = puzzleOf(stage) === '2x2x2' ? 2 : 3;
-  const o = { ...opts, n, arrows: !!opts.arrows && (mask === 'pll' || mask === 'coll' || mask === 'cmll'), bottom: stage === '2x2-pbl' } as const;
+  const o = { ...opts, n, arrows: !!opts.arrows && (mask === 'pll' || mask === 'coll' || mask === 'cmll'),
+    cornerArrows: mask === 'coll' || mask === 'cmll' || stage === 'pll-corners', bottom: stage === '2x2-pbl' } as const;
   if (isRoux(stage)) facelets = rouxHeld(facelets);
   if (view === 'top') return topSVG(facelets, mask, o);
   return isoSVG(turned(facelets, 'y', isoTurns(stage, () => facelets)), mask, o);

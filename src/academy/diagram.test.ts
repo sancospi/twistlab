@@ -181,6 +181,12 @@ test('PLL arrows send each top-layer piece home; a swap is one line with two hea
   assert.equal(llArrows(ua).length, 3);
   assert.equal(topSVG(ua, 'pll', { arrows: true }).match(/<line/g)?.length, 3);
   assert.equal(topSVG(ua, 'pll').includes('<line'), false);
+  // an AUF away (before or after the algorithm) it's still its own permutation, seen from another side
+  const auf = (id: string, before: string, after: string) => patternToFacelets(kpuzzle.defaultPattern()
+    .applyAlg([before, ...centerMoves(findCase(id)!.algs[0].alg, IDENTITY)].join(' ')).applyAlg(after));
+  assert.equal(llArrows(auf('cfop-pll-ua', 'U', '')).length, 3);
+  assert.deepEqual(sorted(llArrows(auf('cfop-pll-h', "U'", 'U2'))), sorted(llArrows(auf('cfop-pll-h', 'U', '')))); // H: always the edges
+  assert.deepEqual(sorted(llArrows(auf('cfop-pll-h', 'U2', ''))), ['1>7', '3>5', '5>3', '7>1']);
 });
 
 test('netSVG: every face in its place of the cross, every sticker coloured', async () => {
@@ -253,15 +259,16 @@ test('Roux masks and views: blocks, CMLL corners, LSE edges; held by the blocks 
 test('COLL and CMLL arrows: corners only, twisted ones too', async () => {
   const kpuzzle = await cube3x3x3.kpuzzle();
   const f = (alg: string) => patternToFacelets(caseState(kpuzzle, alg, IDENTITY));
-  // a corner 3-cycle with an edge 3-cycle (A-perm then U-perm): only the corners' arrows
+  // a corner 3-cycle with an edge 3-cycle (A-perm then U-perm): only the corners' arrows, and those up to the AUF:
+  // among themselves the corners are an adjacent swap (the A-perm's headlights), one line with two heads
   const both = f("x R' U R' D2 R U' R' D2 R2 x' M2 U M U2 M' U M2");
   assert.equal(llArrows(both).length, 6);
-  assert.equal(llArrows(both, undefined, true).length, 3);
-  assert.equal(caseDiagram('top', 'coll', both, { arrows: true }).match(/<line/g)?.length, 3);
-  // Niklas (as set up here) moves all 4 corners, the one at ULB twisted (blue on top): it gets its arrow too
+  assert.equal(llArrows(both, undefined, true).length, 2);
+  assert.equal(caseDiagram('top', 'coll', both, { arrows: true }).match(/<line/g)?.length, 1);
+  // Niklas (as set up here), up to the AUF: two corners swap, the one at ULB twisted (blue on top): it gets its arrow too
   const niklas = f("R U' L' U R' U' L");
   assert.equal(niklas[0], 'B');
-  assert.deepEqual(llArrows(niklas, undefined, true).map(([from]) => from).sort((a, b) => a - b), [0, 2, 6, 8]);
+  assert.deepEqual(llArrows(niklas, undefined, true).map(([from]) => from).sort((a, b) => a - b), [0, 6]);
 });
 
 test('twoSidesSVG: only the front and right top rows in color', () => {

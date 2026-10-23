@@ -18,7 +18,7 @@ import { formatTime } from '../timer.ts';
 import { algView, scrambleNote } from '../notation-view.ts';
 import { inlineText } from '../rich-text-view.ts';
 import { loc, t, tp, type MessageKey } from '../i18n.ts';
-import { caseState, goalReached, practiceSpec, quizPattern, type QuizSpec } from './cube.ts';
+import { goalReached, practiceSpec, quizPattern, type QuizSpec } from './cube.ts';
 import { caseDiagram, isoTurns, type DiagramOpts } from './diagram.ts';
 import { StepFollower } from './follow.ts';
 import { cube, type CubeListener } from './link.ts';
@@ -257,10 +257,11 @@ function start() {
   if (tab !== 'quiz') $('practice-clock').focus(); // Space then starts the clock natively
 }
 
-/** The figure (this repetition's state in Practicar, the case otherwise), the scramble, the algorithm and its fingers. */
+/** The figure (the chosen algorithm's case), the scramble, the algorithm and its fingers. */
 function showContent() {
   const practice = tab === 'practice';
-  $('practice-diagram').innerHTML = caseSVG(kase, practice ? rep.user : caseState(kpuzzle, kase.algs[0].alg, IDENTITY),
+  // the chosen algorithm backwards on every tab: the same case seen the same way as its scramble and animation
+  $('practice-diagram').innerHTML = caseSVG(kase, rep.user,
     { size: 120, title: t('academy.diagram', { code: kase.code }), arrows: true });
   $('practice-setup-row').hidden = !practice;
   $('practice-setup').replaceChildren(algView(rep.spec.moves));
