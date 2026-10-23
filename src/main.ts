@@ -16,7 +16,7 @@ import { histogramSvg, rolling, summary, trendSvg } from './stats.ts';
 import { ATTEMPTS, attemptValue, parseRounds, roundFormat, roundResult, storedResult, type RoundOpts, type StoredRound } from './round.ts';
 import { mergeResults, parseImport, parseStored } from './import.ts';
 import { LANGS, lang, langPath, t, tp, type MessageKey } from './i18n.ts';
-import { algView } from './notation-view.ts';
+import { algView, scrambleNote } from './notation-view.ts';
 import { cube as academyCube } from './academy/link.ts';
 import { el } from './el.ts';
 import { load, save, setting } from './academy/store.ts';
@@ -545,6 +545,7 @@ async function newScramble() {
   // get smaller, scrollable text, keeping Megaminx's lines.
   $('scramble-text').replaceChildren(is333(event) ? algView(scramble, { frame: 'white-up' }) : scramble);
   $('scramble-text').classList.toggle('long', scramble.length > 80);
+  $('scramble-note').replaceWith(Object.assign(scrambleNote('D'), { id: 'scramble-note' })); // WCA: white up, green front
   setNet(scramble);
   if (!conn && has3d(event)) setAlg(scramble); // no cube: the 3D model shows the scrambled state too (3x3 or 2x2)
   else if (phase === 'scramble') await startGuide(target); // walk the real cube there from wherever it is
@@ -647,6 +648,7 @@ function renderTimer() {
   $('timer-hint').textContent = t(phase === 'scramble' ? 'solve.applyScramble' : hasInspection(event) ? 'solve.spaceToInspect' : 'event.spaceToStart');
   btn('start').disabled = phase !== 'ready' || !scrambleText;
   $('scramble-text').hidden = !!guide.guide; // with a cube the guide shows the moves to do
+  $('scramble-note').hidden = !!guide.guide || !scrambleText || !/^\d/.test(event); // cubes (NxN) only: Pyraminx, Megaminx… hold otherwise
   if (phase === 'solving') $('big').className = 'big';
   if (phase === 'done') {
     $('big').textContent = formatResult(results[0]);

@@ -16,7 +16,7 @@ import { describe, nextStep, PathGuide } from '../guide.ts';
 import { patternToFacelets } from '../facelets.ts';
 import { IDENTITY, YELLOW_UP, centerMoves, htm, merge, tokenize, turnCount, unmapMove, type Frame } from '../notation.ts';
 import { formatTime } from '../timer.ts';
-import { algView } from '../notation-view.ts';
+import { algView, scrambleNote } from '../notation-view.ts';
 import { lang, loc, t, tp, type MessageKey } from '../i18n.ts';
 import {
   HOLDS, caseState, goalReached, holdIn, llSpecs, llSteps, makeQuizItems, quizPattern, randomStateScramble, specsFor,
@@ -782,7 +782,7 @@ function itemScramble(): Node[] {
   code.dataset.scramble = ''; // filled in place when the solver answers (prefetch)
   const hint = el('p', { className: 'hint', textContent: t('quiz.randomState'), hidden: !random }); // not true of the fallback
   hint.dataset.random = '';
-  return [...scrambleToggle([`${t('quiz.scramble')}: `, code]), hint];
+  return [...scrambleToggle([`${t('quiz.scramble')}: `, code]), scrambleNote(items[index].hold.U, items[index].hold.F), hint];
 }
 
 /** Tapping the scramble shows (or hides) the whole state it leads to as a 2D net, to check the cube by eye. */

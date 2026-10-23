@@ -7,7 +7,7 @@
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
 import { IDENTITY, algTags, caseSetup, centerMoves, htm, tokenize, triggerSegments } from '../notation.ts';
-import { algView } from '../notation-view.ts';
+import { algView, scrambleNote } from '../notation-view.ts';
 import { inlineText } from '../rich-text-view.ts';
 import { lang, loc, t, tp, type MessageKey } from '../i18n.ts';
 import { routePath } from '../router.ts';
@@ -105,7 +105,7 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
     algs.replaceChildren(
       el('h3', { textContent: t('case.chosen') }),
       // the scramble right above the algorithm it is practised with: the chosen one backwards
-      el('dl', { className: 'case-setup' }, el('dt', { textContent: t('practice.setup') }), el('dd', {}, algView(practiceSpec(c, v.alg).moves))),
+      el('dl', { className: 'case-setup' }, el('dt', { textContent: t('practice.setup') }), el('dd', {}, algView(practiceSpec(c, v.alg).moves), scrambleNote())),
       algCard(v, true),
       ...(second ? [el('h3', { textContent: t('case.alternatives') }), algCard(second, false)] : []),
       ...(more.length ? [moreAlgs(more.length, more.map((x) => algCard(x, false)))] : []),

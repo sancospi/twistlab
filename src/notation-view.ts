@@ -3,7 +3,7 @@
 import type { TwistyPlayer } from 'cubing/twisty';
 import { CAMERA, algParts, explainMove, tokenize, type AlgPart } from './notation.ts';
 import { showTip } from './tooltip.ts';
-import { t } from './i18n.ts';
+import { t, type MessageKey } from './i18n.ts';
 
 /** How the algorithm is held: the plan's yellow up (academy, guide) or WCA's white up (scrambles). */
 export type NotationFrame = 'yellow-up' | 'white-up';
@@ -15,6 +15,14 @@ export interface AlgViewOptions {
 
 /** The algorithm as a row of move buttons; text that isn't valid notation is shown as is. Repeated blocks show as
  *  (block)×n, except with `mark`: following move by move needs every turn. */
+/** The line under a scramble: from solved, which colors go up and in front (faces as the colors of the user frame). */
+export function scrambleNote(up = 'U', front = 'F'): HTMLElement {
+  const out = document.createElement('p');
+  out.className = 'hint scramble-note';
+  out.textContent = t('scramble.note', { up: t(`paint.color.${up}` as MessageKey), front: t(`paint.color.${front}` as MessageKey) });
+  return out;
+}
+
 export function algView(alg: string | string[], opts: AlgViewOptions = {}): HTMLElement {
   const out = document.createElement('span');
   out.className = 'alg';

@@ -50,6 +50,7 @@ export const es = {
 
   // Solve module (WCA attempt)
   'solve.scramble': 'Mezcla',
+  'scramble.note': 'Desde el cubo resuelto: {up} arriba, {front} al frente.',
   'solve.start': 'Empezar',
   'solve.newScramble': 'Nueva mezcla',
   'solve.generating': 'Generando mezcla…',

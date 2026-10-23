@@ -50,6 +50,7 @@
     #mod-solve { display: grid; gap: 8px; }
     .scramble-box { display: grid; gap: 8px; }
     .scramble-box[hidden], .scramble[hidden] { display: none; }
+    .scramble-note { margin: 2px 0 0; font-family: system-ui, sans-serif; } /* under a scramble, also inside monospace boxes */
     .scramble { font: 700 1.5714rem/1.45 ui-monospace, monospace; word-spacing: .2ch; overflow-wrap: anywhere; }
     .net { height: 190px; } /* reserved: the 2D player arrives after the first scramble */
     .net twisty-player { width: 100%; height: 100%; }
@@ -798,6 +799,7 @@
       <section id="daily" class="cube-block" aria-labelledby="daily-title" hidden></section>
       <div id="scramble-box" class="scramble-box">
         <div id="scramble-text" class="scramble" role="group" data-i18n-aria-label="solve.scramble" data-i18n="solve.generating"></div>
+        <p id="scramble-note" hidden></p>
         <div id="net" class="net" aria-hidden="true"></div>
       </div>
       <p id="timer-hint" class="hint" data-i18n="solve.spaceToInspect"></p>
@@ -1080,7 +1082,7 @@
     </section>
     <section id="practice-static">
       <dl>
-        <div id="practice-setup-row"><dt data-i18n="practice.setup"></dt><dd><code id="practice-setup"></code></dd></div>
+        <div id="practice-setup-row"><dt data-i18n="practice.setup"></dt><dd><code id="practice-setup"></code><p id="practice-setup-note"></p></dd></div>
         <dt id="practice-alg-label"></dt><dd><code id="practice-alg"></code></dd>
       </dl>
       <div id="practice-fingers"></div>

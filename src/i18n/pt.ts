@@ -53,6 +53,7 @@ export const pt: Partial<Record<MessageKey, string>> = {
 
   // Solve module (WCA attempt)
   'solve.scramble': 'Embaralhamento',
+  'scramble.note': 'A partir do cubo resolvido: {up} em cima, {front} na frente.',
   'solve.start': 'Começar',
   'solve.newScramble': 'Novo embaralhamento',
   'solve.generating': 'Gerando embaralhamento…',

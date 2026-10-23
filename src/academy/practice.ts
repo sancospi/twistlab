@@ -15,7 +15,7 @@ import { patternToFacelets } from '../facelets.ts';
 import { describe, nextStep, PathGuide } from '../guide.ts';
 import { CAMERA, IDENTITY, YELLOW_UP, caseSetup, centerMoves, expand, formatAlg, htm, mapMove, tokenize, triggerSegments, turnCount, unmapMove } from '../notation.ts';
 import { formatTime } from '../timer.ts';
-import { algView } from '../notation-view.ts';
+import { algView, scrambleNote } from '../notation-view.ts';
 import { inlineText } from '../rich-text-view.ts';
 import { loc, t, tp, type MessageKey } from '../i18n.ts';
 import { caseState, goalReached, practiceSpec, quizPattern, type QuizSpec } from './cube.ts';
@@ -264,6 +264,7 @@ function showContent() {
     { size: 120, title: t('academy.diagram', { code: kase.code }), arrows: true });
   $('practice-setup-row').hidden = !practice;
   $('practice-setup').replaceChildren(algView(rep.spec.moves));
+  $('practice-setup-note').replaceWith(Object.assign(scrambleNote(), { id: 'practice-setup-note' }));
   $('practice-alg-label').textContent = t(practice ? 'practice.solution' : 'practice.alg');
   $('practice-alg').replaceChildren(algView(active()));
   hints = fingertricks(active());

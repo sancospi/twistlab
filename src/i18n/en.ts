@@ -52,6 +52,7 @@ export const en: Record<MessageKey, string> = {
 
   // Solve module (WCA attempt)
   'solve.scramble': 'Scramble',
+  'scramble.note': 'From a solved cube: {up} on top, {front} in front.',
   'solve.start': 'Start',
   'solve.newScramble': 'New scramble',
   'solve.generating': 'Generating scramble…',
