@@ -3,7 +3,7 @@
 // Examples are in that frame, with ASCII primes; crossGuide.test.ts plays each one and checks it is optimal.
 import type { Localized } from '../i18n.ts';
 
-const l = (es: string, en: string): Localized => ({ es, en });
+const l = (es: string, en: string, pt: string): Localized => ({ es, en, pt });
 
 export interface CrossExample {
   setup: string; // from solved: breaks the cross
@@ -42,12 +42,12 @@ export interface CrossGuide extends TextGuide {
   levels: CrossLevel[];
 }
 
-const ex = (setup: string, solution: string, es: string, en: string): CrossExample => ({ setup, solution, caption: l(es, en) });
+const ex = (setup: string, solution: string, es: string, en: string, pt: string): CrossExample => ({ setup, solution, caption: l(es, en, pt) });
 
 export const crossGuide: CrossGuide = {
   id: 'cruz',
-  name: l('La cruz blanca', 'The white cross'),
-  summary: l('El primer paso del CFOP y de casi todos los métodos: la cruz blanca abajo, planeada en la inspección y en 8 giros o menos.', 'The first step of CFOP and of almost every method: the white cross on the bottom, planned during inspection and solved in 8 moves or fewer.'),
+  name: l('La cruz blanca', 'The white cross', 'A cruz branca'),
+  summary: l('El primer paso del CFOP y de casi todos los métodos: la cruz blanca abajo, planeada en la inspección y en 8 giros o menos.', 'The first step of CFOP and of almost every method: the white cross on the bottom, planned during inspection and solved in 8 moves or fewer.', 'O primeiro passo do CFOP e de quase todos os métodos: a cruz branca embaixo, planejada na inspeção e em 8 movimentos ou menos.'),
   intro: l(
     [
       'La cruz es lo primero de cada resolución y la única parte que puedes planear entera antes de empezar.',
@@ -65,11 +65,19 @@ export const crossGuide: CrossGuide = {
       '- **Eyes ahead:** it leaves you looking at the first F2L pair.',
       'Here you learn the cases for each edge, how to combine them and how to save moves. Then the trainer compares your solution with the shortest one.',
     ].join('\n'),
+    [
+      'A cruz é a primeira coisa de cada resolução e a única parte que você pode planejar inteira antes de começar.',
+      'Uma boa cruz é:',
+      '- **Curta:** 8 movimentos ou menos.',
+      '- **De memória:** sai sem pausas.',
+      '- **Com os olhos adiante:** deixa você olhando para o primeiro par do F2L.',
+      'Aqui você aprende os casos de cada aresta, como combiná-las e como economizar movimentos. Depois o treino compara sua solução com a mais curta.',
+    ].join('\n'),
   ),
   lessons: [
     {
       id: 'que-es',
-      title: l('Qué es la cruz y por qué abajo', 'What the cross is and why on the bottom'),
+      title: l('Qué es la cruz y por qué abajo', 'What the cross is and why on the bottom', 'O que é a cruz e por que embaixo'),
       body: l(
     [
           'La cruz son las 4 aristas blancas alrededor del centro blanco, **cada una junto a su centro lateral**.',
@@ -97,11 +105,24 @@ export const crossGuide: CrossGuide = {
       "You go straight into F2L: the pieces stay in view on top and you don't flip the cube.",
       "At first it's hard because you can't see the white face. Recognize each edge by its other color.",
     ].join('\n'),
+    [
+      'A cruz são as 4 arestas brancas ao redor do centro branco, **cada uma junto ao seu centro lateral**.',
+      'Se a branco-verde está embaixo do centro vermelho, a cruz está errada mesmo que a face branca pareça certa.',
+      '## Onde vai cada aresta',
+      'Com o amarelo em cima e o verde na frente, a cruz fica embaixo:',
+      '- **Branco-verde:** embaixo na frente.',
+      '- **Branco-laranja:** embaixo à direita.',
+      '- **Branco-azul:** embaixo atrás.',
+      '- **Branco-vermelha:** embaixo à esquerda.',
+      '## Por que embaixo',
+      'Você segue direto para o F2L: as peças ficam à vista em cima e você não vira o cubo.',
+      'No começo é difícil porque você não vê a face branca. Reconheça cada aresta pela outra cor.',
+    ].join('\n'),
   ),
     },
     {
       id: 'inspeccion',
-      title: l('Planifica en la inspección', 'Plan during inspection'),
+      title: l('Planifica en la inspección', 'Plan during inspection', 'Planeje na inspeção'),
       body: l(
     [
           'En competencia (WCA) tienes **15 s de inspección**: puedes girar el cubo entero, pero no mover caras. Planea la cruz completa.',
@@ -119,11 +140,19 @@ export const crossGuide: CrossGuide = {
       '4. **Execute with your eyes ahead:** start looking for the first F2L pair.',
       "Can't plan all 4 yet? Plan 2 and solve the rest by looking. Add one more each week.",
     ].join('\n'),
+    [
+      'Em competição (WCA) você tem **15 s de inspeção**: pode girar o cubo inteiro, mas não mover faces. Planeje a cruz completa.',
+      '1. **Encontre as 4 arestas brancas** entre as 12 arestas: em cima, na camada do meio e embaixo.',
+      '2. **Escolha a ordem.** Comece pela mais curta ou por 2 que já estejam juntas. Testar outra ordem costuma economizar movimentos.',
+      '3. **Trace todos os movimentos** e revise uma vez. Se passarem de 8, procure outro plano: toda cruz se resolve em 8 ou menos, e a mais curta tem média de uns 6.',
+      '4. **Execute com os olhos adiante:** já procure o primeiro par do F2L.',
+      'Ainda não planeja as 4? Planeje 2 e resolva o resto olhando. Some mais uma a cada semana.',
+    ].join('\n'),
   ),
     },
     {
       id: 'una-arista',
-      title: l('Casos de una arista', 'One-edge cases'),
+      title: l('Casos de una arista', 'One-edge cases', 'Casos de uma aresta'),
       body: l(
     [
           'Cada arista blanca está en uno de 4 lugares:',
@@ -141,24 +170,32 @@ export const crossGuide: CrossGuide = {
       '- **On the bottom, misplaced or flipped:** take it out (to the middle layer or the top) and solve it like the cases above.',
       '**Golden rule:** `U` never touches the cross. It is the free turn to position an edge before bringing it down.',
     ].join('\n'),
+    [
+      'Cada aresta branca está em um de 4 lugares:',
+      '- **Em cima, branco para cima** (1 ou 2 movimentos): gire `U` até deixá-la sobre o seu centro e desça-a com meia volta: `F2`, `R2`, `B2` ou `L2`.',
+      '- **Em cima, branco para o lado** (3 ou 4 movimentos): ela está virada. Desça-a para a camada do meio com um quarto de volta e encaixe-a com um quarto de volta da face ao lado. Se o primeiro movimento tirou uma aresta resolvida, devolva-a.',
+      '- **Na camada do meio:** um quarto de volta a desce. Se ela cair no lugar de outra aresta, gire antes `D` para trazer o slot dela, encaixe-a e desfaça esse `D`.',
+      '- **Embaixo, fora do lugar ou virada:** tire-a (para a camada do meio ou para cima) e resolva-a como nos casos anteriores.',
+      '**Regra de ouro:** `U` nunca mexe na cruz. É o movimento grátis para posicionar uma aresta antes de descê-la.',
+    ].join('\n'),
   ),
       examples: [
-        ex('F2', 'F2', 'Blanco-verde arriba, sobre su centro, blanco arriba: `F2` la baja directo.', 'White-green on top, above its center, white facing up: `F2` brings it straight down.'),
-        ex("R2 U'", 'U R2', 'Blanco-naranja arriba atrás, blanco arriba: `U` la pone sobre su centro y `R2` la baja.', 'White-orange on top at the back, white facing up: `U` puts it above its center and `R2` brings it down.'),
-        ex('B2 U2', 'U2 B2', 'Blanco-azul arriba al frente, blanco arriba: `U2` la lleva atrás y `B2` la baja.', 'White-blue on top at the front, white facing up: `U2` takes it to the back and `B2` brings it down.'),
-        ex("R' F' R", "R' F R", "Blanco-verde arriba a la derecha, blanco a la derecha: `R'` la baja a la capa del medio (y aparta la blanco-naranja), `F` la mete orientada y `R` devuelve la blanco-naranja.", "White-green on top at the right, white facing right: `R'` brings it to the middle layer (and moves the white-orange aside), `F` inserts it oriented and `R` puts the white-orange back."),
-        ex("F R F'", "F R' F'", "Blanco-naranja arriba al frente, blanco al frente: `F` la pasa a la capa del medio, `R'` la mete abajo y `F'` devuelve la blanco-verde que `F` sacó.", "White-orange on top at the front, white facing front: `F` moves it to the middle layer, `R'` inserts it on the bottom and `F'` puts back the white-green that `F` pulled out."),
-        ex("R' F' R U", "U' R' F R", "Blanco-verde arriba al frente, sobre su centro, blanco al frente: `U'` la pasa a la derecha y queda el caso de `R' F R`.", "White-green on top at the front, above its center, white facing front: `U'` moves it to the right and it becomes the `R' F R` case."),
-        ex('R', "R'", "Blanco-naranja en la capa del medio, adelante a la derecha, blanco al frente: `R'` la baja a su sitio.", "White-orange in the middle layer, front right, white facing front: `R'` brings it down to its spot."),
-        ex("F'", 'F', 'Blanco-verde en la capa del medio, adelante a la derecha, blanco a la derecha: `F` la baja a su sitio.', 'White-green in the middle layer, front right, white facing right: `F` brings it down to its spot.'),
-        ex("D' F' D", "D' F D", "Blanco-naranja en la capa del medio, adelante a la derecha, blanco a la derecha: solo con `F` quedaría en el sitio de la blanco-verde. `D'` trae su hueco al frente, `F` la mete y `D` regresa la cruz.", "White-orange in the middle layer, front right, white facing right: with just `F` it would land in the white-green's spot. `D'` brings its slot to the front, `F` inserts it and `D` restores the cross."),
-        ex("F2 U' R' F R", "F' D R' D'", "Blanco-verde en su sitio pero volteada, blanco al frente: `F'` la saca a la capa del medio, `D` pone su hueco a la derecha, `R'` la mete orientada y `D'` regresa la cruz.", "White-green in its spot but flipped, white facing front: `F'` takes it out to the middle layer, `D` puts its slot on the right, `R'` inserts it oriented and `D'` restores the cross."),
-        ex("F2 U' R2", 'R2 U F2', 'Blanco-verde abajo en el sitio de la blanco-naranja, y la blanco-naranja arriba a la derecha: `R2` las cambia, `U` lleva la verde sobre su centro y `F2` la baja.', "White-green on the bottom in the white-orange's spot, and the white-orange on top at the right: `R2` swaps them, `U` brings the green above its center and `F2` brings it down."),
+        ex('F2', 'F2', 'Blanco-verde arriba, sobre su centro, blanco arriba: `F2` la baja directo.', 'White-green on top, above its center, white facing up: `F2` brings it straight down.', 'Branco-verde em cima, sobre o seu centro, branco para cima: `F2` a desce direto.'),
+        ex("R2 U'", 'U R2', 'Blanco-naranja arriba atrás, blanco arriba: `U` la pone sobre su centro y `R2` la baja.', 'White-orange on top at the back, white facing up: `U` puts it above its center and `R2` brings it down.', 'Branco-laranja em cima atrás, branco para cima: `U` a coloca sobre o seu centro e `R2` a desce.'),
+        ex('B2 U2', 'U2 B2', 'Blanco-azul arriba al frente, blanco arriba: `U2` la lleva atrás y `B2` la baja.', 'White-blue on top at the front, white facing up: `U2` takes it to the back and `B2` brings it down.', 'Branco-azul em cima na frente, branco para cima: `U2` a leva para trás e `B2` a desce.'),
+        ex("R' F' R", "R' F R", "Blanco-verde arriba a la derecha, blanco a la derecha: `R'` la baja a la capa del medio (y aparta la blanco-naranja), `F` la mete orientada y `R` devuelve la blanco-naranja.", "White-green on top at the right, white facing right: `R'` brings it to the middle layer (and moves the white-orange aside), `F` inserts it oriented and `R` puts the white-orange back.", 'Branco-verde em cima à direita, branco para a direita: `R\'` a desce para a camada do meio (e afasta a branco-laranja), `F` a encaixa orientada e `R` devolve a branco-laranja.'),
+        ex("F R F'", "F R' F'", "Blanco-naranja arriba al frente, blanco al frente: `F` la pasa a la capa del medio, `R'` la mete abajo y `F'` devuelve la blanco-verde que `F` sacó.", "White-orange on top at the front, white facing front: `F` moves it to the middle layer, `R'` inserts it on the bottom and `F'` puts back the white-green that `F` pulled out.", 'Branco-laranja em cima na frente, branco para a frente: `F` a passa para a camada do meio, `R\'` a encaixa embaixo e `F\'` devolve a branco-verde que `F` tirou.'),
+        ex("R' F' R U", "U' R' F R", "Blanco-verde arriba al frente, sobre su centro, blanco al frente: `U'` la pasa a la derecha y queda el caso de `R' F R`.", "White-green on top at the front, above its center, white facing front: `U'` moves it to the right and it becomes the `R' F R` case.", 'Branco-verde em cima na frente, sobre o seu centro, branco para a frente: `U\'` a passa para a direita e vira o caso de `R\' F R`.'),
+        ex('R', "R'", "Blanco-naranja en la capa del medio, adelante a la derecha, blanco al frente: `R'` la baja a su sitio.", "White-orange in the middle layer, front right, white facing front: `R'` brings it down to its spot.", 'Branco-laranja na camada do meio, na frente à direita, branco para a frente: `R\'` a desce para o seu lugar.'),
+        ex("F'", 'F', 'Blanco-verde en la capa del medio, adelante a la derecha, blanco a la derecha: `F` la baja a su sitio.', 'White-green in the middle layer, front right, white facing right: `F` brings it down to its spot.', 'Branco-verde na camada do meio, na frente à direita, branco para a direita: `F` a desce para o seu lugar.'),
+        ex("D' F' D", "D' F D", "Blanco-naranja en la capa del medio, adelante a la derecha, blanco a la derecha: solo con `F` quedaría en el sitio de la blanco-verde. `D'` trae su hueco al frente, `F` la mete y `D` regresa la cruz.", "White-orange in the middle layer, front right, white facing right: with just `F` it would land in the white-green's spot. `D'` brings its slot to the front, `F` inserts it and `D` restores the cross.", 'Branco-laranja na camada do meio, na frente à direita, branco para a direita: só com `F` ela cairia no lugar da branco-verde. `D\'` traz o slot dela para a frente, `F` a encaixa e `D` restaura a cruz.'),
+        ex("F2 U' R' F R", "F' D R' D'", "Blanco-verde en su sitio pero volteada, blanco al frente: `F'` la saca a la capa del medio, `D` pone su hueco a la derecha, `R'` la mete orientada y `D'` regresa la cruz.", "White-green in its spot but flipped, white facing front: `F'` takes it out to the middle layer, `D` puts its slot on the right, `R'` inserts it oriented and `D'` restores the cross.", 'Branco-verde no seu lugar, mas virada, branco para a frente: `F\'` a tira para a camada do meio, `D` põe o slot dela à direita, `R\'` a encaixa orientada e `D\'` restaura a cruz.'),
+        ex("F2 U' R2", 'R2 U F2', 'Blanco-verde abajo en el sitio de la blanco-naranja, y la blanco-naranja arriba a la derecha: `R2` las cambia, `U` lleva la verde sobre su centro y `F2` la baja.', "White-green on the bottom in the white-orange's spot, and the white-orange on top at the right: `R2` swaps them, `U` brings the green above its center and `F2` brings it down.", 'Branco-verde embaixo no lugar da branco-laranja, e a branco-laranja em cima à direita: `R2` troca as duas, `U` leva a verde sobre o seu centro e `F2` a desce.'),
       ],
     },
     {
       id: 'relativas',
-      title: l('Aristas relativas entre sí', 'Edges relative to each other'),
+      title: l('Aristas relativas entre sí', 'Edges relative to each other', 'Arestas relativas entre si'),
       body: l(
     [
           'Mientras armas la cruz, las aristas no tienen que estar bajo sus centros: **basta con que estén bien entre sí**.',
@@ -176,16 +213,24 @@ export const crossGuide: CrossGuide = {
       '3. Align everything with a single `D` turn at the end.',
       "Don't align with `D` at the start: it's almost always shorter to leave it for the end.",
     ].join('\n'),
+    [
+      'Enquanto você monta a cruz, as arestas não precisam estar embaixo dos seus centros: **basta que estejam certas entre si**.',
+      'Olhando para a face branca, a ordem é verde na frente, laranja à direita, azul atrás e vermelho à esquerda.',
+      '1. Procure 2 arestas embaixo, uma ao lado da outra nessa ordem: elas já contam como resolvidas.',
+      '2. Encaixe as outras no slot que cabe a cada uma ao lado delas.',
+      '3. Alinhe tudo com um único movimento de `D` no final.',
+      'Não alinhe com `D` no começo: quase sempre fica mais curto deixar para o final.',
+    ].join('\n'),
   ),
       examples: [
-        ex('D', "D'", "Las 4 aristas bien entre sí, solo giradas respecto a los centros: `D'` y listo.", "All 4 edges right relative to each other, just turned relative to the centers: `D'` and done."),
-        ex('D R2', "R2 D'", "3 aristas abajo bien entre sí y la blanco-verde arriba a la derecha: `R2` la baja junto a ellas y `D'` alinea todo. Alinear primero costaría 1 giro más.", "3 edges on the bottom right relative to each other and the white-green on top at the right: `R2` brings it down next to them and `D'` aligns everything. Aligning first would cost 1 more move."),
-        ex('D R2 F2', "F2 R2 D'", "Blanco-naranja y blanco-azul abajo bien entre sí, las otras 2 arriba: `F2` baja la blanco-roja y `R2` la blanco-verde, cada una en su hueco, y `D'` alinea las 4.", "White-orange and white-blue on the bottom right relative to each other, the other 2 on top: `F2` brings down the white-red and `R2` the white-green, each into its slot, and `D'` aligns all 4."),
+        ex('D', "D'", "Las 4 aristas bien entre sí, solo giradas respecto a los centros: `D'` y listo.", "All 4 edges right relative to each other, just turned relative to the centers: `D'` and done.", 'As 4 arestas certas entre si, só giradas em relação aos centros: `D\'` e pronto.'),
+        ex('D R2', "R2 D'", "3 aristas abajo bien entre sí y la blanco-verde arriba a la derecha: `R2` la baja junto a ellas y `D'` alinea todo. Alinear primero costaría 1 giro más.", "3 edges on the bottom right relative to each other and the white-green on top at the right: `R2` brings it down next to them and `D'` aligns everything. Aligning first would cost 1 more move.", '3 arestas embaixo certas entre si e a branco-verde em cima à direita: `R2` a desce junto delas e `D\'` alinha tudo. Alinhar primeiro custaria 1 movimento a mais.'),
+        ex('D R2 F2', "F2 R2 D'", "Blanco-naranja y blanco-azul abajo bien entre sí, las otras 2 arriba: `F2` baja la blanco-roja y `R2` la blanco-verde, cada una en su hueco, y `D'` alinea las 4.", "White-orange and white-blue on the bottom right relative to each other, the other 2 on top: `F2` brings down the white-red and `R2` the white-green, each into its slot, and `D'` aligns all 4.", 'Branco-laranja e branco-azul embaixo certas entre si, as outras 2 em cima: `F2` desce a branco-vermelha e `R2` a branco-verde, cada uma no seu slot, e `D\'` alinha as 4.'),
       ],
     },
     {
       id: 'eficiencia',
-      title: l('Eficiencia y tiempo', 'Efficiency and time'),
+      title: l('Eficiencia y tiempo', 'Efficiency and time', 'Eficiência e tempo'),
       body: l(
     [
           '- **No rotes el cubo** (`x`, `y`, `z`): cada rotación cuesta tiempo y pierdes de vista las piezas.',
@@ -203,11 +248,19 @@ export const crossGuide: CrossGuide = {
       '- **Prefer comfortable turns.** `R`, `U`, `F` and `D` are done without changing grip; `B` and `L` are slower. With the same number of moves, choose the most comfortable one.',
       '- **Flow before speed.** A continuous cross beats a fast one with stops. Practice slowly and without stopping.',
     ].join('\n'),
+    [
+      '- **Não rotacione o cubo** (`x`, `y`, `z`): cada rotação custa tempo e você perde as peças de vista.',
+      '- **Cuide do que está resolvido.** Antes de `R`, `L`, `F` ou `B`, veja se ele tira uma aresta já colocada. Se tirar, escolha outro movimento, afaste-a antes com `D` ou devolva-a depois (como em `R\' F R`).',
+      '- **Em cima posiciona, embaixo alinha.** `U` leva uma aresta sobre o seu centro ou o seu slot; `D` alinha a cruz no final.',
+      '- **Meia volta ou quarto de volta.** Meia volta (`R2`, `F2`…) desce de cima para baixo sem virar a aresta. Um quarto de volta a move entre a camada do meio e em cima ou embaixo.',
+      '- **Prefira movimentos confortáveis.** `R`, `U`, `F` e `D` saem sem mudar a pegada; `B` e `L` são mais lentos. Com o mesmo número de movimentos, escolha o mais confortável.',
+      '- **Fluidez antes da velocidade.** Uma cruz contínua ganha de uma rápida com freadas. Pratique devagar e sem parar.',
+    ].join('\n'),
   ),
     },
     {
       id: 'errores',
-      title: l('Errores comunes', 'Common mistakes'),
+      title: l('Errores comunes', 'Common mistakes', 'Erros comuns'),
       body: l(
     [
           '- **Armar la margarita o la cruz arriba** y luego voltearla: cuesta el doble de giros.',
@@ -225,35 +278,43 @@ export const crossGuide: CrossGuide = {
       '- **Always starting with the white-green.** Start with the easiest one.',
       '- **Admiring the finished cross.** Look for the first F2L pair right away.',
     ].join('\n'),
+    [
+      '- **Montar a margarida ou a cruz em cima** e depois virá-la: custa o dobro de movimentos.',
+      '- **Olhar só o branco.** Com o branco embaixo, mas sob o centro errado, não está resolvida.',
+      '- **Girar sem o plano completo.** A pausa no meio da cruz é o que mais custa tempo.',
+      '- **Quebrar o que já está colocado** ao encaixar outra aresta, sem perceber até o final.',
+      '- **Começar sempre pela branco-verde.** Comece pela mais fácil.',
+      '- **Admirar a cruz terminada.** Já procure o primeiro par do F2L.',
+    ].join('\n'),
   ),
     },
   ],
   levels: [
     {
       id: 'n1',
-      name: l('Nivel 1 — Encuentra el giro', 'Level 1 — Find the turn'),
-      description: l('Cruces a 1 o 2 giros de resolverse. Encuentra los giros exactos sin probar.', 'Crosses 1 or 2 moves from solved. Find the exact moves without trial and error.'),
+      name: l('Nivel 1 — Encuentra el giro', 'Level 1 — Find the turn', 'Nível 1 — Encontre o movimento'),
+      description: l('Cruces a 1 o 2 giros de resolverse. Encuentra los giros exactos sin probar.', 'Crosses 1 or 2 moves from solved. Find the exact moves without trial and error.', 'Cruzes a 1 ou 2 movimentos de serem resolvidas. Encontre os movimentos exatos sem tentativa e erro.'),
       moves: { min: 1, max: 2 },
       goal: { overOptimal: 0, seconds: 2 },
     },
     {
       id: 'n2',
-      name: l('Nivel 2 — Dos aristas', 'Level 2 — Two edges'),
-      description: l('Cruces de 3 o 4 giros: 1 arista volteada o 2 por resolver. Planea todo antes de girar.', 'Crosses of 3 or 4 moves: 1 flipped edge or 2 to solve. Plan everything before turning.'),
+      name: l('Nivel 2 — Dos aristas', 'Level 2 — Two edges', 'Nível 2 — Duas arestas'),
+      description: l('Cruces de 3 o 4 giros: 1 arista volteada o 2 por resolver. Planea todo antes de girar.', 'Crosses of 3 or 4 moves: 1 flipped edge or 2 to solve. Plan everything before turning.', 'Cruzes de 3 ou 4 movimentos: 1 aresta virada ou 2 por resolver. Planeje tudo antes de girar.'),
       moves: { min: 3, max: 4 },
       goal: { overOptimal: 1, seconds: 3 },
     },
     {
       id: 'n3',
-      name: l('Nivel 3 — Planea la cruz entera', 'Level 3 — Plan the whole cross'),
-      description: l('Cruces de 5 o 6 giros, el promedio de una mezcla real. Planea las 4 aristas y ejecuta sin pausas.', 'Crosses of 5 or 6 moves, the average of a real scramble. Plan all 4 edges and execute without pauses.'),
+      name: l('Nivel 3 — Planea la cruz entera', 'Level 3 — Plan the whole cross', 'Nível 3 — Planeje a cruz inteira'),
+      description: l('Cruces de 5 o 6 giros, el promedio de una mezcla real. Planea las 4 aristas y ejecuta sin pausas.', 'Crosses of 5 or 6 moves, the average of a real scramble. Plan all 4 edges and execute without pauses.', 'Cruzes de 5 ou 6 movimentos, a média de um embaralhamento real. Planeje as 4 arestas e execute sem pausas.'),
       moves: { min: 5, max: 6 },
       goal: { overOptimal: 2, seconds: 4 },
     },
     {
       id: 'n4',
-      name: l('Nivel 4 — Como en competencia', 'Level 4 — Competition style'),
-      description: l('Cruces de 7 u 8 giros, las más difíciles de una mezcla real. Usa toda la inspección.', 'Crosses of 7 or 8 moves, the hardest of a real scramble. Use the whole inspection.'),
+      name: l('Nivel 4 — Como en competencia', 'Level 4 — Competition style', 'Nível 4 — Como em competição'),
+      description: l('Cruces de 7 u 8 giros, las más difíciles de una mezcla real. Usa toda la inspección.', 'Crosses of 7 or 8 moves, the hardest of a real scramble. Use the whole inspection.', 'Cruzes de 7 ou 8 movimentos, as mais difíceis de um embaralhamento real. Use toda a inspeção.'),
       moves: { min: 7, max: 8 },
       goal: { overOptimal: 2, seconds: 5 },
     },

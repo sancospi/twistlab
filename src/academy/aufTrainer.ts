@@ -20,7 +20,7 @@ import {
   svgBox, tallied, weakest, type PllItem, type Tally,
 } from './pllRecognition.ts';
 
-const tr = (es: string, en: string): Localized => ({ es, en });
+const tr = (es: string, en: string, pt: string): Localized => ({ es, en, pt });
 
 type Mode = 'pre' | 'post';
 type View = 'top' | 'two';
@@ -28,9 +28,9 @@ const KEY = (mode: Mode) => `academy-auf-${mode}`;
 const SUBSET_KEY = 'academy-auf-set';
 let timer = 0;
 
-const aufLabel = (a: Auf) => a || loc(tr('Sin giro', 'No turn'));
-const orList = (as: Auf[]) => as.map(aufLabel).join(loc(tr(' o ', ' or ')));
-const withAuf = (a: Auf) => (a ? loc(tr(`con ${aufLabel(a)}`, `with ${aufLabel(a)}`)) : loc(tr('sin giro', 'with no turn')));
+const aufLabel = (a: Auf) => a || loc(tr('Sin giro', 'No turn', 'Sem giro'));
+const orList = (as: Auf[]) => as.map(aufLabel).join(loc(tr(' o ', ' or ', ' ou ')));
+const withAuf = (a: Auf) => (a ? loc(tr(`con ${aufLabel(a)}`, `with ${aufLabel(a)}`, `com ${aufLabel(a)}`)) : loc(tr('sin giro', 'with no turn', 'sem giro')));
 
 /** The U turns that answer `item` in `mode`: before its algorithm (any that works), or the one after it. */
 export const aufAnswers = (item: PllItem, mode: Mode): Auf[] => (mode === 'pre' ? preAufs(item.pattern, item.alg) : [item.post]);
@@ -71,10 +71,10 @@ export function aufTrainerView(kpuzzle: KPuzzle): HTMLElement {
     answered = false;
     prompt.replaceChildren(
       el('strong', { textContent: loc(c.name) }), ' ', algView(item.alg),
-      el('p', { textContent: mode === 'pre' ? loc(tr('¿Qué giro de U haces antes del algoritmo?', 'Which U turn do you do before the algorithm?'))
-        : loc(tr('Hecho el algoritmo, ¿qué giro de U lo termina?', 'Once the algorithm is done, which U turn finishes it?')) }));
-    question.innerHTML = figure(patternToFacelets(shown()), loc(mode === 'pre' ? tr(`${loc(c.name)}, antes del AUF`, `${loc(c.name)}, before the AUF`)
-      : tr(`${loc(c.name)}, antes del algoritmo`, `${loc(c.name)}, before the algorithm`)));
+      el('p', { textContent: mode === 'pre' ? loc(tr('¿Qué giro de U haces antes del algoritmo?', 'Which U turn do you do before the algorithm?', 'Qual giro de U você faz antes do algoritmo?'))
+        : loc(tr('Hecho el algoritmo, ¿qué giro de U lo termina?', 'Once the algorithm is done, which U turn finishes it?', 'Feito o algoritmo, qual giro de U termina?')) }));
+    question.innerHTML = figure(patternToFacelets(shown()), loc(mode === 'pre' ? tr(`${loc(c.name)}, antes del AUF`, `${loc(c.name)}, before the AUF`, `${loc(c.name)}, antes do AUF`)
+      : tr(`${loc(c.name)}, antes del algoritmo`, `${loc(c.name)}, before the algorithm`, `${loc(c.name)}, antes do algoritmo`)));
     answer.replaceChildren();
     feedback.textContent = '';
     for (const b of buttons) b.classList.remove('right', 'wrong');
@@ -97,16 +97,16 @@ export function aufTrainerView(kpuzzle: KPuzzle): HTMLElement {
     if (!right) buttons[AUFS.indexOf(a)].classList.add('wrong');
     const others = ok.filter((x) => x !== a);
     feedback.textContent = right
-      ? loc(tr(`¡Bien! ${aufLabel(a)} · ${formatTime(ms)} s`, `Right! ${aufLabel(a)} · ${formatTime(ms)} s`))
-        + (others.length ? loc(tr(` (también vale ${orList(others)})`, ` (${orList(others)} works too)`)) : '')
-      : loc(tr(`No: era ${orList(ok)}. Así queda ${withAuf(a)}:`, `No: it was ${orList(ok)}. This is what you get ${withAuf(a)}:`));
+      ? loc(tr(`¡Bien! ${aufLabel(a)} · ${formatTime(ms)} s`, `Right! ${aufLabel(a)} · ${formatTime(ms)} s`, `Isso! ${aufLabel(a)} · ${formatTime(ms)} s`))
+        + (others.length ? loc(tr(` (también vale ${orList(others)})`, ` (${orList(others)} works too)`, ` (${orList(others)} também serve)`)) : '')
+      : loc(tr(`No: era ${orList(ok)}. Así queda ${withAuf(a)}:`, `No: it was ${orList(ok)}. This is what you get ${withAuf(a)}:`, `Não: era ${orList(ok)}. Assim fica ${withAuf(a)}:`));
     feedback.className = `trainer-feedback ${right ? 'ok' : 'bad'}`;
     // what the chosen turn gives: before the algorithm, or after it
     const result = mode === 'pre' ? after(after(item.pattern, a), item.alg) : after(after(shown(), item.alg), a);
     answer.replaceChildren(svgBox('', mode === 'post' ? isoSVG(patternToFacelets(result), 'pll', { size: 140 })
       : caseDiagram('top', 'pll-edges', patternToFacelets(result), { size: 140 })),
-    el('small', { className: 'hint', textContent: !a ? loc(tr('Solo el algoritmo', 'The algorithm alone'))
-      : mode === 'pre' ? loc(tr(`${a} y luego el algoritmo`, `${a}, then the algorithm`)) : loc(tr(`El algoritmo y luego ${a}`, `The algorithm, then ${a}`)) }));
+    el('small', { className: 'hint', textContent: !a ? loc(tr('Solo el algoritmo', 'The algorithm alone', 'Só o algoritmo'))
+      : mode === 'pre' ? loc(tr(`${a} y luego el algoritmo`, `${a}, then the algorithm`, `${a} e depois o algoritmo`)) : loc(tr(`El algoritmo y luego ${a}`, `The algorithm, then ${a}`, `O algoritmo e depois ${a}`)) }));
     answer.querySelector('svg')?.setAttribute('aria-hidden', 'true'); // the feedback says it
     next.textContent = t('quiz.next');
     next.className = 'primary';
@@ -126,9 +126,9 @@ export function aufTrainerView(kpuzzle: KPuzzle): HTMLElement {
     bs.forEach((b, i) => b.setAttribute('aria-pressed', String(options[i][0] === value())));
     return el('div', { className: 'trainer-switch', role: 'group', ariaLabel: loc(label) }, el('small', { className: 'hint', ariaHidden: 'true', textContent: loc(label) }), ...bs);
   };
-  const views = toggle(tr('Vista', 'View'), [['top', tr('Desde arriba', 'From above')], ['two', tr('Dos caras', 'Two sides')]], () => view, (v) => save('academy-auf-view', (view = v)));
+  const views = toggle(tr('Vista', 'View', 'Vista'), [['top', tr('Desde arriba', 'From above', 'De cima')], ['two', tr('Dos caras', 'Two sides', 'Duas faces')]], () => view, (v) => save('academy-auf-view', (view = v)));
   views.hidden = mode === 'post';
-  const modes = toggle(tr('Modo', 'Mode'), [['pre', tr('Antes', 'Before')], ['post', tr('Después', 'After')]], () => mode, (v) => {
+  const modes = toggle(tr('Modo', 'Mode', 'Modo'), [['pre', tr('Antes', 'Before', 'Antes')], ['post', tr('Después', 'After', 'Depois')]], () => mode, (v) => {
     save('academy-auf-mode', (mode = v));
     progress = parseProgress(load(KEY(mode)));
     tally = { n: 0, ok: 0, ms: 0, streak: 0 };
@@ -141,6 +141,7 @@ export function aufTrainerView(kpuzzle: KPuzzle): HTMLElement {
     prose(loc(tr(
       '**Antes:** te digo la PLL; elige el giro de U que la deja lista para empezar su algoritmo (el que elegiste en su ficha). Fíjate en los **faros**, los **bloques** y el lado completo.\n**Después:** adivina el AUF final antes de hacer el algoritmo, mirando los centros. Así encadenas sin pausas.',
       '**Before:** you get the PLL; pick the U turn that sets it up the way its algorithm starts (the one you chose on its page). Watch the **headlights**, the **blocks** and the solved side.\n**After:** guess the final AUF before doing the algorithm, looking at the centers. That way you flow without pauses.',
+      '**Antes:** eu digo a PLL; escolha o giro de U que a deixa pronta para começar o algoritmo dela (o que você escolheu na ficha dela). Repare nos **faróis**, nos **blocos** e no lado completo.\n**Depois:** adivinhe o AUF final antes de fazer o algoritmo, olhando os centros. Assim você encadeia sem pausas.',
     ))),
     el('div', { className: 'trainer-options' }, modes, views, subsetSelect(SUBSET_KEY, subset, (id) => {
       subset = id;
@@ -150,7 +151,7 @@ export function aufTrainerView(kpuzzle: KPuzzle): HTMLElement {
     prompt,
     el('div', { className: 'trainer-stage' }, question, answer),
     feedback,
-    el('div', { className: 'trainer-buttons trainer-aufs', role: 'group', ariaLabel: loc(tr('Giro de U', 'U turn')) }, ...buttons),
+    el('div', { className: 'trainer-buttons trainer-aufs', role: 'group', ariaLabel: loc(tr('Giro de U', 'U turn', 'Giro de U')) }, ...buttons),
     el('div', { className: 'row' }, next));
 }
 

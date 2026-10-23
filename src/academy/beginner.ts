@@ -5,9 +5,9 @@ import { loc, type Localized } from '../i18n.ts';
 import { IDENTITY, centerMoves, invertTokens } from '../notation.ts';
 import type { Case, Method, Stage } from './types.ts';
 
-const tr = (es: string, en: string): Localized => ({ es, en });
+const tr = (es: string, en: string, pt: string): Localized => ({ es, en, pt });
 // A case code is a plain string shown as is: the visitor's language, picked when the data loads (i18n.ts's lang is set by then).
-const word = (es: string, en: string) => loc(tr(es, en));
+const word = (es: string, en: string, pt: string) => loc(tr(es, en, pt));
 const times = (block: string, n: number) => Array(n).fill(block).join(' ');
 
 const TRIGGER = "R U R' U'"; // white corners
@@ -53,154 +53,172 @@ const capa1 = (slug: string, code: string, name: Localized, recognition: Localiz
 
 
 const cornerUp = [
-  capa1('blanco-derecha', word('Derecha', 'Right'),
-    tr('Blanco a la derecha', 'White on the right'),
-    tr('Blanco-verde-naranja arriba adelante-derecha, blanco a la derecha', 'White-green-orange at top front-right, white facing right'),
+  capa1('blanco-derecha', word('Derecha', 'Right', 'Direita'),
+    tr('Blanco a la derecha', 'White on the right', 'Branco à direita'),
+    tr('Blanco-verde-naranja arriba adelante-derecha, blanco a la derecha', 'White-green-orange at top front-right, white facing right', 'Branco-verde-laranja em cima na frente-direita, branco à direita'),
     TRIGGER, undefined,
-    tr("1 gatillo. La U' final no toca la primera capa: R U R' también basta.", "1 trigger. The final U' doesn't touch the first layer: R U R' is enough too.")),
-  capa1('blanco-arriba', word('Arriba', 'Up'),
-    tr('Blanco arriba', 'White on top'),
-    tr('Blanco-verde-naranja arriba adelante-derecha, blanco arriba', 'White-green-orange at top front-right, white facing up'),
-    times(TRIGGER, 3), ["R U2 R' U' R U R'", tr("Más corta: R U2 R' saca el blanco de arriba; U' R U R' lo baja.", "Shorter: R U2 R' takes the white off the top; U' R U R' brings it down.")]),
-  capa1('blanco-frente', word('Frente', 'Front'),
-    tr('Blanco al frente', 'White in front'),
-    tr('Blanco-verde-naranja arriba adelante-derecha, blanco al frente', 'White-green-orange at top front-right, white facing front'),
-    times(TRIGGER, 5), ["U R U' R'", tr('El gatillo al revés, 1 vez, equivale a 5 gatillos.', 'The trigger backwards, once, equals 5 triggers.')]),
+    tr("1 gatillo. La U' final no toca la primera capa: R U R' también basta.", "1 trigger. The final U' doesn't touch the first layer: R U R' is enough too.", "1 gatilho. O U' final não mexe na primeira camada: R U R' também basta.")),
+  capa1('blanco-arriba', word('Arriba', 'Up', 'Em cima'),
+    tr('Blanco arriba', 'White on top', 'Branco em cima'),
+    tr('Blanco-verde-naranja arriba adelante-derecha, blanco arriba', 'White-green-orange at top front-right, white facing up', 'Branco-verde-laranja em cima na frente-direita, branco em cima'),
+    times(TRIGGER, 3), ["R U2 R' U' R U R'", tr("Más corta: R U2 R' saca el blanco de arriba; U' R U R' lo baja.", "Shorter: R U2 R' takes the white off the top; U' R U R' brings it down.", "Mais curta: R U2 R' tira o branco de cima; U' R U R' desce a quina.")]),
+  capa1('blanco-frente', word('Frente', 'Front', 'Frente'),
+    tr('Blanco al frente', 'White in front', 'Branco na frente'),
+    tr('Blanco-verde-naranja arriba adelante-derecha, blanco al frente', 'White-green-orange at top front-right, white facing front', 'Branco-verde-laranja em cima na frente-direita, branco na frente'),
+    times(TRIGGER, 5), ["U R U' R'", tr('El gatillo al revés, 1 vez, equivale a 5 gatillos.', 'The trigger backwards, once, equals 5 triggers.', 'O gatilho ao contrário, 1 vez, equivale a 5 gatilhos.')]),
 ];
 const cornerDown = [
-  capa1('girada-derecha', word('Abajo, derecha', 'Bottom, right'),
-    tr('En su sitio, blanco a la derecha', 'In place, white on the right'),
-    tr('Blanco-verde-naranja en su sitio abajo, pero con el blanco a la derecha', 'White-green-orange in its place at the bottom, but with white facing right'),
+  capa1('girada-derecha', word('Abajo, derecha', 'Bottom, right', 'Embaixo, direita'),
+    tr('En su sitio, blanco a la derecha', 'In place, white on the right', 'No lugar, branco à direita'),
+    tr('Blanco-verde-naranja en su sitio abajo, pero con el blanco a la derecha', 'White-green-orange in its place at the bottom, but with white facing right', 'Branco-verde-laranja no seu lugar embaixo, mas com o branco à direita'),
     times(TRIGGER, 2)),
-  capa1('girada-frente', word('Abajo, frente', 'Bottom, front'),
-    tr('En su sitio, blanco al frente', 'In place, white in front'),
-    tr('Blanco-verde-naranja en su sitio abajo, pero con el blanco al frente', 'White-green-orange in its place at the bottom, but with white facing front'),
-    times(TRIGGER, 4), ["U R U' R' U R U' R'", tr('El gatillo al revés, 2 veces, equivale a 4 gatillos.', 'The trigger backwards, twice, equals 4 triggers.')]),
-  capa1('otra-ranura', word('Otro sitio', 'Other spot'),
-    tr('En el sitio de otra', "In another corner's place"),
+  capa1('girada-frente', word('Abajo, frente', 'Bottom, front', 'Embaixo, frente'),
+    tr('En su sitio, blanco al frente', 'In place, white in front', 'No lugar, branco na frente'),
+    tr('Blanco-verde-naranja en su sitio abajo, pero con el blanco al frente', 'White-green-orange in its place at the bottom, but with white facing front', 'Branco-verde-laranja no seu lugar embaixo, mas com o branco na frente'),
+    times(TRIGGER, 4), ["U R U' R' U R U' R'", tr('El gatillo al revés, 2 veces, equivale a 4 gatillos.', 'The trigger backwards, twice, equals 4 triggers.', 'O gatilho ao contrário, 2 vezes, equivale a 4 gatilhos.')]),
+  capa1('otra-ranura', word('Otro sitio', 'Other spot', 'Outro lugar'),
+    tr('En el sitio de otra', "In another corner's place", 'No lugar de outra'),
     tr('Blanco-verde-naranja abajo adelante-izquierda, blanco al frente; la blanco-verde-roja arriba adelante-izquierda, blanco al frente',
-      'White-green-orange at bottom front-left, white facing front; white-green-red at top front-left, white facing front'),
+      'White-green-orange at bottom front-left, white facing front; white-green-red at top front-left, white facing front',
+      'Branco-verde-laranja embaixo na frente-esquerda, branco na frente; a branco-verde-vermelha em cima na frente-esquerda, branco na frente'),
     `y' ${TRIGGER} y U' ${TRIGGER}`, undefined,
     tr("Con y' el sitio de la blanco-verde-roja queda adelante-derecha: un gatillo saca la blanco-verde-naranja y mete la blanco-verde-roja. Con y vuelves, U' deja la blanco-verde-naranja encima de su sitio y otro gatillo la baja.",
-      "With y' the white-green-red slot ends up front-right: one trigger takes out the white-green-orange and puts in the white-green-red. With y you turn back, U' leaves the white-green-orange above its slot and another trigger brings it down.")),
+      "With y' the white-green-red slot ends up front-right: one trigger takes out the white-green-orange and puts in the white-green-red. With y you turn back, U' leaves the white-green-orange above its slot and another trigger brings it down.",
+      "Com y' o lugar da branco-verde-vermelha fica na frente-direita: um gatilho tira a branco-verde-laranja e coloca a branco-verde-vermelha. Com y você volta, U' deixa a branco-verde-laranja em cima do seu lugar e outro gatilho a desce.")),
 ];
 
 const capa2 = (slug: string, code: string, name: Localized, recognition: Localized, alg: string, note?: Localized) =>
   kase({ phase: 'capa2', slug, stage: 'second-layer', code, name, recognition, alg, note });
 
 const edgeUp = [
-  capa2('derecha', word('Derecha', 'Right'), tr('Inserción a la derecha', 'Insert to the right'),
-    tr('Verde-naranja arriba al frente: verde al frente, naranja arriba', 'Green-orange at top front: green in front, orange on top'), RIGHT),
-  capa2('izquierda', word('Izquierda', 'Left'), tr('Inserción a la izquierda', 'Insert to the left'),
-    tr('Verde-roja arriba al frente: verde al frente, rojo arriba', 'Green-red at top front: green in front, red on top'), LEFT),
+  capa2('derecha', word('Derecha', 'Right', 'Direita'), tr('Inserción a la derecha', 'Insert to the right', 'Inserção à direita'),
+    tr('Verde-naranja arriba al frente: verde al frente, naranja arriba', 'Green-orange at top front: green in front, orange on top', 'Verde-laranja em cima na frente: verde na frente, laranja em cima'), RIGHT),
+  capa2('izquierda', word('Izquierda', 'Left', 'Esquerda'), tr('Inserción a la izquierda', 'Insert to the left', 'Inserção à esquerda'),
+    tr('Verde-roja arriba al frente: verde al frente, rojo arriba', 'Green-red at top front: green in front, red on top', 'Verde-vermelha em cima na frente: verde na frente, vermelho em cima'), LEFT),
 ];
 const edgeStuck = [
-  capa2('volteada', word('Volteada', 'Flipped'), tr('Atascada y volteada', 'Stuck and flipped'),
-    tr('Verde-naranja en su sitio pero volteada: naranja al frente, verde a la derecha', 'Green-orange in its place but flipped: orange in front, green on the right'),
+  capa2('volteada', word('Volteada', 'Flipped', 'Invertida'), tr('Atascada y volteada', 'Stuck and flipped', 'Presa e invertida'),
+    tr('Verde-naranja en su sitio pero volteada: naranja al frente, verde a la derecha', 'Green-orange in its place but flipped: orange in front, green on the right', 'Verde-laranja no seu lugar, mas invertida: laranja na frente, verde à direita'),
     "U R U' R' U' F' U F U' R U' R' U' F' U F",
     tr("Dos inserciones a la derecha: la primera saca la arista. La U2 de en medio se junta con la U inicial de la segunda y queda U'.",
-      "Two inserts to the right: the first one takes the edge out. The U2 in the middle merges with the second one's initial U and becomes U'.")),
-  capa2('otra-ranura', word('Otra ranura', 'Other slot'), tr('Atascada en la ranura de la izquierda', 'Stuck in the left slot'),
+      "Two inserts to the right: the first one takes the edge out. The U2 in the middle merges with the second one's initial U and becomes U'.",
+      "Duas inserções à direita: a primeira tira a aresta. O U2 do meio se junta com o U inicial da segunda e vira U'.")),
+  capa2('otra-ranura', word('Otra ranura', 'Other slot', 'Outro slot'), tr('Atascada en la ranura de la izquierda', 'Stuck in the left slot', 'Presa no slot da esquerda'),
     tr('Verde-naranja en la ranura adelante-izquierda, naranja al frente; la verde-roja arriba al frente, rojo arriba',
-      'Green-orange in the front-left slot, orange in front; green-red at top front, red on top'),
+      'Green-orange in the front-left slot, orange in front; green-red at top front, red on top',
+      'Verde-laranja no slot frente-esquerda, laranja na frente; a verde-vermelha em cima na frente, vermelho em cima'),
     "U' L' U L U F U' F' U' R U' R' U' F' U F",
     tr("La inserción a la izquierda mete la verde-roja y saca la verde-naranja. Luego la inserción a la derecha (con U2 antes, que junto a su U inicial queda U').",
-      "The left insert puts in the green-red and takes out the green-orange. Then the right insert (with a U2 before it, which merges with its initial U into U').")),
+      "The left insert puts in the green-red and takes out the green-orange. Then the right insert (with a U2 before it, which merges with its initial U into U').",
+      "A inserção à esquerda coloca a verde-vermelha e tira a verde-laranja. Depois a inserção à direita (com um U2 antes, que junto com o seu U inicial vira U').")),
 ];
 
 const yellowCross = [
-  kase({ phase: 'cruz', slug: 'linea', stage: 'oll-cross', code: word('Línea', 'Line'), name: tr('Línea', 'Line'),
-    recognition: tr('Línea amarilla horizontal (izquierda–derecha)', 'Horizontal yellow line (left–right)'), alg: CROSS }),
-  kase({ phase: 'cruz', slug: 'l', stage: 'oll-cross', code: 'L', name: tr('L', 'L'),
-    recognition: tr('Aristas amarillas atrás y a la izquierda', 'Yellow edges at the back and on the left'), alg: CROSS_TWICE,
+  kase({ phase: 'cruz', slug: 'linea', stage: 'oll-cross', code: word('Línea', 'Line', 'Linha'), name: tr('Línea', 'Line', 'Linha'),
+    recognition: tr('Línea amarilla horizontal (izquierda–derecha)', 'Horizontal yellow line (left–right)', 'Linha amarela horizontal (esquerda–direita)'), alg: CROSS }),
+  kase({ phase: 'cruz', slug: 'l', stage: 'oll-cross', code: 'L', name: tr('L', 'L', 'L'),
+    recognition: tr('Aristas amarillas atrás y a la izquierda', 'Yellow edges at the back and on the left', 'Arestas amarelas atrás e à esquerda'), alg: CROSS_TWICE,
     note: tr("El algoritmo 2 veces seguidas; la F' y la F del medio se cancelan. La primera vez deja la línea horizontal.",
-      "The algorithm twice in a row; the F' and F in the middle cancel. The first time leaves the horizontal line.") }),
-  kase({ phase: 'cruz', slug: 'punto', stage: 'oll-cross', code: word('Punto', 'Dot'), name: tr('Punto', 'Dot'),
-    recognition: tr('Solo el centro amarillo; ninguna arista amarilla arriba', 'Only the yellow center; no yellow edge on top'),
+      "The algorithm twice in a row; the F' and F in the middle cancel. The first time leaves the horizontal line.",
+      "O algoritmo 2 vezes seguidas; o F' e o F do meio se cancelam. A primeira vez deixa a linha horizontal.") }),
+  kase({ phase: 'cruz', slug: 'punto', stage: 'oll-cross', code: word('Punto', 'Dot', 'Ponto'), name: tr('Punto', 'Dot', 'Ponto'),
+    recognition: tr('Solo el centro amarillo; ninguna arista amarilla arriba', 'Only the yellow center; no yellow edge on top', 'Só o centro amarelo; nenhuma aresta amarela em cima'),
     alg: `${CROSS} U2 ${CROSS_TWICE}`,
-    note: tr('Una vez deja una L adelante-derecha; U2 la pasa atrás-izquierda y sigues como la L.', 'One pass leaves an L at front-right; U2 moves it to back-left and you continue like the L.') }),
+    note: tr('Una vez deja una L adelante-derecha; U2 la pasa atrás-izquierda y sigues como la L.', 'One pass leaves an L at front-right; U2 moves it to back-left and you continue like the L.', 'Uma vez deixa um L na frente-direita; U2 o leva para atrás-esquerda e você segue como no L.') }),
 ];
 
 const yellowEdges = [
-  kase({ phase: 'aristas', slug: 'vecinas', stage: 'll-edges', code: word('Vecinas', 'Adjacent'), name: tr('Dos vecinas bien', 'Two adjacent edges correct'),
+  kase({ phase: 'aristas', slug: 'vecinas', stage: 'll-edges', code: word('Vecinas', 'Adjacent', 'Vizinhas'), name: tr('Dos vecinas bien', 'Two adjacent edges correct', 'Duas vizinhas certas'),
     recognition: tr('Coinciden la de la derecha (naranja) y la de atrás (azul); adelante hay roja y a la izquierda verde',
-      'The right (orange) and back (blue) edges match; red is in front and green on the left'), alg: SUNE }),
-  kase({ phase: 'aristas', slug: 'opuestas', stage: 'll-edges', code: word('Opuestas', 'Opposite'), name: tr('Dos opuestas bien', 'Two opposite edges correct'),
+      'The right (orange) and back (blue) edges match; red is in front and green on the left',
+      'Coincidem a da direita (laranja) e a de trás (azul); na frente está a vermelha e à esquerda a verde'), alg: SUNE }),
+  kase({ phase: 'aristas', slug: 'opuestas', stage: 'll-edges', code: word('Opuestas', 'Opposite', 'Opostas'), name: tr('Dos opuestas bien', 'Two opposite edges correct', 'Duas opostas certas'),
     recognition: tr('Coinciden la de la derecha (naranja) y la de la izquierda (roja); adelante hay azul y atrás verde',
-      'The right (orange) and left (red) edges match; blue is in front and green at the back'),
+      'The right (orange) and left (red) edges match; blue is in front and green at the back',
+      'Coincidem a da direita (laranja) e a da esquerda (vermelha); na frente está a azul e atrás a verde'),
     alg: "R U R' U R U2 R' U2 y R U R' U R U2 R' U",
     note: tr('1 vez deja dos vecinas bien. Una U más las alinea (junto a la U final, U2) atrás y a la izquierda; la rotación y las pasa atrás y a la derecha, y repites el algoritmo.',
-      'One pass leaves two adjacent edges correct. One more U lines them up (with the final U, U2) at the back and on the left; the y rotation moves them to back and right, and you repeat the algorithm.') }),
+      'One pass leaves two adjacent edges correct. One more U lines them up (with the final U, U2) at the back and on the left; the y rotation moves them to back and right, and you repeat the algorithm.',
+      '1 vez deixa duas vizinhas certas. Mais um U as alinha (junto com o U final, U2) atrás e à esquerda; a rotação y as leva para atrás e à direita, e você repete o algoritmo.') }),
 ];
 
 const placeCorners = (slug: string, code: string, name: Localized, recognition: Localized, alg: string, alt?: Row['alt'], note?: Localized) =>
   kase({ phase: 'esquinas', slug, stage: 'll-corners-placed', code, name, recognition, alg, alt, note });
 
 const oneHome = [
-  placeCorners('antihorario', word('Antihorario', 'Counterclockwise'), tr('Una en su sitio, 1 vez', 'One in place, once'),
+  placeCorners('antihorario', word('Antihorario', 'Counterclockwise', 'Anti-horário'), tr('Una en su sitio, 1 vez', 'One in place, once', 'Uma no lugar, 1 vez'),
     tr('Adelante-derecha en su sitio; las otras 3 giran en sentido antihorario: la de atrás-derecha (roja-azul) va atrás-izquierda',
-      'Front-right in place; the other 3 cycle counterclockwise: the back-right one (red-blue) goes to back-left'), CYCLE),
-  placeCorners('horario', word('Horario', 'Clockwise'), tr('Una en su sitio, 2 veces', 'One in place, twice'),
+      'Front-right in place; the other 3 cycle counterclockwise: the back-right one (red-blue) goes to back-left',
+      'Frente-direita no lugar; as outras 3 giram no sentido anti-horário: a de atrás-direita (vermelha-azul) vai para atrás-esquerda'), CYCLE),
+  placeCorners('horario', word('Horario', 'Clockwise', 'Horário'), tr('Una en su sitio, 2 veces', 'One in place, twice', 'Uma no lugar, 2 vezes'),
     tr('Adelante-derecha en su sitio; las otras 3 giran en sentido horario: la de atrás-izquierda (naranja-azul) va atrás-derecha',
-      'Front-right in place; the other 3 cycle clockwise: the back-left one (orange-blue) goes to back-right'), times(CYCLE, 2),
-    ["L' U R U' L U R' U'", tr('El algoritmo al revés, 1 vez, equivale a 2 veces.', 'The algorithm backwards, once, equals twice.')]),
+      'Front-right in place; the other 3 cycle clockwise: the back-left one (orange-blue) goes to back-right',
+      'Frente-direita no lugar; as outras 3 giram no sentido horário: a de atrás-esquerda (laranja-azul) vai para atrás-direita'), times(CYCLE, 2),
+    ["L' U R U' L U R' U'", tr('El algoritmo al revés, 1 vez, equivale a 2 veces.', 'The algorithm backwards, once, equals twice.', 'O algoritmo ao contrário, 1 vez, equivale a 2 vezes.')]),
 ];
 const noneHome = [
-  placeCorners('parejas', word('Parejas', 'Pairs'), tr('Ninguna: cambiadas por parejas', 'None: swapped in pairs'),
+  placeCorners('parejas', word('Parejas', 'Pairs', 'Pares'), tr('Ninguna: cambiadas por parejas', 'None: swapped in pairs', 'Nenhuma: trocadas em pares'),
     tr('Ninguna en su sitio: las 2 de la derecha cambiadas entre sí, y las 2 de la izquierda también',
-      'None in place: the 2 on the right swapped with each other, and the 2 on the left too'),
+      'None in place: the 2 on the right swapped with each other, and the 2 on the left too',
+      'Nenhuma no lugar: as 2 da direita trocadas entre si, e as 2 da esquerda também'),
     `${CYCLE} y' ${CYCLE}`, undefined,
     tr("1 vez desde aquí deja una en su sitio; con y' queda adelante-derecha y 1 vez más termina.",
-      "One pass from here leaves one corner in place; with y' it ends up front-right and one more pass finishes it.")),
-  placeCorners('diagonal', 'Diagonal', tr('Ninguna: cambiadas en diagonal', 'None: swapped diagonally'),
-    tr('Ninguna en su sitio: cada esquina va al sitio opuesto en diagonal', 'None in place: each corner goes to the diagonally opposite spot'),
+      "One pass from here leaves one corner in place; with y' it ends up front-right and one more pass finishes it.",
+      "1 vez daqui deixa uma no lugar; com y' ela fica na frente-direita e mais 1 vez termina.")),
+  placeCorners('diagonal', 'Diagonal', tr('Ninguna: cambiadas en diagonal', 'None: swapped diagonally', 'Nenhuma: trocadas na diagonal'),
+    tr('Ninguna en su sitio: cada esquina va al sitio opuesto en diagonal', 'None in place: each corner goes to the diagonally opposite spot', 'Nenhuma no lugar: cada quina vai para o lugar oposto na diagonal'),
     `${CYCLE} y ${CYCLE}`, undefined,
     tr('1 vez desde aquí deja una en su sitio; con y queda adelante-derecha y 1 vez más termina.',
-      'One pass from here leaves one corner in place; with y it ends up front-right and one more pass finishes it.')),
+      'One pass from here leaves one corner in place; with y it ends up front-right and one more pass finishes it.',
+      '1 vez daqui deixa uma no lugar; com y ela fica na frente-direita e mais 1 vez termina.')),
 ];
 
 const twist = (slug: string, code: string, name: Localized, recognition: Localized, alg: string) =>
   kase({ phase: 'orientar', slug, stage: 'll-corners-twist', code, name, recognition, alg });
 
 const twistTwo = [
-  twist('u', 'U', tr('Faros: dos vecinas mirando al mismo lado', 'Headlights: two adjacent facing the same way'),
-    tr('Adelante-derecha y atrás-derecha giradas, las dos con amarillo a la derecha', 'Front-right and back-right twisted, both with yellow facing right'),
+  twist('u', 'U', tr('Faros: dos vecinas mirando al mismo lado', 'Headlights: two adjacent facing the same way', 'Faróis: duas vizinhas viradas para o mesmo lado'),
+    tr('Adelante-derecha y atrás-derecha giradas, las dos con amarillo a la derecha', 'Front-right and back-right twisted, both with yellow facing right', 'Frente-direita e atrás-direita giradas, as duas com amarelo à direita'),
     `${TWIST2} U ${TWIST4} U'`),
-  twist('t', 'T', tr('Dos vecinas mirando hacia afuera', 'Two adjacent facing outward'),
-    tr('Adelante-derecha con amarillo al frente y atrás-derecha con amarillo atrás', 'Front-right with yellow facing front and back-right with yellow facing back'),
+  twist('t', 'T', tr('Dos vecinas mirando hacia afuera', 'Two adjacent facing outward', 'Duas vizinhas viradas para fora'),
+    tr('Adelante-derecha con amarillo al frente y atrás-derecha con amarillo atrás', 'Front-right with yellow facing front and back-right with yellow facing back', 'Frente-direita com amarelo na frente e atrás-direita com amarelo atrás'),
     `${TWIST4} U ${TWIST2} U'`),
-  twist('l', 'L', tr('Dos en diagonal', 'Two corners on a diagonal'),
-    tr('Adelante-derecha con amarillo al frente y atrás-izquierda con amarillo a la izquierda', 'Front-right with yellow facing front and back-left with yellow facing left'),
+  twist('l', 'L', tr('Dos en diagonal', 'Two corners on a diagonal', 'Duas na diagonal'),
+    tr('Adelante-derecha con amarillo al frente y atrás-izquierda con amarillo a la izquierda', 'Front-right with yellow facing front and back-left with yellow facing left', 'Frente-direita com amarelo na frente e atrás-esquerda com amarelo à esquerda'),
     `${TWIST4} U2 ${TWIST2} U2`),
 ];
 const twistThree = [
-  twist('antisune', 'Antisune', tr('Tres, 2 veces cada una', 'Three, 2 times each'),
+  twist('antisune', 'Antisune', tr('Tres, 2 veces cada una', 'Three, 2 times each', 'Três, 2 vezes cada uma'),
     tr('Adelante-izquierda bien; amarillo a la derecha en adelante-derecha, atrás en atrás-derecha y a la izquierda en atrás-izquierda',
-      'Front-left correct; yellow facing right at front-right, back at back-right and left at back-left'),
+      'Front-left correct; yellow facing right at front-right, back at back-right and left at back-left',
+      'Frente-esquerda certa; amarelo à direita na frente-direita, atrás na atrás-direita e à esquerda na atrás-esquerda'),
     `${TWIST2} U ${TWIST2} U ${TWIST2} U2`),
-  twist('sune', 'Sune', tr('Tres, 4 veces cada una', 'Three, 4 times each'),
+  twist('sune', 'Sune', tr('Tres, 4 veces cada una', 'Three, 4 times each', 'Três, 4 vezes cada uma'),
     tr('Adelante-izquierda bien; amarillo al frente en adelante-derecha, a la derecha en atrás-derecha y atrás en atrás-izquierda',
-      'Front-left correct; yellow facing front at front-right, right at back-right and back at back-left'),
+      'Front-left correct; yellow facing front at front-right, right at back-right and back at back-left',
+      'Frente-esquerda certa; amarelo na frente na frente-direita, à direita na atrás-direita e atrás na atrás-esquerda'),
     `${TWIST4} U ${TWIST4} U ${TWIST4} U2`),
 ];
 const twistFour = [
-  twist('pi', 'Pi', tr('Cuatro: faros adelante', 'Four: headlights in front'),
+  twist('pi', 'Pi', tr('Cuatro: faros adelante', 'Four: headlights in front', 'Quatro: faróis na frente'),
     tr('Las 4 giradas: las 2 de adelante con amarillo al frente, atrás-derecha a la derecha y atrás-izquierda a la izquierda',
-      'All 4 twisted: the 2 in front with yellow facing front, back-right facing right and back-left facing left'),
+      'All 4 twisted: the 2 in front with yellow facing front, back-right facing right and back-left facing left',
+      'As 4 giradas: as 2 da frente com amarelo na frente, atrás-direita à direita e atrás-esquerda à esquerda'),
     `${TWIST4} U ${TWIST4} U ${TWIST2} U ${TWIST2} U`),
-  twist('h', 'H', tr('Cuatro: faros adelante y atrás', 'Four: headlights front and back'),
+  twist('h', 'H', tr('Cuatro: faros adelante y atrás', 'Four: headlights front and back', 'Quatro: faróis na frente e atrás'),
     tr('Las 4 giradas: las 2 de adelante con amarillo al frente y las 2 de atrás con amarillo atrás',
-      'All 4 twisted: the 2 in front with yellow facing front and the 2 in back with yellow facing back'),
+      'All 4 twisted: the 2 in front with yellow facing front and the 2 in back with yellow facing back',
+      'As 4 giradas: as 2 da frente com amarelo na frente e as 2 de trás com amarelo atrás'),
     `${TWIST4} U ${TWIST2} U ${TWIST4} U ${TWIST2} U`),
 ];
 
-// Rich text in both languages: same structure (lines), joined once.
-const doc = (es: string[], en: string[]): Localized => tr(es.join('\n'), en.join('\n'));
+// Rich text in every language: same structure (lines), joined once.
+const doc = (es: string[], en: string[], pt: string[]): Localized => tr(es.join('\n'), en.join('\n'), pt.join('\n'));
 
 export const beginner: Method = {
   id: 'principiante',
-  name: tr('Método principiante', 'Beginner method'),
-  summary: tr('Tu primer cubo resuelto: capa por capa, con 7 secuencias cortas que se repiten.', 'Your first solved cube: layer by layer, with 7 short sequences that repeat.'),
+  name: tr('Método principiante', 'Beginner method', 'Método para iniciantes'),
+  summary: tr('Tu primer cubo resuelto: capa por capa, con 7 secuencias cortas que se repiten.', 'Your first solved cube: layer by layer, with 7 short sequences that repeat.', 'Seu primeiro cubo resolvido: camada por camada, com 7 sequências curtas que se repetem.'),
   description: doc(
     [
       'El método para resolver el cubo por primera vez. Lo armas **capa por capa**: abajo (blanca), medio y arriba (amarilla).',
@@ -238,6 +256,24 @@ export const beginner: Method = {
       '- Your first solve may take 5 minutes or more. With practice you\'ll get down to 1 or 2.',
       '- Once you can solve it without the guide, move on to **reduced CFOP**: faster steps.',
     ],
+    [
+      'O método para resolver o cubo pela primeira vez. Você monta ele **camada por camada**: embaixo (branca), meio e em cima (amarela).',
+      'Você só precisa de **7 sequências curtas**, e quase todas se repetem: o truque é saber de onde fazê-las e quantas vezes.',
+      '## Os passos',
+      '1. **Cruz branca.** Tem seu próprio guia, "A cruz branca" (link "Passo anterior"). Basta a lição "Casos de uma aresta": coloque as arestas uma de cada vez, não importa quantos movimentos você use.',
+      '2. **Quinas brancas.** Completam a primeira camada.',
+      '3. **Segunda camada.** As 4 arestas do meio.',
+      '4. **Cruz amarela.** As arestas amarelas viradas para cima.',
+      '5. **Arestas amarelas.** Cada uma junto do seu centro.',
+      '6. **Quinas amarelas no lugar.** Cada uma no seu lugar, mesmo que esteja girada.',
+      '7. **Orientar as quinas.** Amarelo em cima: cubo resolvido.',
+      '## Quanto tempo leva',
+      'Com 20–30 min por dia, seu primeiro cubo costuma sair em **1 ou 2 semanas**.',
+      '- Aprenda um passo por sessão, em ordem. Não passe para o próximo até conseguir fazê-lo sem olhar o guia.',
+      '- **Se você se perder:** procure o último passo que continua completo e retome a partir do seguinte.',
+      '- A primeira resolução pode levar 5 minutos ou mais. Com prática você vai baixar para 1 ou 2.',
+      '- Quando resolver sem guia, siga para o **CFOP reduzido**: passos mais rápidos.',
+    ],
   ),
   orientation: doc(
     [
@@ -249,6 +285,11 @@ export const beginner: Method = {
       '**White cross at the bottom, yellow on top and green in front.** Orange is on the right.',
       'Scrambles start from the solved cube in that position, and the cases use the pieces at the front right.',
       "In a real solve, rotate the whole cube (`y`, always with yellow on top) until the piece looks like the case, and apply the same sequence. Only in the last step do you not rotate the cube.",
+    ],
+    [
+      '**Cruz branca embaixo, amarelo em cima e verde na frente.** O laranja fica à direita.',
+      'Os embaralhamentos partem do cubo resolvido nessa posição, e os casos usam as peças da frente à direita.',
+      'Numa resolução real, gire o cubo inteiro (`y`, sempre com o amarelo em cima) até a peça ficar como no caso, e aplique a mesma sequência. Só no último passo não se gira o cubo.',
     ],
   ),
   notation: doc(
@@ -282,11 +323,26 @@ export const beginner: Method = {
       '- **Last layer:** the yellow face seen from above, with the front at the bottom. The little bars are the side stickers of the top layer.',
       '- **Corners into place:** the arrows show where each piece goes.',
     ],
+    [
+      '## Movimentos',
+      '- Cada letra é uma face: `R` direita, `L` esquerda, `U` em cima, `D` embaixo, `F` frente, `B` atrás.',
+      '- A letra sozinha gira a face no sentido horário, olhando para ela de frente. `D` é visto de baixo.',
+      "- Com apóstrofo é anti-horário (`R'`); com 2, meia volta (`U2`).",
+      "- `y` gira o cubo inteiro como `U`, e `y'` como `U'`. Não move peças: só muda a face da frente.",
+      '## Blocos',
+      "As sequências são montadas com blocos que se repetem: `R U R' U'` (o **gatilho**), `R' D' R D` ou `F R U R' U' F'`.",
+      'Faça **cada bloco como um só gesto** e conte repetições, não movimentos.',
+      'Os embaralhamentos só preparam o caso: não precisa decorá-los.',
+      '## Figuras',
+      '- **Primeira e segunda camada:** vistas de cima-frente-direita. O que não importa fica em cinza.',
+      '- **Última camada:** a face amarela vista de cima, com a frente embaixo. As barrinhas são os adesivos laterais da camada de cima.',
+      '- **Quinas no lugar:** as setas mostram para onde vai cada peça.',
+    ],
   ),
   phases: [
     {
       id: 'prin-capa1',
-      name: tr('Paso 2: esquinas blancas', 'Step 2: white corners'),
+      name: tr('Paso 2: esquinas blancas', 'Step 2: white corners', 'Passo 2: quinas brancas'),
       description: doc(
         [
           '**Meta:** las 4 esquinas blancas en su sitio. Con la cruz forman la primera capa: blanco abajo y, en cada lado, la fila de abajo de un solo color.',
@@ -318,19 +374,34 @@ export const beginner: Method = {
           '- **Dropping it in the wrong spot:** compare its 2 colors with the centers before you start.',
           '- **Rotating the cube between repetitions:** the corner stays at the front right until it drops in.',
         ],
+        [
+          '**Meta:** as 4 quinas brancas no lugar. Com a cruz elas formam a primeira camada: branco embaixo e, em cada lado, a fileira de baixo de uma cor só.',
+          'Cada quina vai entre os centros das suas outras duas cores: a branco-verde-laranja, embaixo entre o verde e o laranja.',
+          '## Uma só sequência',
+          "O gatilho `R U R' U'` sobe e desce a quina da frente-direita e a gira. Não mexe na cruz, e com 6 repetições o cubo volta a ficar como estava.",
+          '## Como fazer',
+          '1. Procure em cima uma quina com branco e leia as suas outras duas cores.',
+          '2. Gire `U` até deixá-la em cima do seu lugar. Gire o cubo inteiro (amarelo em cima) para que esse lugar fique na frente à direita.',
+          "3. Repita `R U R' U'` até ela entrar com o branco embaixo: **1** vez se o branco olha para a direita, **3** se olha para cima, **5** se olha para a frente.",
+          'Se uma quina branca está embaixo mas girada, ou no lugar de outra, coloque-a na frente à direita e tire-a com um gatilho. Continue com ela a partir de cima.',
+          '## Erros comuns',
+          '- **Cortar o gatilho:** faça sempre os 4 movimentos.',
+          '- **Descer no lugar errado:** compare as suas 2 cores com os centros antes de começar.',
+          '- **Girar o cubo entre repetições:** a quina fica na frente à direita até entrar.',
+        ],
       ),
       diagram: 'iso',
       groups: [
         {
           id: 'prin-capa1-arriba',
-          name: tr('Esquina arriba, encima de su sitio', 'Corner on top, above its spot'),
-          description: tr('Gatillos según dónde mira el blanco: a la derecha 1, arriba 3, al frente 5.', 'Triggers depend on where white faces: right 1, up 3, front 5.'),
+          name: tr('Esquina arriba, encima de su sitio', 'Corner on top, above its spot', 'Quina em cima, sobre o seu lugar'),
+          description: tr('Gatillos según dónde mira el blanco: a la derecha 1, arriba 3, al frente 5.', 'Triggers depend on where white faces: right 1, up 3, front 5.', 'Gatilhos conforme para onde o branco olha: direita 1, cima 3, frente 5.'),
           cases: cornerUp,
         },
         {
           id: 'prin-capa1-abajo',
-          name: tr('Esquina abajo, mal puesta', 'Corner at the bottom, misplaced'),
-          description: tr('Abajo, pero girada o en el sitio de otra.', 'At the bottom, but twisted or in another corner\'s spot.'),
+          name: tr('Esquina abajo, mal puesta', 'Corner at the bottom, misplaced', 'Quina embaixo, mal colocada'),
+          description: tr('Abajo, pero girada o en el sitio de otra.', 'At the bottom, but twisted or in another corner\'s spot.', 'Embaixo, mas girada ou no lugar de outra.'),
           cases: cornerDown,
         },
       ],
@@ -338,7 +409,7 @@ export const beginner: Method = {
     },
     {
       id: 'prin-capa2',
-      name: tr('Paso 3: segunda capa', 'Step 3: second layer'),
+      name: tr('Paso 3: segunda capa', 'Step 3: second layer', 'Passo 3: segunda camada'),
       description: doc(
         [
           '**Meta:** las 4 aristas del medio. Las dos primeras capas quedan resueltas.',
@@ -372,17 +443,33 @@ export const beginner: Method = {
           '- **Choosing the side by the front color:** the top color decides it.',
           '- **Inserting without aligning:** first its side color must match the center.',
         ],
+        [
+          '**Meta:** as 4 arestas do meio. As duas primeiras camadas ficam resolvidas.',
+          'São as arestas **sem amarelo**: verde-laranja, laranja-azul, azul-vermelha e vermelha-verde.',
+          '## Como fazer',
+          '1. Procure em cima uma aresta sem amarelo.',
+          '2. Gire `U` até a cor lateral dela coincidir com o centro desse lado. Gire o cubo inteiro (amarelo em cima) para deixá-la na frente.',
+          '3. Olhe a cor de **cima** dela: se é a do centro da direita, vai para a direita; se é a do centro da esquerda, para a esquerda.',
+          "4. Faça a inserção: para a direita `U R U' R' U' F' U F`, para a esquerda `U' L' U L U F U' F'` (uma é o espelho da outra).",
+          '## Se não houver nenhuma em cima',
+          'Se todas as de cima têm amarelo e ainda falta alguma, ela está **presa** no meio: invertida ou no lugar de outra.',
+          'Gire o cubo inteiro para deixá-la na frente à direita e faça a inserção à direita com qualquer aresta de cima: isso a tira. Depois insira-a direito.',
+          '## Erros comuns',
+          '- **Usar uma aresta com amarelo:** elas são da última camada; deixe-as em cima.',
+          '- **Escolher o lado pela cor da frente:** quem decide é a cor de cima.',
+          '- **Inserir sem alinhar:** primeiro a cor lateral dela deve coincidir com o centro.',
+        ],
       ),
       diagram: 'iso',
       groups: [
-        { id: 'prin-capa2-arriba', name: tr('Arista arriba', 'Edge on top'), description: tr('Alinéala con su centro al frente y mira el color de arriba.', 'Align it with its center in front and look at the top color.'), cases: edgeUp },
-        { id: 'prin-capa2-atascada', name: tr('Arista atascada', 'Stuck edge'), description: tr('Sácala con una inserción y luego insértala bien.', 'Take it out with an insert, then insert it properly.'), cases: edgeStuck },
+        { id: 'prin-capa2-arriba', name: tr('Arista arriba', 'Edge on top', 'Aresta em cima'), description: tr('Alinéala con su centro al frente y mira el color de arriba.', 'Align it with its center in front and look at the top color.', 'Alinhe-a com seu centro na frente e olhe a cor de cima.'), cases: edgeUp },
+        { id: 'prin-capa2-atascada', name: tr('Arista atascada', 'Stuck edge', 'Aresta presa'), description: tr('Sácala con una inserción y luego insértala bien.', 'Take it out with an insert, then insert it properly.', 'Tire-a com uma inserção e depois insira-a direito.'), cases: edgeStuck },
       ],
       quizzes: [],
     },
     {
       id: 'prin-cruz',
-      name: tr('Paso 4: cruz amarilla', 'Step 4: yellow cross'),
+      name: tr('Paso 4: cruz amarilla', 'Step 4: yellow cross', 'Passo 4: cruz amarela'),
       description: doc(
         [
           '**Meta:** una cruz amarilla arriba. Cuentan solo las 4 aristas amarillas: ignora esquinas y colores de los lados.',
@@ -406,14 +493,25 @@ export const beginner: Method = {
           '- **Counting corners:** only edges count, the ones in the middle of each side.',
           '- **Seeing 1 or 3 yellow edges:** it is impossible by turning faces. Check that you count only edges; if so, a piece got flipped: take it out, put it in the other way and start over.',
         ],
+        [
+          '**Meta:** uma cruz amarela em cima. Contam só as 4 arestas amarelas: ignore quinas e cores dos lados.',
+          "Um algoritmo, `F R U R' U' F'`, que você faz 1, 2 ou 3 vezes conforme o que vê:",
+          '- **Linha:** segure-a na horizontal (esquerda–direita), 1 vez.',
+          "- **L:** segure-o com as arestas atrás e à esquerda, 2 vezes seguidas. O `F'` e o `F` do meio se cancelam: `F R U R' U' R U R' U' F'`.",
+          '- **Ponto** (só o centro): 1 vez, `U2` para deixar o L atrás-esquerda e mais 2 vezes.',
+          '## Erros comuns',
+          '- **Segurar errado o L ou a linha:** o L mal posicionado dá outro L ou uma linha vertical; a linha vertical dá o ponto. Nada quebra: olhe a forma nova, gire `U` e continue.',
+          '- **Contar quinas:** contam só as arestas, as do meio de cada borda.',
+          '- **Ver 1 ou 3 arestas amarelas:** girando faces é impossível. Confira se você conta só arestas; se for assim, uma peça ficou invertida: tire-a, coloque-a ao contrário e comece de novo.',
+        ],
       ),
       diagram: 'top',
-      groups: [{ id: 'prin-cruz-formas', name: tr('Formas amarillas', 'Yellow shapes'), description: tr('Mira solo las aristas amarillas de arriba.', 'Look only at the yellow edges on top.'), cases: yellowCross }],
+      groups: [{ id: 'prin-cruz-formas', name: tr('Formas amarillas', 'Yellow shapes', 'Formas amarelas'), description: tr('Mira solo las aristas amarillas de arriba.', 'Look only at the yellow edges on top.', 'Olhe só as arestas amarelas de cima.'), cases: yellowCross }],
       quizzes: [],
     },
     {
       id: 'prin-aristas',
-      name: tr('Paso 5: aristas amarillas', 'Step 5: yellow edges'),
+      name: tr('Paso 5: aristas amarillas', 'Step 5: yellow edges', 'Passo 5: arestas amarelas'),
       description: doc(
         [
           '**Meta:** cada arista amarilla junto al centro de su color, sin perder la cruz.',
@@ -437,14 +535,25 @@ export const beginner: Method = {
           '- **Looking at the corners:** they don\'t matter here; they get fixed in the next two steps.',
           '- **Forgetting the final `U`:** it is part of the algorithm.',
         ],
+        [
+          '**Meta:** cada aresta amarela junto do centro da sua cor, sem perder a cruz.',
+          'Gire `U` até coincidirem pelo menos 2 arestas: sempre dá. Se coincidirem as 4, passe para o próximo passo.',
+          "O algoritmo é `R U R' U R U2 R' U`: ele troca as arestas da frente e da esquerda.",
+          '- **Duas vizinhas certas:** deixe-as atrás e à direita, e faça 1 vez.',
+          '- **Duas opostas certas:** faça 1 vez e ficam duas vizinhas. Gire `U` até coincidirem, gire o cubo inteiro para deixá-las atrás e à direita, e faça de novo.',
+          '## Erros comuns',
+          '- **Segurar as vizinhas em outro lado:** sempre atrás e à direita; de outro lado ele troca outras arestas.',
+          '- **Olhar as quinas:** aqui não importam; elas se arrumam nos dois próximos passos.',
+          '- **Esquecer o `U` final:** faz parte do algoritmo.',
+        ],
       ),
       diagram: 'top',
-      groups: [{ id: 'prin-aristas-casos', name: tr('Aristas que coinciden', 'Matching edges'), description: tr('Gira `U` hasta que coincidan 2 y mira dónde están.', 'Turn `U` until 2 match and see where they are.'), cases: yellowEdges }],
+      groups: [{ id: 'prin-aristas-casos', name: tr('Aristas que coinciden', 'Matching edges', 'Arestas que coincidem'), description: tr('Gira `U` hasta que coincidan 2 y mira dónde están.', 'Turn `U` until 2 match and see where they are.', 'Gire `U` até coincidirem 2 e veja onde estão.'), cases: yellowEdges }],
       quizzes: [],
     },
     {
       id: 'prin-esquinas',
-      name: tr('Paso 6: esquinas amarillas a su lugar', 'Step 6: yellow corners into place'),
+      name: tr('Paso 6: esquinas amarillas a su lugar', 'Step 6: yellow corners into place', 'Passo 6: quinas amarelas no lugar'),
       description: doc(
         [
           '**Meta:** cada esquina amarilla en su sitio, aunque esté girada. Está en su sitio si sus 3 colores son los de los 3 centros que la rodean, en cualquier orden.',
@@ -468,17 +577,28 @@ export const beginner: Method = {
           '- **Looking at the yellow:** only the position matters here; the yellow gets fixed in the last step.',
           '- **Turning `U` to adjust:** the edges are already right. To change angle, rotate the whole cube.',
         ],
+        [
+          '**Meta:** cada quina amarela no seu lugar, mesmo que esteja girada. Ela está no lugar se as suas 3 cores são as dos 3 centros ao redor dela, em qualquer ordem.',
+          "O algoritmo é `U R U' L' U R' U' L`: deixa parada a quina da frente-direita e move as outras 3 no sentido anti-horário (vistas de cima). Não mexe nas arestas.",
+          '1. Procure uma quina no lugar e gire o cubo inteiro (amarelo em cima) para deixá-la na frente à direita.',
+          '2. Faça 1 vez. Se as outras 3 não ficaram no lugar, mais uma vez.',
+          '- **Nenhuma no lugar:** faça 1 vez de qualquer lado. Uma fica no lugar; continue a partir do item 1.',
+          '- **As 4 no lugar:** passe para o último passo.',
+          '## Erros comuns',
+          '- **Prestar atenção no amarelo:** aqui só importa o lugar; o amarelo se arruma no último passo.',
+          '- **Girar `U` para ajustar:** as arestas já estão certas. Para mudar de ângulo, gire o cubo inteiro.',
+        ],
       ),
       diagram: 'top',
       groups: [
-        { id: 'prin-esquinas-una', name: tr('Una ya en su sitio', 'One already in place'), description: tr('Ponla adelante a la derecha.', 'Put it at the front right.'), cases: oneHome },
-        { id: 'prin-esquinas-ninguna', name: tr('Ninguna en su sitio', 'None in place'), description: tr('Una vez desde cualquier lado, y sigues como arriba.', 'Once from any side, then continue as above.'), cases: noneHome },
+        { id: 'prin-esquinas-una', name: tr('Una ya en su sitio', 'One already in place', 'Uma já no lugar'), description: tr('Ponla adelante a la derecha.', 'Put it at the front right.', 'Coloque-a na frente à direita.'), cases: oneHome },
+        { id: 'prin-esquinas-ninguna', name: tr('Ninguna en su sitio', 'None in place', 'Nenhuma no lugar'), description: tr('Una vez desde cualquier lado, y sigues como arriba.', 'Once from any side, then continue as above.', 'Uma vez de qualquer lado, e continue como acima.'), cases: noneHome },
       ],
       quizzes: [],
     },
     {
       id: 'prin-orientar',
-      name: tr('Paso 7: orientar las esquinas', 'Step 7: orient the corners'),
+      name: tr('Paso 7: orientar las esquinas', 'Step 7: orient the corners', 'Passo 7: orientar as quinas'),
       description: doc(
         [
           '**Meta:** amarillo arriba en las 4 esquinas. El cubo queda resuelto.',
@@ -516,12 +636,30 @@ export const beginner: Method = {
           "- **Stopping in the middle of a block:** count full blocks of `R' D' R D`.",
           '- **Looking at the top sides:** they look scrambled. Look only at the yellow of the front-right corner.',
         ],
+        [
+          '**Meta:** amarelo em cima nas 4 quinas. O cubo fica resolvido.',
+          "Um bloco, `R' D' R D`, sobre a quina da frente-direita:",
+          '- **Amarelo à direita:** 2 vezes.',
+          '- **Amarelo na frente:** 4 vezes.',
+          '## Como fazer',
+          '1. Segure o cubo com amarelo em cima e uma quina girada na frente à direita. A partir daqui, **não gire mais o cubo**.',
+          "2. Repita `R' D' R D` até o amarelo dessa quina ficar em cima.",
+          '3. Gire só `U` para trazer a próxima quina girada para a frente-direita, e repita.',
+          '4. Com o amarelo em cima nas 4, gire `U` para alinhar a camada: cubo resolvido.',
+          '## O cubo se desmonta, e é normal',
+          'No meio do passo, as duas primeiras camadas parecem quebradas. **Não pare nem tente arrumá-las:** elas se arrumam sozinhas com a última quina.',
+          'Os casos (U, T, L, Sune, Antisune, Pi e H) têm o nome dos mesmos casos do OLL do CFOP, onde cada um tem um algoritmo mais curto.',
+          '## Erros comuns',
+          '- **Girar o cubo entre quinas:** as camadas não se arrumam mais. Entre quinas, só `U`.',
+          "- **Parar no meio de um bloco:** conte blocos completos de `R' D' R D`.",
+          '- **Olhar os lados de cima:** parecem bagunçados. Olhe só o amarelo da quina da frente-direita.',
+        ],
       ),
       diagram: 'top',
       groups: [
-        { id: 'prin-orientar-dos', name: tr('Dos esquinas giradas', 'Two corners twisted'), cases: twistTwo },
-        { id: 'prin-orientar-tres', name: tr('Tres esquinas giradas', 'Three corners twisted'), cases: twistThree },
-        { id: 'prin-orientar-cuatro', name: tr('Cuatro esquinas giradas', 'Four corners twisted'), cases: twistFour },
+        { id: 'prin-orientar-dos', name: tr('Dos esquinas giradas', 'Two corners twisted', 'Duas quinas giradas'), cases: twistTwo },
+        { id: 'prin-orientar-tres', name: tr('Tres esquinas giradas', 'Three corners twisted', 'Três quinas giradas'), cases: twistThree },
+        { id: 'prin-orientar-cuatro', name: tr('Cuatro esquinas giradas', 'Four corners twisted', 'Quatro quinas giradas'), cases: twistFour },
       ],
       quizzes: [],
     },

@@ -8,7 +8,7 @@ import type { Localized } from '../../i18n.ts';
 import type { Case, Phase } from '../types.ts';
 import { scdbUrl } from '../scdb.ts';
 
-const tr = (es: string, en: string): Localized => ({ es, en });
+const tr = (es: string, en: string, pt: string): Localized => ({ es, en, pt });
 
 // Recognition strings are formulaic: the English is derived phrase by phrase from the Spanish.
 const REC_EN: Record<string, string> = {
@@ -27,20 +27,38 @@ const REC_EN: Record<string, string> = {
   'verde arriba': 'green up',
   'naranja arriba': 'orange up',
 };
-const recEn = (r: string) => r.replace(/[^,;]+/g, (m) => m.replace(m.trim(), (k) => REC_EN[k] ?? k));
+const REC_PT: Record<string, string> = {
+  'Esquina arriba adelante-der': 'Quina em cima frente-dir',
+  'Esquina en la ranura': 'Quina no slot',
+  'blanco al frente': 'branco na frente',
+  'blanco a la derecha': 'branco à direita',
+  'blanco arriba': 'branco em cima',
+  'blanco abajo': 'branco embaixo',
+  'arista arriba-derecha': 'aresta em cima à direita',
+  'arista arriba-izquierda': 'aresta em cima à esquerda',
+  'arista arriba-atrás': 'aresta em cima atrás',
+  'arista arriba-adelante': 'aresta em cima na frente',
+  'arista volteada en la ranura': 'aresta invertida no slot',
+  'arista bien puesta en la ranura': 'aresta bem colocada no slot',
+  'verde arriba': 'verde em cima',
+  'naranja arriba': 'laranja em cima',
+};
+const recIn = (dict: Record<string, string>) => (r: string) => r.replace(/[^,;]+/g, (m) => m.replace(m.trim(), (k) => dict[k] ?? k));
+const recEn = recIn(REC_EN);
+const recPt = recIn(REC_PT);
 
-const Y_NOTE = tr('Empieza con y′: giras todo el cubo. Si no quieres rotar, usa la alternativa sin y′.', 'Starts with y′: you rotate the whole cube. If you would rather not rotate, use the alternative without y′.');
+const Y_NOTE = tr('Empieza con y′: giras todo el cubo. Si no quieres rotar, usa la alternativa sin y′.', 'Starts with y′: you rotate the whole cube. If you would rather not rotate, use the alternative without y′.', 'Começa com y′: você gira o cubo inteiro. Se não quiser rotacionar, use a alternativa sem y′.');
 
 /** n = SpeedCubeDB's F2L number; reduced = the same case's code in CFOP reducido. */
 function F2L(n: number, recognition: string, alg: string, setup: string, alts: [number, string][], y = false, reduced?: string): Case {
-  const parts = [y ? Y_NOTE : null, reduced ? tr(`Caso ${reduced} del CFOP reducido.`, `Case ${reduced} of the reduced CFOP.`) : null].filter((p) => p !== null);
-  const note = parts.length ? tr(parts.map((p) => p.es).join(' '), parts.map((p) => p.en).join(' ')) : null;
+  const parts = [y ? Y_NOTE : null, reduced ? tr(`Caso ${reduced} del CFOP reducido.`, `Case ${reduced} of the reduced CFOP.`, `Caso ${reduced} do CFOP reduzido.`) : null].filter((p) => p !== null);
+  const note = parts.length ? tr(parts.map((p) => p.es).join(' '), parts.map((p) => p.en).join(' '), parts.map((p) => p.pt!).join(' ')) : null;
   const code = String(n).padStart(2, '0');
   return {
     id: `cfopc-f2l-${code}`,
     code,
-    name: tr(`F2L ${n}`, `F2L ${n}`),
-    recognition: tr(recognition, recEn(recognition)),
+    name: tr(`F2L ${n}`, `F2L ${n}`, `F2L ${n}`),
+    recognition: tr(recognition, recEn(recognition), recPt(recognition)),
     stage: 'f2l',
     algs: [
       { id: 'main', alg, source: 'speedcubedb', rank: 1 },
@@ -108,7 +126,7 @@ const ranura = [
 
 export const f2lPhase: Phase = {
   id: 'cfopc-f2l',
-  name: tr('F2L', 'F2L'),
+  name: tr('F2L', 'F2L', 'F2L'),
   description: tr(
     [
       '**41 casos**, numerados como en SpeedCubeDB. Todos para la **ranura adelante-derecha** (par verde-naranja).',
@@ -150,18 +168,38 @@ export const f2lPhase: Phase = {
       '- `r` and `f`: the face plus the middle layer.',
       '- `M` turns like `L`; `S`, like `F`.',
     ].join('\n'),
+    [
+      '**41 casos**, numerados como no SpeedCubeDB. Todos para o **slot frente-direita** (par verde-laranja).',
+      'Cada caso descreve o estado logo depois do embaralhamento.',
+      "Se o algoritmo começa com `U`, `U'` ou `U2`, esse movimento faz parte do caso: não pule. Numa resolução real, gire `U` até ver o caso como na figura.",
+      '## A ideia',
+      '1. Junte a quina e a aresta em cima num par.',
+      '2. Posicione-o com `U` onde um gatilho de 3 movimentos o insira:',
+      "- Pela direita: `R U R'` ou `R U' R'`.",
+      "- Pela frente: `F' U' F` ou `F' U F`.",
+      'Quase todos os casos são essa ideia encadeada. Aprenda o algoritmo quando sua solução intuitiva for longa ou obrigar você a girar o cubo.',
+      'Os 19 casos do CFOP reduzido estão aqui: a nota de cada um traz o código (A1, B2…).',
+      '## Antecipação',
+      'Enquanto insere um par, procure o próximo. É o que mais baixa os tempos.',
+      'Melhor devagar e sem pausas do que rápido com pausas.',
+      '## Notação nova',
+      "- `y'` gira o cubo inteiro como `U'`; `y`, como `U`.",
+      '- `d` gira as 2 camadas de baixo, como `D`; `u`, as 2 de cima, como `U`.',
+      '- `r` e `f`: a face mais a camada do meio.',
+      '- `M` gira como `L`; `S`, como `F`.',
+    ].join('\n'),
   ),
   diagram: 'iso',
   groups: [
     {
       id: 'cfopc-f2l-libres',
-      name: tr('Pares libres', 'Free pairs'),
-      description: tr('El par ya está armado o a un giro de estarlo. Se inserta en 3 o 4 movimientos. **La base de todo lo demás.**', 'The pair is already built or one turn away. It goes in with 3 or 4 moves. **The foundation of everything else.**'),
+      name: tr('Pares libres', 'Free pairs', 'Pares livres'),
+      description: tr('El par ya está armado o a un giro de estarlo. Se inserta en 3 o 4 movimientos. **La base de todo lo demás.**', 'The pair is already built or one turn away. It goes in with 3 or 4 moves. **The foundation of everything else.**', 'O par já está montado ou a um movimento disso. Entra com 3 ou 4 movimentos. **A base de todo o resto.**'),
       cases: libres,
     },
     {
       id: 'cfopc-f2l-separadas',
-      name: tr('Piezas separadas', 'Separated pieces'),
+      name: tr('Piezas separadas', 'Separated pieces', 'Peças separadas'),
       description: tr(
         [
           'Esquina y arista arriba, sin tocarse.',
@@ -171,31 +209,35 @@ export const f2lPhase: Phase = {
           'Corner and edge on top, not touching.',
           "Join them into a pair with a trigger (`R U R'` or `R U' R'`; `U` alone only positions them) and then insert it. In cases 19 to 22 the white faces up.",
         ].join('\n'),
+        [
+          'Quina e aresta em cima, sem se tocar.',
+          "Junte-as num par com um gatilho (`R U R'` ou `R U' R'`; `U` só as posiciona) e depois insira. Nos casos 19 a 22 o branco fica para cima.",
+        ].join('\n'),
       ),
       cases: separadas,
     },
     {
       id: 'cfopc-f2l-juntas',
-      name: tr('Piezas juntas', 'Touching pieces'),
-      description: tr('Esquina y arista se tocan arriba pero no forman par. Sepáralas y júntalas bien.', "Corner and edge touch on top but don't form a pair. Separate them and join them properly."),
+      name: tr('Piezas juntas', 'Touching pieces', 'Peças juntas'),
+      description: tr('Esquina y arista se tocan arriba pero no forman par. Sepáralas y júntalas bien.', "Corner and edge touch on top but don't form a pair. Separate them and join them properly.", 'Quina e aresta se tocam em cima, mas não formam par. Separe e junte do jeito certo.'),
       cases: juntas,
     },
     {
       id: 'cfopc-f2l-esquina',
-      name: tr('Esquina en la ranura', 'Corner in the slot'),
-      description: tr('Esquina abajo, en su ranura; arista arriba. Saca la esquina sin perder la arista de vista.', 'Corner at the bottom, in its slot; edge on top. Take the corner out without losing sight of the edge.'),
+      name: tr('Esquina en la ranura', 'Corner in the slot', 'Quina no slot'),
+      description: tr('Esquina abajo, en su ranura; arista arriba. Saca la esquina sin perder la arista de vista.', 'Corner at the bottom, in its slot; edge on top. Take the corner out without losing sight of the edge.', 'Quina embaixo, no seu slot; aresta em cima. Tire a quina sem perder a aresta de vista.'),
       cases: esquina,
     },
     {
       id: 'cfopc-f2l-arista',
-      name: tr('Arista en la ranura', 'Edge in the slot'),
-      description: tr('Arista en su ranura, bien puesta o volteada; esquina arriba.', 'Edge in its slot, correctly placed or flipped; corner on top.'),
+      name: tr('Arista en la ranura', 'Edge in the slot', 'Aresta no slot'),
+      description: tr('Arista en su ranura, bien puesta o volteada; esquina arriba.', 'Edge in its slot, correctly placed or flipped; corner on top.', 'Aresta no seu slot, bem colocada ou invertida; quina em cima.'),
       cases: arista,
     },
     {
       id: 'cfopc-f2l-ranura',
-      name: tr('Ambas en la ranura', 'Both in the slot'),
-      description: tr('Las dos piezas en su ranura, mal colocadas. Los menos frecuentes y de los más largos: déjalos para el final.', 'Both pieces in their slot, wrongly placed. The rarest and among the longest: leave them for last.'),
+      name: tr('Ambas en la ranura', 'Both in the slot', 'As duas no slot'),
+      description: tr('Las dos piezas en su ranura, mal colocadas. Los menos frecuentes y de los más largos: déjalos para el final.', 'Both pieces in their slot, wrongly placed. The rarest and among the longest: leave them for last.', 'As duas peças no seu slot, mal colocadas. Os menos frequentes e dos mais longos: deixe para o final.'),
       cases: ranura,
     },
   ],
@@ -221,6 +263,17 @@ export const f2lPhase: Phase = {
       "- Example: `R U R'` becomes `L' U' L`.",
       '## Practice',
       'Do 5 slow solves per session, looking for the next pair while you insert the current one.',
+    ].join('\n'),
+    [
+      'Ordem: **pares livres → peças separadas → peças juntas → quina no slot → aresta no slot → as duas no slot**.',
+      'Os 19 casos do CFOP reduzido, só revise (a nota deles indica). Treine os 22 novos.',
+      '## Espelho',
+      'Quando dominar um caso frente-direita, pratique o espelho dele na frente-esquerda.',
+      "1. Troque `R` por `L` e `L` por `R` (também `r` e `l`).",
+      "2. Inverta todos os movimentos: `R` vira `L'`, `F` vira `F'`, `U'` vira `U`, `y'` vira `y`. Só `M` não muda.",
+      "- Exemplo: `R U R'` vira `L' U' L`.",
+      '## Prática',
+      'Faça 5 resoluções lentas por sessão procurando o próximo par enquanto insere o atual.',
     ].join('\n'),
   ),
   quizzes: [],

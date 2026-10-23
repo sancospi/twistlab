@@ -5,12 +5,12 @@ import { f2lPhase } from './cfopFull/f2l.ts';
 import { ollPhase } from './cfopFull/oll.ts';
 import { pllPhase } from './cfopFull/pll.ts';
 
-const tr = (es: string, en: string): Localized => ({ es, en });
+const tr = (es: string, en: string, pt: string): Localized => ({ es, en, pt });
 
 export const cfopFull: Method = {
   id: 'cfop-completo',
-  name: tr('CFOP completo', 'Full CFOP'),
-  summary: tr('Todos los casos: 41 de F2L, 57 de OLL y 21 de PLL.', 'Every case: 41 F2L, 57 OLL and 21 PLL.'),
+  name: tr('CFOP completo', 'Full CFOP', 'CFOP completo'),
+  summary: tr('Todos los casos: 41 de F2L, 57 de OLL y 21 de PLL.', 'Every case: 41 F2L, 57 OLL and 21 PLL.', 'Todos os casos: 41 de F2L, 57 de OLL e 21 de PLL.'),
   description: tr(
     [
       'Cruz, F2L, OLL y PLL, cada uno con **un solo algoritmo por caso**.',
@@ -22,6 +22,11 @@ export const cfopFull: Method = {
       'The cross is in the guide "The white cross" (the "Previous step" link).',
       'If you come from the reduced CFOP, you already know 19 F2L cases, 9 OLL and 6 PLL. Each phase marks which ones.',
     ].join('\n'),
+    [
+      'Cruz, F2L, OLL e PLL, cada um com **um único algoritmo por caso**.',
+      'A cruz está no guia "A cruz branca" (link "Passo anterior").',
+      'Se você vem do CFOP reduzido, já sabe 19 casos de F2L, 9 de OLL e 6 de PLL. Cada fase marca quais.',
+    ].join('\n'),
   ),
   orientation: tr(
     [
@@ -31,6 +36,10 @@ export const cfopFull: Method = {
     [
       '**White cross on the bottom, yellow on top and green in front.** Orange ends up on the right.',
       'Every scramble starts from the solved cube in that position.',
+    ].join('\n'),
+    [
+      '**Cruz branca embaixo, amarelo em cima e verde na frente.** O laranja fica à direita.',
+      'Todos os embaralhamentos partem do cubo resolvido nessa posição.',
     ].join('\n'),
   ),
   notation: tr(
@@ -59,6 +68,19 @@ export const cfopFull: Method = {
       '- **F2L:** seen from the top-front-right. What does not matter is gray.',
       '- **OLL and PLL:** yellow face seen from above, with the front at the bottom. The little bars are the side stickers of the top layer.',
       '- **PLL:** the arrows show where each piece goes.',
+    ].join('\n'),
+    [
+      '## Movimentos',
+      '- `R`, `L`, `U`, `D`, `F` e `B`: uma face, no sentido horário olhando-a de frente.',
+      "- `R'`: anti-horário. `R2`: meia volta.",
+      '- `r`, `l`, `u`, `d`, `f`: a face e a camada do meio, no mesmo sentido da face.',
+      '- `M`: camada do meio entre `L` e `R`, gira como `L`. `S`: camada do meio entre `F` e `B`, gira como `F`.',
+      '- `x` gira o cubo inteiro como `R`; `y`, como `U`. Não movem peças: só mudam a face que fica na sua frente.',
+      "- **AUF**: movimento de `U` (`U`, `U'` ou `U2`) antes ou depois de um algoritmo.",
+      '## Figuras',
+      '- **F2L:** vista de cima, da frente e da direita. O que não importa está em cinza.',
+      '- **OLL e PLL:** face amarela vista de cima, com a frente embaixo. As barrinhas são os adesivos laterais da camada de cima.',
+      '- **PLL:** as setas mostram para onde vai cada peça.',
     ].join('\n'),
   ),
   phases: [f2lPhase, ollPhase, pllPhase],

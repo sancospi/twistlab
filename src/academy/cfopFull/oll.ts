@@ -4,11 +4,15 @@ import { invertTokens, tokenize } from '../../notation.ts';
 import { scdbUrl } from '../scdb.ts';
 import type { Case, Group, Phase } from '../types.ts';
 
-const tr = (es: string, en: string): Localized => ({ es, en });
+const tr = (es: string, en: string, pt: string): Localized => ({ es, en, pt });
 
 const NAME_EN: Record<string, string> = {
   Punto: 'Dot', Cuadrado: 'Square', Relámpago: 'Lightning bolt', Pez: 'Fish', Caballo: 'Knight move', 'Esquinas listas': 'Corners done',
   Raro: 'Awkward', 'Forma de P': 'P-shape', 'Forma de T': 'T-shape', 'Forma de C': 'C-shape', 'Forma de W': 'W-shape', 'L pequeña': 'Small L', Línea: 'Line',
+};
+const NAME_PT: Record<string, string> = {
+  Punto: 'Ponto', Cuadrado: 'Quadrado', Relámpago: 'Raio', Pez: 'Peixe', Caballo: 'Cavalo', 'Esquinas listas': 'Quinas prontas',
+  Raro: 'Estranho', 'Forma de P': 'Forma de P', 'Forma de T': 'Forma de T', 'Forma de C': 'Forma de C', 'Forma de W': 'Forma de W', 'L pequeña': 'L pequeno', Línea: 'Linha',
 };
 
 // English recognition text per case number (the Spanish is passed to oll()).
@@ -72,6 +76,67 @@ const RECOG_EN: Record<number, string> = {
   57: 'Top: left–right line; all 4 corners. Sides: front and back, the edge.',
 };
 
+// Portuguese recognition text per case number.
+const RECOG_PT: Record<number, string> = {
+  1: 'Em cima: só o centro. Nas laterais: na frente e atrás, a aresta; à esquerda e à direita, as 3.',
+  2: 'Em cima: só o centro. Nas laterais: na frente, as 3; à esquerda e à direita, a aresta e a quina de trás; atrás, a aresta.',
+  3: 'Em cima: quina frente-dir. Nas laterais: na frente, a aresta; à esquerda, a quina da frente e a aresta; à direita, a aresta e a quina de trás; atrás, a quina da esquerda e a aresta.',
+  4: 'Em cima: quina atrás-dir. Nas laterais: na frente, a quina da esquerda e a aresta; à esquerda, a aresta e a quina de trás; à direita, a quina da frente e a aresta; atrás, a aresta.',
+  5: 'Em cima: arestas da direita e da frente; quina frente-dir. Nas laterais: à esquerda, a quina da frente e a aresta; à direita, a quina de trás; atrás, a quina da esquerda e a aresta.',
+  6: 'Em cima: arestas de trás e da direita; quina atrás-dir. Nas laterais: na frente, a quina da esquerda e a aresta; à esquerda, a aresta e a quina de trás; à direita, a quina da frente.',
+  7: 'Em cima: arestas de trás e da esquerda; quina frente-esq. Nas laterais: na frente, a aresta e a quina da direita; à direita, a aresta e a quina de trás; atrás, a quina da esquerda.',
+  8: 'Em cima: arestas da esquerda e da frente; quina atrás-esq. Nas laterais: na frente, a quina da esquerda; à direita, a quina da frente e a aresta; atrás, a aresta e a quina da direita.',
+  9: 'Em cima: arestas de trás e da esquerda; quina frente-dir. Nas laterais: na frente, a quina da esquerda e a aresta; à esquerda, a quina de trás; à direita, a aresta; atrás, a quina da direita.',
+  10: 'Em cima: arestas da esquerda e da frente; quina atrás-dir. Nas laterais: na frente, a quina da direita; à esquerda, a quina da frente; à direita, a aresta; atrás, a quina da esquerda e a aresta.',
+  11: 'Em cima: arestas da direita e da frente; quina frente-esq. Nas laterais: na frente, a quina da direita; à esquerda, a aresta; à direita, a quina de trás; atrás, a quina da esquerda e a aresta.',
+  12: 'Em cima: arestas de trás e da direita; quina atrás-esq. Nas laterais: na frente, a quina da esquerda e a aresta; à esquerda, a aresta; à direita, a quina da frente; atrás, a quina da direita.',
+  13: 'Em cima: linha esquerda–direita; quina frente-esq. Nas laterais: na frente, a aresta e a quina da direita; à direita, a quina de trás; atrás, a quina da esquerda e a aresta.',
+  14: 'Em cima: linha esquerda–direita; quina frente-dir. Nas laterais: na frente, a quina da esquerda e a aresta; à esquerda, a quina de trás; atrás, a aresta e a quina da direita.',
+  15: 'Em cima: linha esquerda–direita; quina frente-dir. Nas laterais: na frente, a aresta; à esquerda, a quina da frente; à direita, a quina de trás; atrás, a quina da esquerda e a aresta.',
+  16: 'Em cima: linha esquerda–direita; quina atrás-dir. Nas laterais: na frente, a quina da esquerda e a aresta; à esquerda, a quina de trás; à direita, a quina da frente; atrás, a aresta.',
+  17: 'Em cima: quinas atrás-esq e frente-dir. Nas laterais: na frente e à direita, a aresta; à esquerda, a quina da frente e a aresta; atrás, a aresta e a quina da direita.',
+  18: 'Em cima: quinas atrás-dir e frente-dir. Nas laterais: à esquerda, as 3; nas outras, a aresta.',
+  19: 'Em cima: quinas atrás-dir e frente-dir. Nas laterais: na frente e atrás, a quina da esquerda e a aresta; à esquerda e à direita, a aresta.',
+  20: 'Em cima: as 4 quinas. Nas laterais: a aresta em cada uma.',
+  21: 'Cruz feita. 0 quinas em cima; dois amarelos à esquerda e dois à direita.',
+  22: 'Cruz feita. 0 quinas em cima; dois amarelos à esquerda e, à direita, um na frente e outro atrás.',
+  23: 'Cruz feita. 2 quinas em cima (as de trás); dois amarelos na frente.',
+  24: 'Cruz feita. 2 quinas em cima (as da direita); à esquerda, um amarelo na frente e outro atrás.',
+  25: 'Cruz feita. 2 quinas em cima na diagonal (atrás-esq e frente-dir); a da frente-esq mostra amarelo na frente.',
+  26: 'Cruz feita. 1 quina em cima, atrás-dir; a da frente-esq mostra amarelo na frente.',
+  27: 'Cruz feita. 1 quina em cima, frente-esq; a da frente-dir mostra amarelo na frente.',
+  28: 'Em cima: arestas de trás e da esquerda; as 4 quinas. Nas laterais: na frente e à direita, a aresta.',
+  29: 'Em cima: arestas da esquerda e da frente; quinas atrás-esq e atrás-dir. Nas laterais: à esquerda, a quina da frente; à direita, a quina da frente e a aresta; atrás, a aresta.',
+  30: 'Em cima: arestas de trás e da esquerda; quinas frente-esq e frente-dir. Nas laterais: na frente, a aresta; à esquerda, a quina de trás; à direita, a aresta e a quina de trás.',
+  31: 'Em cima: arestas de trás e da direita; quinas atrás-dir e frente-dir. Nas laterais: na frente, a quina da esquerda e a aresta; à esquerda, a aresta; atrás, a quina da esquerda.',
+  32: 'Em cima: arestas da direita e da frente; quinas atrás-dir e frente-dir. Nas laterais: na frente, a quina da esquerda; à esquerda, a aresta; atrás, a quina da esquerda e a aresta.',
+  33: 'Em cima: linha esquerda–direita; quinas atrás-dir e frente-dir. Nas laterais: na frente e atrás, a quina da esquerda e a aresta.',
+  34: 'Em cima: linha frente–trás; quinas atrás-dir e frente-dir. Nas laterais: na frente e atrás, a quina da esquerda; à esquerda e à direita, a aresta.',
+  35: 'Em cima: arestas da direita e da frente; quinas atrás-esq e frente-dir. Nas laterais: na frente, a quina da esquerda; à esquerda e atrás, a aresta; à direita, a quina de trás.',
+  36: 'Em cima: arestas de trás e da esquerda; quinas atrás-dir e frente-esq. Nas laterais: na frente, a aresta e a quina da direita; à esquerda, a quina de trás; à direita, a aresta.',
+  37: 'Em cima: arestas de trás e da esquerda; quinas atrás-esq e frente-dir. Nas laterais: na frente, a quina da esquerda e a aresta; à direita, a aresta e a quina de trás.',
+  38: 'Em cima: arestas de trás e da esquerda; quinas atrás-dir e frente-esq. Nas laterais: na frente, a aresta; à direita, a quina da frente e a aresta; atrás, a quina da esquerda.',
+  39: 'Em cima: linha esquerda–direita; quinas atrás-dir e frente-esq. Nas laterais: na frente, a aresta e a quina da direita; à esquerda, a quina de trás; atrás, a aresta.',
+  40: 'Em cima: linha esquerda–direita; quinas atrás-esq e frente-dir. Nas laterais: na frente, a aresta; à esquerda, a quina da frente; atrás, a aresta e a quina da direita.',
+  41: 'Em cima: arestas de trás e da esquerda; quinas frente-esq e frente-dir. Nas laterais: na frente e à direita, a aresta; atrás, as 2 quinas.',
+  42: 'Em cima: arestas da esquerda e da frente; quinas atrás-esq e atrás-dir. Nas laterais: na frente, as 2 quinas; à direita e atrás, a aresta.',
+  43: 'Em cima: arestas de trás e da esquerda; quinas atrás-esq e atrás-dir. Nas laterais: na frente, as 3; à direita, a aresta.',
+  44: 'Em cima: arestas da direita e da frente; quinas atrás-dir e frente-dir. Nas laterais: à esquerda, as 3; atrás, a aresta.',
+  45: 'Em cima: linha esquerda–direita; quinas atrás-dir e frente-dir. Nas laterais: na frente e atrás, a aresta; à esquerda, as 2 quinas.',
+  46: 'Em cima: linha frente–trás; quinas atrás-esq e frente-esq. Nas laterais: à esquerda, a aresta; à direita, as 3.',
+  47: 'Em cima: arestas de trás e da esquerda. Nas laterais: na frente, a aresta; à esquerda, a quina da frente; à direita, a quina da frente e a aresta; atrás, as 2 quinas.',
+  48: 'Em cima: arestas de trás e da esquerda. Nas laterais: na frente, a aresta e a quina da direita; à esquerda, as 2 quinas; à direita, a aresta; atrás, a quina da direita.',
+  49: 'Em cima: arestas de trás e da direita. Nas laterais: na frente, a aresta e a quina da direita; à esquerda, as 3; atrás, a quina da direita.',
+  50: 'Em cima: arestas da direita e da frente. Nas laterais: na frente, a quina da direita; à esquerda, as 3; atrás, a aresta e a quina da direita.',
+  51: 'Em cima: linha esquerda–direita. Nas laterais: na frente e atrás, a quina da esquerda e a aresta; à direita, as 2 quinas.',
+  52: 'Em cima: linha frente–trás. Nas laterais: na frente e atrás, a quina da direita; à esquerda, as 3; à direita, a aresta.',
+  53: 'Em cima: arestas da direita e da frente. Nas laterais: à esquerda, as 3; à direita, as 2 quinas; atrás, a aresta.',
+  54: 'Em cima: arestas de trás e da direita. Nas laterais: na frente, a aresta; à esquerda, as 3; à direita, as 2 quinas.',
+  55: 'Em cima: linha esquerda–direita. Nas laterais: na frente e atrás, as 3.',
+  56: 'Em cima: linha esquerda–direita. Nas laterais: na frente e atrás, a aresta; à esquerda e à direita, as 2 quinas.',
+  57: 'Em cima: linha esquerda–direita; as 4 quinas. Nas laterais: na frente e atrás, a aresta.',
+};
+
 
 // Main algorithm = SpeedCubeDB's #1 (fetched 2026-10-21) without the leading y the site sometimes starts with: the
 // case is drawn from the angle the algorithm starts at, so the AUF does the rotation's job. Extras ([rank, alg]) are
@@ -81,8 +146,8 @@ function oll(n: number, name: string, recognition: string, alg: string, alts: [n
   return {
     id: `cfopc-oll-${String(n).padStart(2, '0')}`,
     code,
-    name: tr(name, NAME_EN[name] ?? name),
-    recognition: tr(recognition, RECOG_EN[n]),
+    name: tr(name, NAME_EN[name] ?? name, NAME_PT[name] ?? name),
+    recognition: tr(recognition, RECOG_EN[n], RECOG_PT[n]),
     stage: 'oll-corners',
     algs: [
       { id: 'main', alg, source: 'speedcubedb', rank: 1 },
@@ -96,9 +161,9 @@ function oll(n: number, name: string, recognition: string, alg: string, alts: [n
 /** The 7 OCLL cases keep their common name as code, with the wording of CFOP reducido. */
 const ocll = (code: string, n: number, recognition: string, alg: string, alts: [number, string][], note?: Localized): Case =>
   oll(n, `OLL ${n}`, `Cruz hecha. ${recognition}`, alg, alts, note, code);
-const inverse = (n: number) => tr(`Es el inverso del OLL ${n}: la mezcla de uno es el algoritmo del otro.`, `It's the inverse of OLL ${n}: the scramble of one is the algorithm of the other.`);
-const SUNE_NOTE = tr('Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra. Apréndelas primero: salen en muchos solves y comparten gatillos con la H.', 'Sune and Antisune are inverses: the scramble of one is the algorithm of the other. Learn them first: they show up in many solves and share triggers with the H.');
-const UL_NOTE = tr('U y L son inversas: la mezcla de la L es el algoritmo de la U. D gira la capa de abajo en sentido horario, mirándola desde abajo.', 'U and L are inverses: the scramble of the L is the algorithm of the U. D turns the bottom layer clockwise, looking at it from below.');
+const inverse = (n: number) => tr(`Es el inverso del OLL ${n}: la mezcla de uno es el algoritmo del otro.`, `It's the inverse of OLL ${n}: the scramble of one is the algorithm of the other.`, `É o inverso do OLL ${n}: o embaralhamento de um é o algoritmo do outro.`);
+const SUNE_NOTE = tr('Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra. Apréndelas primero: salen en muchos solves y comparten gatillos con la H.', 'Sune and Antisune are inverses: the scramble of one is the algorithm of the other. Learn them first: they show up in many solves and share triggers with the H.', 'Sune e Antisune são inversos: o embaralhamento de um é o algoritmo do outro. Aprenda-os primeiro: aparecem em muitas resoluções e compartilham gatilhos com o H.');
+const UL_NOTE = tr('U y L son inversas: la mezcla de la L es el algoritmo de la U. D gira la capa de abajo en sentido horario, mirándola desde abajo.', 'U and L are inverses: the scramble of the L is the algorithm of the U. D turns the bottom layer clockwise, looking at it from below.', 'U e L são inversos: o embaralhamento do L é o algoritmo do U. D gira a camada de baixo no sentido horário, olhando-a por baixo.');
 
 // "A los lados" = the yellow stickers on the side faces of the top layer, as drawn (front at the bottom).
 const CASES: Case[] = [
@@ -145,8 +210,8 @@ const CASES: Case[] = [
   oll(41, 'Raro', 'Arriba: aristas atrás e izquierda; esquinas adelante-izq y adelante-der. A los lados: al frente y a la derecha, la arista; atrás, las 2 esquinas.', "R U R' U R U2 R' F R U R' U' F'", [[2, "F U R2 D R' U' R D' R2 F'"], [3, "U S U' R' F' U' F U R S'"], [4, "U2 M U' F' L' U' L U F M'"]]),
   oll(42, 'Raro', 'Arriba: aristas izquierda y adelante; esquinas atrás-izq y atrás-der. A los lados: al frente, las 2 esquinas; a la derecha y atrás, la arista.', "R' U' R U' R' U2 R F R U R' U' F'", [[2, "U F S' R U R' U' F' U S"], [3, "U R' F R F' R' F R F' R U R' U' R U R'"], [4, "U R' U' F2 u' R U R' D R2 B"]]),
   oll(43, 'Forma de P', 'Arriba: aristas atrás e izquierda; esquinas atrás-izq y atrás-der. A los lados: al frente, las 3; a la derecha, la arista.', "R' U' F' U F R", [[2, "U F' U' L' U L F"], [3, "U' f' L' U' L U f"]]),
-  oll(44, 'Forma de P', 'Arriba: aristas derecha y adelante; esquinas atrás-der y adelante-der. A los lados: a la izquierda, las 3; atrás, la arista.', "f R U R' U' f'", [[2, "U2 F U R U' R' F'"]], tr('Ya lo conoces: es la L de la cruz amarilla del OLL en 2 pasos.', 'You already know it: it is the L of the yellow cross in 2-look OLL.')),
-  oll(45, 'Forma de T', 'Arriba: línea izquierda–derecha; esquinas atrás-der y adelante-der. A los lados: al frente y atrás, la arista; a la izquierda, las 2 esquinas.', "F R U R' U' F'", [[2, "U R' F' U' F U R"]], tr('Ya lo conoces: es la Línea de la cruz amarilla del OLL en 2 pasos.', 'You already know it: it is the Line of the yellow cross in 2-look OLL.')),
+  oll(44, 'Forma de P', 'Arriba: aristas derecha y adelante; esquinas atrás-der y adelante-der. A los lados: a la izquierda, las 3; atrás, la arista.', "f R U R' U' f'", [[2, "U2 F U R U' R' F'"]], tr('Ya lo conoces: es la L de la cruz amarilla del OLL en 2 pasos.', 'You already know it: it is the L of the yellow cross in 2-look OLL.', 'Você já conhece: é o L da cruz amarela do OLL em 2 passos.')),
+  oll(45, 'Forma de T', 'Arriba: línea izquierda–derecha; esquinas atrás-der y adelante-der. A los lados: al frente y atrás, la arista; a la izquierda, las 2 esquinas.', "F R U R' U' F'", [[2, "U R' F' U' F U R"]], tr('Ya lo conoces: es la Línea de la cruz amarilla del OLL en 2 pasos.', 'You already know it: it is the Line of the yellow cross in 2-look OLL.', 'Você já conhece: é a Linha da cruz amarela do OLL em 2 passos.')),
   oll(46, 'Forma de C', 'Arriba: línea adelante–atrás; esquinas atrás-izq y adelante-izq. A los lados: a la izquierda, la arista; a la derecha, las 3.', "R' U' R' F R F' U R"),
   oll(47, 'L pequeña', 'Arriba: aristas atrás e izquierda. A los lados: al frente, la arista; a la izquierda, la esquina de adelante; a la derecha, la esquina de adelante y la arista; atrás, las 2 esquinas.', "F R' F' R U2 R U' R' U R U2 R'", [[2, "U F' L' U' L U L' U' L U F"], [3, "U R' U' R' F R F' R' F R F' U R"]]),
   oll(48, 'L pequeña', 'Arriba: aristas atrás e izquierda. A los lados: al frente, la arista y la esquina derecha; a la izquierda, las 2 esquinas; a la derecha, la arista; atrás, la esquina derecha.', "F R U R' U' R U R' U' F'", [], inverse(51)),
@@ -171,7 +236,7 @@ const group = (slug: string, name: Localized, description: Localized, ns: number
 
 export const ollPhase: Phase = {
   id: 'cfopc-oll',
-  name: tr('OLL', 'OLL'),
+  name: tr('OLL', 'OLL', 'OLL'),
   description: tr(
     [
       'Deja toda la cara de arriba amarilla **con un solo algoritmo**. 57 casos.',
@@ -201,23 +266,37 @@ export const ollPhase: Phase = {
       '3. Within the group, look at the yellows on the sides.',
       '"Sides" are the yellow stickers on the side faces of the top layer, as in the figure (front at the bottom).',
     ].join('\n'),
+    [
+      'Deixa toda a face de cima amarela **com um único algoritmo**. 57 casos.',
+      '## Em 2 passos ou completo',
+      '- **Em 2 passos:** o do CFOP reduzido. Cruz amarela e depois quinas: 9 algoritmos (o Ponto é a Linha seguida do L).',
+      '- **Completo:** um algoritmo por caso. Você economiza um passo e uma pausa de reconhecimento, em troca de 48 algoritmos novos (você já sabe 9: os 7 OCLL, a Linha e o L).',
+      'Se aparecer um caso que você não sabe, resolva em 2 passos.',
+      '## Comece pelo OCLL',
+      'Os 7 casos com a cruz já feita (OCLL) são o passo 2 do OLL em 2 passos. Se você vem do CFOP reduzido, já sabe todos: domine-os primeiro.',
+      '## Reconhecer pela forma',
+      '1. Olhe as arestas de cima: cruz, linha, ângulo (o L do OLL em 2 passos) ou nenhuma (ponto).',
+      '2. Veja quais quinas têm o amarelo em cima. Junto com as arestas, elas desenham a forma que dá o grupo.',
+      '3. Dentro do grupo, olhe os amarelos das laterais.',
+      '"Nas laterais" são os adesivos amarelos das faces laterais da camada de cima, como na figura (frente embaixo).',
+    ].join('\n'),
   ),
   diagram: 'top',
   groups: [
-    group('ocll', tr('Cruz hecha (OCLL)', 'Cross done (OCLL)'), tr('La cruz amarilla ya está; faltan las esquinas. Cuenta las que tienen el amarillo arriba:\n- 0 → H o Pi\n- 1 → Sune o Antisune\n- 2 → U, T o L', 'The yellow cross is done; the corners are left. Count the ones with yellow on top:\n- 0 → H or Pi\n- 1 → Sune or Antisune\n- 2 → U, T or L'), [27, 26, 21, 22, 23, 24, 25]),
-    group('t', tr('Formas de T', 'T-shapes'), tr('Línea de aristas y las 2 esquinas de un extremo: forman una fila de 3 que cruza la línea. El 45 es la Línea del OLL en 2 pasos.', 'A line of edges and the 2 corners at one end: they make a row of 3 that crosses the line. OLL 45 is the Line of 2-look OLL.'), [45, 33]),
-    group('p', tr('Formas de P', 'P-shapes'), tr('Dos aristas en ángulo y 2 esquinas que forman una fila de 3 con una de ellas. El 44 es la L del OLL en 2 pasos.', 'Two adjacent edges (an L shape) and 2 corners that make a row of 3 with one of them. OLL 44 is the L of 2-look OLL.'), [44, 43, 32, 31]),
-    group('c', tr('Formas de C', 'C-shapes'), tr('Línea de aristas y las 2 esquinas del lado paralelo, con hueco en medio.', 'A line of edges and the 2 corners of the parallel side, with a gap in the middle.'), [34, 46]),
-    group('w', tr('Formas de W', 'W-shapes'), tr('Dos aristas en ángulo y 2 esquinas en escalera.', 'Two adjacent edges (an L shape) and 2 corners in a staircase.'), [36, 38]),
-    group('cuadrado', tr('Cuadrados', 'Squares'), tr('Cuadrado 2×2: dos aristas en ángulo y la esquina entre ellas.', '2×2 square: two adjacent edges (an L shape) and the corner between them.'), [5, 6]),
-    group('relampago', tr('Relámpagos', 'Lightning bolts'), tr('Forma de rayo.\n- **Pequeños (7, 8, 11 y 12):** dos aristas en ángulo y 1 esquina pegada a una, fuera del ángulo.\n- **Grandes (39 y 40):** una línea y 2 esquinas en diagonal.', 'Bolt shape.\n- **Small (7, 8, 11 and 12):** two adjacent edges (an L shape) and 1 corner next to one of them, outside the L.\n- **Big (39 and 40):** a line and 2 corners on a diagonal.'), [7, 8, 11, 12, 39, 40]),
-    group('pez', tr('Peces', 'Fish'), tr('Dos aristas en ángulo y la esquina opuesta en diagonal (la cola). En el 35 y el 37 también está arriba la esquina del ángulo.', 'Two adjacent edges (an L shape) and the opposite corner on the diagonal (the tail). In 35 and 37 the corner inside the L is also on top.'), [9, 10, 35, 37]),
-    group('caballo', tr('Saltos de caballo', 'Knight moves'), tr('Línea de aristas y una sola esquina arriba, como el salto del caballo en ajedrez.', 'A line of edges and a single corner on top, like a knight\'s move in chess.'), [13, 14, 15, 16]),
-    group('l', tr('L pequeñas', 'Small Ls'), tr('Solo dos aristas en ángulo, sin esquinas arriba.', 'Only two edges in an L shape, no corners on top.'), [47, 48, 49, 50, 53, 54]),
-    group('linea', tr('Líneas', 'Lines'), tr('Solo una línea de aristas, sin esquinas arriba.', 'Only a line of edges, no corners on top.'), [51, 52, 55, 56]),
-    group('esquinas', tr('Esquinas listas', 'Corners done'), tr('Las 4 esquinas ya tienen el amarillo arriba; faltan 2 aristas.', 'All 4 corners already have yellow on top; 2 edges are left.'), [28, 57]),
-    group('raros', tr('Raros', 'Awkward'), tr('Dos aristas en ángulo y las 2 esquinas del lado sin arista, con hueco en medio. Difíciles de reconocer: fíjate en los lados.', 'Two adjacent edges (an L shape) and the 2 corners of the side without an edge, with a gap in the middle. Hard to recognize: look at the sides.'), [29, 30, 41, 42]),
-    group('punto', tr('Puntos', 'Dots'), tr('Ninguna arista arriba: solo el centro y, a veces, esquinas. De los más largos.', 'No edges on top: only the center and, sometimes, corners. Among the longest.'), [1, 2, 3, 4, 17, 18, 19, 20]),
+    group('ocll', tr('Cruz hecha (OCLL)', 'Cross done (OCLL)', 'Cruz feita (OCLL)'), tr('La cruz amarilla ya está; faltan las esquinas. Cuenta las que tienen el amarillo arriba:\n- 0 → H o Pi\n- 1 → Sune o Antisune\n- 2 → U, T o L', 'The yellow cross is done; the corners are left. Count the ones with yellow on top:\n- 0 → H or Pi\n- 1 → Sune or Antisune\n- 2 → U, T or L', 'A cruz amarela já está feita; faltam as quinas. Conte as que têm o amarelo em cima:\n- 0 → H ou Pi\n- 1 → Sune ou Antisune\n- 2 → U, T ou L'), [27, 26, 21, 22, 23, 24, 25]),
+    group('t', tr('Formas de T', 'T-shapes', 'Formas de T'), tr('Línea de aristas y las 2 esquinas de un extremo: forman una fila de 3 que cruza la línea. El 45 es la Línea del OLL en 2 pasos.', 'A line of edges and the 2 corners at one end: they make a row of 3 that crosses the line. OLL 45 is the Line of 2-look OLL.', 'Linha de arestas e as 2 quinas de uma ponta: formam uma fileira de 3 que cruza a linha. O 45 é a Linha do OLL em 2 passos.'), [45, 33]),
+    group('p', tr('Formas de P', 'P-shapes', 'Formas de P'), tr('Dos aristas en ángulo y 2 esquinas que forman una fila de 3 con una de ellas. El 44 es la L del OLL en 2 pasos.', 'Two adjacent edges (an L shape) and 2 corners that make a row of 3 with one of them. OLL 44 is the L of 2-look OLL.', 'Duas arestas em ângulo e 2 quinas que formam uma fileira de 3 com uma delas. O 44 é o L do OLL em 2 passos.'), [44, 43, 32, 31]),
+    group('c', tr('Formas de C', 'C-shapes', 'Formas de C'), tr('Línea de aristas y las 2 esquinas del lado paralelo, con hueco en medio.', 'A line of edges and the 2 corners of the parallel side, with a gap in the middle.', 'Linha de arestas e as 2 quinas do lado paralelo, com um buraco no meio.'), [34, 46]),
+    group('w', tr('Formas de W', 'W-shapes', 'Formas de W'), tr('Dos aristas en ángulo y 2 esquinas en escalera.', 'Two adjacent edges (an L shape) and 2 corners in a staircase.', 'Duas arestas em ângulo e 2 quinas em escada.'), [36, 38]),
+    group('cuadrado', tr('Cuadrados', 'Squares', 'Quadrados'), tr('Cuadrado 2×2: dos aristas en ángulo y la esquina entre ellas.', '2×2 square: two adjacent edges (an L shape) and the corner between them.', 'Quadrado 2×2: duas arestas em ângulo e a quina entre elas.'), [5, 6]),
+    group('relampago', tr('Relámpagos', 'Lightning bolts', 'Raios'), tr('Forma de rayo.\n- **Pequeños (7, 8, 11 y 12):** dos aristas en ángulo y 1 esquina pegada a una, fuera del ángulo.\n- **Grandes (39 y 40):** una línea y 2 esquinas en diagonal.', 'Bolt shape.\n- **Small (7, 8, 11 and 12):** two adjacent edges (an L shape) and 1 corner next to one of them, outside the L.\n- **Big (39 and 40):** a line and 2 corners on a diagonal.', 'Forma de raio.\n- **Pequenos (7, 8, 11 e 12):** duas arestas em ângulo e 1 quina colada a uma delas, fora do ângulo.\n- **Grandes (39 e 40):** uma linha e 2 quinas na diagonal.'), [7, 8, 11, 12, 39, 40]),
+    group('pez', tr('Peces', 'Fish', 'Peixes'), tr('Dos aristas en ángulo y la esquina opuesta en diagonal (la cola). En el 35 y el 37 también está arriba la esquina del ángulo.', 'Two adjacent edges (an L shape) and the opposite corner on the diagonal (the tail). In 35 and 37 the corner inside the L is also on top.', 'Duas arestas em ângulo e a quina oposta na diagonal (o rabo). No 35 e no 37 a quina do ângulo também está em cima.'), [9, 10, 35, 37]),
+    group('caballo', tr('Saltos de caballo', 'Knight moves', 'Saltos de cavalo'), tr('Línea de aristas y una sola esquina arriba, como el salto del caballo en ajedrez.', 'A line of edges and a single corner on top, like a knight\'s move in chess.', 'Linha de arestas e uma única quina em cima, como o movimento do cavalo no xadrez.'), [13, 14, 15, 16]),
+    group('l', tr('L pequeñas', 'Small Ls', 'Ls pequenos'), tr('Solo dos aristas en ángulo, sin esquinas arriba.', 'Only two edges in an L shape, no corners on top.', 'Só duas arestas em ângulo, sem quinas em cima.'), [47, 48, 49, 50, 53, 54]),
+    group('linea', tr('Líneas', 'Lines', 'Linhas'), tr('Solo una línea de aristas, sin esquinas arriba.', 'Only a line of edges, no corners on top.', 'Só uma linha de arestas, sem quinas em cima.'), [51, 52, 55, 56]),
+    group('esquinas', tr('Esquinas listas', 'Corners done', 'Quinas prontas'), tr('Las 4 esquinas ya tienen el amarillo arriba; faltan 2 aristas.', 'All 4 corners already have yellow on top; 2 edges are left.', 'As 4 quinas já têm o amarelo em cima; faltam 2 arestas.'), [28, 57]),
+    group('raros', tr('Raros', 'Awkward', 'Estranhos'), tr('Dos aristas en ángulo y las 2 esquinas del lado sin arista, con hueco en medio. Difíciles de reconocer: fíjate en los lados.', 'Two adjacent edges (an L shape) and the 2 corners of the side without an edge, with a gap in the middle. Hard to recognize: look at the sides.', 'Duas arestas em ângulo e as 2 quinas do lado sem aresta, com um buraco no meio. Difíceis de reconhecer: repare nas laterais.'), [29, 30, 41, 42]),
+    group('punto', tr('Puntos', 'Dots', 'Pontos'), tr('Ninguna arista arriba: solo el centro y, a veces, esquinas. De los más largos.', 'No edges on top: only the center and, sometimes, corners. Among the longest.', 'Nenhuma aresta em cima: só o centro e, às vezes, quinas. Estão entre os mais longos.'), [1, 2, 3, 4, 17, 18, 19, 20]),
   ],
   progression: tr(
     [
@@ -231,6 +310,12 @@ export const ollPhase: Phase = {
       '- Also learn the inverse of each case, even if it is in another group: the scramble of one is the algorithm of the other (5 and 8, 6 and 7, 31 and 40, 33 and 37, 48 and 51, 49 and 50, 28 and 57).',
       '- Until you know a case, solve it in 2 looks: yellow cross, then OCLL.',
       '- Leave the dots for last: in the meantime, use the Dot from 2-look OLL.',
+    ].join('\n'),
+    [
+      'Ordem: **OCLL → T, P e C → W, quadrados e raios → peixes e saltos de cavalo → Ls pequenos e linhas → quinas prontas e estranhos → pontos**.',
+      '- Aprenda também o inverso de cada caso, mesmo que seja de outro grupo: o embaralhamento de um é o algoritmo do outro (5 e 8, 6 e 7, 31 e 40, 33 e 37, 48 e 51, 49 e 50, 28 e 57).',
+      '- Enquanto não souber um caso, resolva em 2 passos: cruz amarela e depois OCLL.',
+      '- Deixe os pontos para o final: enquanto isso, use o Ponto do OLL em 2 passos.',
     ].join('\n'),
   ),
   quizzes: [],

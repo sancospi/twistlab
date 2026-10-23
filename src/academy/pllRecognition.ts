@@ -1,6 +1,6 @@
 // Entrenador «Reconocer PLL»: two sides of a PLL state (twoSidesSVG in diagram.ts), name the case against the clock.
 // Its own page (/academia/reconocer-pll), a tile in the Academia's «Entrenadores». view.ts draws the crumbs and calls
-// pllRecognitionView; stopPllRecognition runs whenever the page is left. Texts: Localized (tr(es, en)) in this file.
+// pllRecognitionView; stopPllRecognition runs whenever the page is left. Texts: Localized (tr(es, en, pt)) in this file.
 // The drill's pure parts (states, picking, scores) are exported: aufTrainer.ts uses them too.
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { lang, loc, t, type Localized } from '../i18n.ts';
@@ -15,7 +15,7 @@ import { learningFor, load, save, setting } from './store.ts';
 import { caseState, type Auf } from './cube.ts';
 import type { Case } from './types.ts';
 
-const tr = (es: string, en: string): Localized => ({ es, en });
+const tr = (es: string, en: string, pt: string): Localized => ({ es, en, pt });
 
 // --- The drill's logic: pure, shared with the AUF trainer ---
 
@@ -91,14 +91,14 @@ const SUBSET_IDS = ['all', ...PLL_GROUPS.map((g) => g.id), 'learning'];
 export const savedSubset = (key: string): string => setting(key, 'all', (v) => SUBSET_IDS.includes(v) && subsetCases(v).length > 0);
 
 export function subsetSelect(key: string, value: string, onChange: (id: string) => void): HTMLElement {
-  const name = (id: string) => (id === 'all' ? loc(tr('Todas', 'All')) : id === 'learning' ? loc(tr('Las que estoy aprendiendo', 'The ones I am learning'))
+  const name = (id: string) => (id === 'all' ? loc(tr('Todas', 'All', 'Todas')) : id === 'learning' ? loc(tr('Las que estoy aprendiendo', 'The ones I am learning', 'As que estou aprendendo'))
     : loc(PLL_GROUPS.find((g) => g.id === id)!.name));
   const select = el('select', { onchange: () => (save(key, select.value), onChange(select.value)) },
     ...SUBSET_IDS.map((id) => {
       const n = subsetCases(id).length;
       return el('option', { value: id, selected: id === value, disabled: id === 'learning' && !n, textContent: `${name(id)} (${id === 'learning' && !n ? 0 : n})` });
     }));
-  return el('label', { className: 'trainer-option' }, loc(tr('Casos', 'Cases')), select);
+  return el('label', { className: 'trainer-option' }, loc(tr('Casos', 'Cases', 'Casos')), select);
 }
 
 const percent = (x: number) => new Intl.NumberFormat(lang, { style: 'percent' }).format(x);
@@ -108,13 +108,14 @@ export function statsText(s: Tally, best: number): string {
   return loc(tr(
     `Racha ${s.streak} · mejor ${best} · aciertos ${s.n ? percent(s.ok / s.n) : '–'} (${s.ok}/${s.n}) · media ${avg}`,
     `Streak ${s.streak} · best ${best} · accuracy ${s.n ? percent(s.ok / s.n) : '–'} (${s.ok}/${s.n}) · average ${avg}`,
+    `Sequência ${s.streak} · melhor ${best} · acertos ${s.n ? percent(s.ok / s.n) : '–'} (${s.ok}/${s.n}) · média ${avg}`,
   ));
 }
 
 /** The weakest cases, to name under the stats. */
 export function weakest(cases: Case[], p: Progress): string {
   const weak = cases.filter((c) => p.cases[c.id]?.weak).sort((a, b) => p.cases[b.id].weak - p.cases[a.id].weak).slice(0, 4);
-  return weak.length ? loc(tr('A repasar: ', 'To review: ')) + weak.map((c) => c.code).join(', ') : '';
+  return weak.length ? loc(tr('A repasar: ', 'To review: ', 'Para revisar: ')) + weak.map((c) => c.code).join(', ') : '';
 }
 
 export const svgBox = (className: string, svg: string): HTMLElement => {
@@ -172,7 +173,7 @@ export function pllRecognitionView(kpuzzle: KPuzzle): HTMLElement {
     const c = pickCase(subsetCases(subset), progress, Math.random, item?.c.id);
     item = pllItem(kpuzzle, c, c.algs[0].alg, Math.random);
     answered = false;
-    question.innerHTML = twoSidesSVG(patternToFacelets(item.pattern), { size: 200, title: loc(tr('Un caso de PLL, visto desde el frente y la derecha', 'A PLL case, seen from the front and the right')) });
+    question.innerHTML = twoSidesSVG(patternToFacelets(item.pattern), { size: 200, title: loc(tr('Un caso de PLL, visto desde el frente y la derecha', 'A PLL case, seen from the front and the right', 'Um caso de PLL, visto da frente e da direita')) });
     answer.replaceChildren();
     feedback.textContent = '';
     for (const b of buttons.values()) b.classList.remove('right', 'wrong');
@@ -193,11 +194,11 @@ export function pllRecognitionView(kpuzzle: KPuzzle): HTMLElement {
     buttons.get(item.c.id)?.classList.add('right');
     if (!right) buttons.get(c.id)?.classList.add('wrong');
     const name = loc(item.c.name);
-    feedback.textContent = right ? loc(tr(`¡Bien! ${name} · ${formatTime(ms)} s`, `Right! ${name} · ${formatTime(ms)} s`))
-      : loc(tr(`No: era ${name} (elegiste ${c.code}).`, `No: it was ${name} (you picked ${c.code}).`));
+    feedback.textContent = right ? loc(tr(`¡Bien! ${name} · ${formatTime(ms)} s`, `Right! ${name} · ${formatTime(ms)} s`, `Isso! ${name} · ${formatTime(ms)} s`))
+      : loc(tr(`No: era ${name} (elegiste ${c.code}).`, `No: it was ${name} (you picked ${c.code}).`, `Não: era ${name} (você escolheu ${c.code}).`));
     feedback.className = `trainer-feedback ${right ? 'ok' : 'bad'}`;
     // the case as its recognition text reads it (the main algorithm undone), not turned like the question
-    answer.innerHTML = caseDiagram('top', 'pll-edges', patternToFacelets(caseState(kpuzzle, item.c.algs[0].alg, IDENTITY)), { size: 140, arrows: true, title: loc(tr(`${name}, desde arriba`, `${name}, from above`)) });
+    answer.innerHTML = caseDiagram('top', 'pll-edges', patternToFacelets(caseState(kpuzzle, item.c.algs[0].alg, IDENTITY)), { size: 140, arrows: true, title: loc(tr(`${name}, desde arriba`, `${name}, from above`, `${name}, visto de cima`)) });
     answer.append(el('small', { className: 'hint', textContent: loc(item.c.recognition) }));
     next.textContent = t('quiz.next');
     next.className = 'primary';
@@ -213,6 +214,7 @@ export function pllRecognitionView(kpuzzle: KPuzzle): HTMLElement {
     prose(loc(tr(
       'Mira solo **el frente y la derecha**, como en una resolución, y elige la PLL. Busca **faros** (dos esquinas iguales en un lado), **bloques** de 2 piezas del mismo color y **barras** de 3. Los casos que fallas vuelven más seguido.',
       'Look only at **the front and right sides**, as in a solve, and pick the PLL. Look for **headlights** (two matching corners on one side), **blocks** of 2 pieces of the same color and **bars** of 3. The cases you miss come back more often.',
+      'Olhe só **a frente e a direita**, como numa resolução, e escolha a PLL. Procure **faróis** (duas quinas iguais num lado), **blocos** de 2 peças da mesma cor e **barras** de 3. Os casos que você erra voltam com mais frequência.',
     ))),
     el('div', { className: 'trainer-options' }, subsetSelect(SUBSET_KEY, subset, (id) => {
       subset = id;

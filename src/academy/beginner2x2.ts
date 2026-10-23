@@ -8,13 +8,13 @@ import { PT } from './beginner2x2.pt.ts';
 import { IDENTITY, centerMoves, invertTokens } from '../notation.ts';
 import type { Case, Method, Stage } from './types.ts';
 
-const tr = (es: string, en: string): Localized => ({ es, en });
+const tr = (es: string, en: string, pt: string): Localized => ({ es, en, pt });
 // Spanish written first; English and Portuguese come from EN and PT line by line (see beginner2x2.en.ts), the Spanish
 // if a line is missing.
 const es = (s: string): Localized => fromSpanish(s, { en: EN, pt: PT });
 const doc = (lines: string[]): Localized => es(lines.join('\n'));
 // A case code is a plain string shown as is: the visitor's language, picked when the data loads.
-const word = (s: string, en: string) => loc(tr(s, en));
+const word = (s: string, en: string, pt: string) => loc(tr(s, en, pt));
 const times = (block: string, n: number) => Array(n).fill(block).join(' ');
 
 const TRIGGER = "R U R' U'"; // white corners, as on the 3x3
@@ -57,23 +57,23 @@ const capa1 = (slug: string, code: string, name: string, recognition: string, al
     alt: alt && [alt[0], es(alt[1])], note: note ? es(note) : undefined });
 
 const cornerUp = [
-  capa1('blanco-derecha', word('Derecha', 'Right'), 'Blanco a la derecha',
+  capa1('blanco-derecha', word('Derecha', 'Right', 'Direita'), 'Blanco a la derecha',
     'Blanco-verde-naranja arriba adelante-derecha, blanco a la derecha', TRIGGER, undefined,
     "1 gatillo. La U' final no toca la primera capa: R U R' también basta."),
-  capa1('blanco-arriba', word('Arriba', 'Up'), 'Blanco arriba',
+  capa1('blanco-arriba', word('Arriba', 'Up', 'Em cima'), 'Blanco arriba',
     'Blanco-verde-naranja arriba adelante-derecha, blanco arriba', times(TRIGGER, 3),
     ["R U2 R' U' R U R'", "Más corta: R U2 R' saca el blanco de arriba; U' R U R' la baja."]),
-  capa1('blanco-frente', word('Frente', 'Front'), 'Blanco al frente',
+  capa1('blanco-frente', word('Frente', 'Front', 'Frente'), 'Blanco al frente',
     'Blanco-verde-naranja arriba adelante-derecha, blanco al frente', times(TRIGGER, 5),
     ["U R U' R'", 'El gatillo al revés, 1 vez, equivale a 5 gatillos.']),
 ];
 const cornerDown = [
-  capa1('girada-derecha', word('Abajo, derecha', 'Bottom, right'), 'En su sitio, blanco a la derecha',
+  capa1('girada-derecha', word('Abajo, derecha', 'Bottom, right', 'Embaixo, direita'), 'En su sitio, blanco a la derecha',
     'Blanco-verde-naranja en su sitio abajo, pero con el blanco a la derecha', times(TRIGGER, 2)),
-  capa1('girada-frente', word('Abajo, frente', 'Bottom, front'), 'En su sitio, blanco al frente',
+  capa1('girada-frente', word('Abajo, frente', 'Bottom, front', 'Embaixo, frente'), 'En su sitio, blanco al frente',
     'Blanco-verde-naranja en su sitio abajo, pero con el blanco al frente', times(TRIGGER, 4),
     ["U R U' R' U R U' R'", 'El gatillo al revés, 2 veces, equivale a 4 gatillos.']),
-  capa1('otro-sitio', word('Otro sitio', 'Other spot'), 'En el sitio de otra',
+  capa1('otro-sitio', word('Otro sitio', 'Other spot', 'Outro lugar'), 'En el sitio de otra',
     'Blanco-verde-naranja abajo adelante-izquierda, blanco al frente; la blanco-verde-roja arriba adelante-izquierda, blanco al frente',
     `y' ${TRIGGER} y U' ${TRIGGER}`, undefined,
     "Con y' el sitio de la blanco-verde-roja queda adelante-derecha: un gatillo saca la blanco-verde-naranja y mete la blanco-verde-roja. Con y vuelves, U' deja la blanco-verde-naranja encima de su sitio y otro gatillo la baja."),
@@ -121,7 +121,7 @@ const esquinas = (slug: string, code: string, name: string, recognition: string,
     alt: [alt[0], es(alt[1])], note: note ? es(note) : undefined });
 
 const topCorners = [
-  esquinas('faros', word('Faros', 'Headlights'), 'Faros: dos esquinas bien',
+  esquinas('faros', word('Faros', 'Headlights', 'Faróis'), 'Faros: dos esquinas bien',
     'Faros atrás: las 2 pegatinas de atrás del mismo color. En los otros lados, colores distintos',
     SWAP, ["U' R U R' U' R' F R2 U' R' U' R U R' F'", "Con los faros a la izquierda (U'): la T-perm del 3x3."],
     'Después, gira U hasta alinear la capa de arriba con la de abajo.'),
@@ -134,8 +134,8 @@ const topCorners = [
 export const beginner2x2: Method = {
   id: 'principiante-2x2',
   puzzle: '2x2x2',
-  name: tr('Principiante 2x2', '2x2 beginner'),
-  summary: tr('Capa por capa: la primera capa, la cara amarilla y las esquinas de arriba.', 'Layer by layer: the first layer, the yellow face and the top corners.'),
+  name: tr('Principiante 2x2', '2x2 beginner', '2x2 para iniciantes'),
+  summary: tr('Capa por capa: la primera capa, la cara amarilla y las esquinas de arriba.', 'Layer by layer: the first layer, the yellow face and the top corners.', 'Camada por camada: a primeira camada, a face amarela e as quinas de cima.'),
   description: doc([
     'Tu primer 2x2 resuelto. Lo armas **capa por capa**: abajo (blanca) y arriba (amarilla).',
     'Solo necesitas el **gatillo** y **2 algoritmos**. Si ya resolviste el 3x3, el gatillo ya lo conoces.',
@@ -152,6 +152,7 @@ export const beginner2x2: Method = {
   orientation: tr(
     '**Amarillo arriba y verde al frente**, como en el 3x3. La primera capa, la blanca, queda abajo.',
     '**Yellow on top and green in front**, as on the 3x3. The first layer, the white one, ends up on the bottom.',
+    '**Amarelo em cima e verde na frente**, como no 3x3. A primeira camada, a branca, fica embaixo.',
   ),
   notation: doc([
     '## Movimientos',
@@ -169,7 +170,7 @@ export const beginner2x2: Method = {
   phases: [
     {
       id: 'p2-capa1',
-      name: tr('Paso 1: primera capa', 'Step 1: first layer'),
+      name: tr('Paso 1: primera capa', 'Step 1: first layer', 'Passo 1: primeira camada'),
       description: doc([
         '**Meta:** las 4 esquinas blancas abajo. En cada lado, la fila de abajo de un solo color.',
         '## Sin centros',
@@ -197,7 +198,7 @@ export const beginner2x2: Method = {
     },
     {
       id: 'p2-amarilla',
-      name: tr('Paso 2: cara amarilla', 'Step 2: yellow face'),
+      name: tr('Paso 2: cara amarilla', 'Step 2: yellow face', 'Passo 2: face amarela'),
       description: doc([
         '**Meta:** toda la cara de arriba amarilla, sin romper la primera capa.',
         'Una esquina es **buena** si ya tiene el amarillo arriba.',
@@ -223,7 +224,7 @@ export const beginner2x2: Method = {
     },
     {
       id: 'p2-esquinas',
-      name: tr('Paso 3: esquinas de arriba', 'Step 3: top corners'),
+      name: tr('Paso 3: esquinas de arriba', 'Step 3: top corners', 'Passo 3: quinas de cima'),
       description: doc([
         '**Meta:** las 4 esquinas de arriba en su sitio. El cubo queda resuelto.',
         '## Faros',

@@ -68,7 +68,7 @@ function kase(r: Row): Case {
   if (r.planB) algs.push({ id: 'plan-b', alg: r.planB, source: 'plan-b', note: PLAN_B_NOTE });
   const id = `cfop-${r.stage.split('-')[0]}-${r.slug}`;
   for (const [rank, alg] of SCDB_ALTS[id] ?? []) algs.push({ id: `scdb-${rank}`, alg, source: 'speedcubedb', rank });
-  const name = { es: r.name ?? r.code, en: EN[r.name ?? r.code] ?? r.name ?? r.code, pt: PT[r.name ?? r.code] };
+  const name = { es: r.name ?? r.code, en: EN[r.name ?? r.code] ?? r.name ?? r.code, pt: PT[r.name ?? r.code] ?? r.name ?? r.code };
   return {
     id,
     code: r.name ? r.code : loc(name), // a code that is a word (Línea, Punto) in the visitor's language
