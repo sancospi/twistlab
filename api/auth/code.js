@@ -7,7 +7,9 @@ import { body, db, json, limit, route, secret, tooMany } from '../_lib/server.js
 function mail(lang, code) {
   const [subject, line, note] = lang === 'en'
     ? [`Your TwistLab code: ${code}`, 'Your code to sign in to TwistLab is', `It expires in ${CODE_MINUTES} minutes. If you didn't ask for it, ignore this email.`]
-    : [`Tu código de TwistLab: ${code}`, 'Tu código para iniciar sesión en TwistLab es', `Caduca en ${CODE_MINUTES} minutos. Si no lo pediste tú, ignora este correo.`];
+    : lang === 'pt'
+      ? [`Seu código do TwistLab: ${code}`, 'Seu código para entrar no TwistLab é', `Ele expira em ${CODE_MINUTES} minutos. Se você não pediu, ignore este e-mail.`]
+      : [`Tu código de TwistLab: ${code}`, 'Tu código para iniciar sesión en TwistLab es', `Caduca en ${CODE_MINUTES} minutos. Si no lo pediste tú, ignora este correo.`];
   return {
     subject,
     text: `${line} ${code}.\n\n${note}`,

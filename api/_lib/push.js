@@ -68,6 +68,10 @@ export async function sendPush(sub, payload, ttl) {
 /** The reminder's text, in the subscription's language; with the cases due when it is known.
  * @param {string} lang @param {number | null} due */
 export function reminderText(lang, due) {
+  if (lang === 'pt') {
+    const body = due ? `${due} ${due === 1 ? 'caso espera' : 'casos esperam'} por você na revisão de hoje.` : 'Dez minutos hoje e seus algoritmos continuam frescos.';
+    return { title: 'Hora de praticar', body };
+  }
   const en = lang === 'en';
   const body = due ? (en ? `${due} ${due === 1 ? 'case is' : 'cases are'} waiting in today's review.` : `${due} ${due === 1 ? 'caso te espera' : 'casos te esperan'} en el repaso de hoy.`)
     : (en ? 'Ten minutes today keep your algorithms fresh.' : 'Diez minutos hoy y tus algoritmos siguen frescos.');

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { TERMS, termSplitter, type TermPiece } from './terms.ts';
 import { es } from './i18n/es.ts';
 import { en } from './i18n/en.ts';
+import { pt } from './i18n/pt.ts';
 
 const terms = (pieces: TermPiece[]) => pieces.filter((p) => p.term).map((p) => `${p.text}=${p.term}`);
 
@@ -34,8 +35,13 @@ test('both languages; multi-word terms, acronyms next to digits and punctuation'
   assert.deepEqual(termSplitter('es')(''), []);
 });
 
-test('every term has a name and a definition in both languages', () => {
-  for (const { key } of TERMS) for (const dict of [es, en] as Record<string, string>[]) {
+test('Portuguese: its own words, with or without ã, ó, ç', () => {
+  assert.deepEqual(terms(termSplitter('pt')('Na inspeção (inspecao), olhe os faróis e o farol; a quina e as arestas da camada.')),
+    ['inspeção=inspection', 'inspecao=inspection', 'faróis=headlights', 'farol=headlights', 'quina=corner', 'arestas=edge', 'camada=layer']);
+});
+
+test('every term has a name and a definition in every language', () => {
+  for (const { key } of TERMS) for (const dict of [es, en, pt] as Record<string, string>[]) {
     assert.ok(dict[`glossary.term.${key}`] && dict[`glossary.def.${key}`], key);
   }
 });

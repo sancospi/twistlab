@@ -33,8 +33,7 @@ async function push(sub: PushSubscription, hour: number, dueAt: (at: number) => 
   const last = sent();
   // a new reminder's count is sent even if the same: the server only uses one reported since the last reminder
   if (!force && last && last.at === at && last.hour === now.hour && last.due === now.due && last.tz === now.tz) return true;
-  // ponytail: the API's reminders are in Spanish or English (api/push.js refuses others): Portuguese gets the Spanish
-  const res = await api('POST', '/api/push', { subscription: sub.toJSON(), ...now, lang: lang === 'en' ? 'en' : 'es' });
+  const res = await api('POST', '/api/push', { subscription: sub.toJSON(), ...now, lang });
   if (res.ok) save(KEY, { ...now, at });
   return res.ok;
 }

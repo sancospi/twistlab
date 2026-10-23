@@ -2,7 +2,7 @@
 // account owns it and goes with it). The reminders themselves are sent by api/cron/reminders.js.
 // GET /api/push → {key}: the VAPID public key, for pushManager.subscribe.
 // POST /api/push {subscription, hour, tz, due, lang}: subscribes or updates (hour: local 0–23; tz: getTimezoneOffset()
-// in minutes; due: cases due at the next reminder, null if unknown; lang: 'es' | 'en').
+// in minutes; due: cases due at the next reminder, null if unknown; lang: 'es' | 'en' | 'pt').
 // DELETE /api/push {endpoint}: unsubscribes.
 import { clientIp } from './_lib/rules.js';
 import { body, db, json, limit, route, session, tooMany } from './_lib/server.js';
@@ -17,7 +17,7 @@ export const POST = route(async (req) => {
   const b = await body(req, 4096);
   const sub = parseSubscription(b?.subscription);
   const { hour, tz, due, lang } = b ?? {};
-  if (!sub || !isInt(hour, 0, 23) || !isInt(tz, -840, 840) || !(due === null || isInt(due, 0, 100_000)) || (lang !== 'es' && lang !== 'en')) return json({ error: 'bad' }, 400);
+  if (!sub || !isInt(hour, 0, 23) || !isInt(tz, -840, 840) || !(due === null || isInt(due, 0, 100_000)) || (lang !== 'es' && lang !== 'en' && lang !== 'pt')) return json({ error: 'bad' }, 400);
   const wait = await limit([[`push:ip:${clientIp(req.headers)}`, 3600, 30]]);
   if (wait) return tooMany(wait);
   const s = await session(req);
