@@ -320,15 +320,71 @@
     .custom-alg { display: grid; gap: 4px; }
     .custom-alg input { flex: 1; min-width: 0; padding: 8px; border: 0; border-radius: 8px; background: #2a3142; color: var(--fg); font: 1.1429rem ui-monospace, monospace; } /* 16px: no zoom on focus in iOS */
     .anim-player twisty-player { width: 100%; height: 260px; }
-    #practice-static, #practice-guided, #practice-test, #practice-timer { display: grid; gap: 8px; }
-    #practice-static[hidden], #practice-guided[hidden], #practice-test[hidden], #practice-timer[hidden] { display: none; }
-    #practice-setup-row { display: contents; }
+    /* Practice dialog (practice.ts): Preparar (the case, the algorithm, Empezar) and Practicar (the clock card, big) */
+    .practice-view { display: grid; gap: 10px; }
+    .sheet-head .help-toggle { margin-left: auto; min-width: 44px; min-height: 44px; border-radius: 50%; font-weight: 700; }
+    .sheet-head .help-toggle[aria-expanded="true"] { background: var(--fg); color: var(--bg); }
+    .practice-help { padding: 10px 12px; border-radius: 8px; background: #0b0d12aa; color: var(--muted); font-size: 0.9286rem; line-height: 1.5; }
     .practice-head { display: flex; gap: 12px; align-items: flex-start; }
     .practice-head .practice-facts { display: grid; gap: 4px; min-width: 0; }
+    .practice-head details { color: var(--muted); }
+    .practice-head details > :not(summary) { margin-top: 4px; }
+    .practice-head summary { font-size: 0.8571rem; }
     .practice-diagram { flex: none; }
     .practice-diagram svg { width: min(120px, 30vw); height: auto; display: block; }
     .practice-tabs button { flex: 1; }
     .practice-tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+    .practice-chosen { display: grid; gap: 2px; padding: 10px 12px; border-radius: 8px; background: #0b0d12aa; outline: 2px solid var(--accent); }
+    .practice-change > summary { color: var(--muted); }
+    .practice-change[open] > summary { margin-bottom: 8px; }
+    .practice-start { min-height: 56px; font-size: 1.2857rem; }
+    .practice-tiles { display: grid; grid-template-columns: 1fr 1fr 1.6fr; gap: 6px; }
+    .practice-tiles > div { display: grid; gap: 2px; align-content: start; padding: 6px 10px; border-radius: 8px; background: #0b0d12aa; }
+    .practice-tiles small { color: var(--muted); font-size: 0.7857rem; }
+    .practice-tiles strong { font: 700 1.1429rem ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .streak { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+    .streak i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--muted); }
+    .streak i.on { border-color: var(--accent); background: var(--accent); }
+    .streak span { margin-left: 4px; font: 600 0.8571rem ui-monospace, monospace; color: var(--muted); }
+    .streak.done span { color: var(--accent); }
+    @media (prefers-reduced-motion: no-preference) {
+      .streak.celebrate i { animation: streak-pop .5s ease-out both; }
+      .streak.celebrate i:nth-child(odd) { animation-delay: .08s; }
+    }
+    @keyframes streak-pop { 50% { transform: scale(1.7); } }
+    .practice-bar { align-items: center; justify-content: space-between; }
+    .practice-bar #practice-mode { flex: 1; text-align: center; }
+    .practice-bar #practice-reveal[aria-pressed="false"] { background: none; outline: 1px dashed #2a3142; }
+    .practice-card { display: grid; gap: 8px; justify-items: center; align-content: center; min-height: min(56dvh, 460px); padding: 16px 12px;
+      border-radius: 12px; background: #2a3142; text-align: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    .practice-card[data-tap] { cursor: pointer; }
+    .practice-card[data-state="running"] { outline: 2px solid var(--accent); }
+    .practice-card .row:has(> [hidden]:only-child) { display: none; }
+    .practice-card .steps { width: 100%; }
+    .card-top { color: var(--muted); font-weight: 600; }
+    .card-scramble { display: flex; gap: 12px; align-items: center; justify-content: center; text-align: left; }
+    .card-diagram svg { width: min(84px, 22vw); height: auto; display: block; }
+    .card-moves { font: 700 clamp(1.5rem, 6.5vw, 2rem)/1.35 ui-monospace, monospace; word-spacing: .15ch; text-wrap: balance; }
+    .card-solution { color: var(--muted); }
+    .card-solution code { font: 700 1.1429rem ui-monospace, monospace; color: var(--fg); }
+    .practice-card .practice-clock { background: none; font-size: clamp(4rem, 19vw, 6.4286rem); line-height: 1.05; padding: 0 8px; }
+    .practice-card .practice-clock.small { font-size: 2.2857rem; }
+    .practice-card .practice-clock.running { color: var(--accent); }
+    .practice-card .delta { font-weight: 600; }
+    .delta.best { color: var(--accent); }
+    .delta.slower { color: #facc15; }
+    .practice-card .grade { width: min(100%, 420px); flex-wrap: nowrap; }
+    .practice-card .grade button { flex: 1 1 0; min-width: 0; }
+    .practice-card .grade button, .practice-card #practice-again { min-height: 52px; font-size: 1.1429rem; }
+    .practice-card #practice-again { min-width: 12em; }
+    .practice-card .grade #practice-fail { background: #0b0d12; }
+    .practice-actions { justify-content: center; }
+    .practice-actions button { min-height: 44px; }
+    .practice-actions:not(:has(> :not([hidden]))) { display: none; }
+    .practice-session { display: grid; gap: 4px; }
+    .session-reps { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+    .session-reps li { padding: 2px 8px; border-radius: 999px; background: #0b0d12aa; font: 0.8571rem ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    .session-reps li.bad { color: #f87171; text-decoration: line-through; }
     .practice-clock { font: 700 4rem/1.2 ui-monospace, monospace; font-variant-numeric: tabular-nums; padding: 16px; touch-action: manipulation; }
     .practice-clock.running { color: var(--accent); }
     code { font-family: ui-monospace, monospace; }
@@ -1059,55 +1115,79 @@
   <dialog id="practice" class="sheet" aria-labelledby="practice-title">
     <form method="dialog" class="sheet-head">
       <h2 id="practice-title"></h2>
+      <button id="practice-help-toggle" type="button" class="help-toggle" aria-expanded="false" aria-controls="practice-help" data-i18n-aria-label="practice.helpLabel" data-i18n-title="practice.helpLabel">?</button>
       <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
     </form>
-    <div class="practice-head">
-      <div id="practice-diagram" class="practice-diagram"></div>
-      <div class="practice-facts">
-        <p id="practice-prob" class="hint" hidden></p>
-        <p><strong data-i18n="practice.recognition"></strong> · <span id="practice-recognition"></span></p>
-        <p id="practice-note" class="hint"></p>
-        <a id="practice-scdb" target="_blank" rel="noopener" data-i18n="practice.scdb"></a>
+    <p id="practice-help" class="practice-help" hidden></p>
+    <div id="practice-prep" class="practice-view">
+      <div class="practice-head">
+        <div id="practice-diagram" class="practice-diagram"></div>
+        <div class="practice-facts">
+          <p><strong data-i18n="practice.recognition"></strong> · <span id="practice-recognition"></span></p>
+          <p id="practice-prob" class="hint" hidden></p>
+          <details id="practice-more">
+            <summary data-i18n="practice.more"></summary>
+            <p id="practice-note" class="hint"></p>
+            <a id="practice-scdb" target="_blank" rel="noopener" data-i18n="practice.scdb"></a>
+          </details>
+        </div>
       </div>
+      <div id="practice-tabs" class="row practice-tabs" role="group" data-i18n-aria-label="practice.tabs">
+        <button type="button" data-tab="practice" data-i18n="practice.tab.practice"></button>
+        <button type="button" data-tab="quiz" data-i18n="practice.tab.quiz"></button>
+        <button type="button" data-tab="drill" data-i18n="practice.tab.drill"></button>
+      </div>
+      <p id="practice-lead" class="hint"></p>
+      <div id="practice-chosen" class="practice-chosen"></div>
+      <details id="practice-change" class="practice-change">
+        <summary id="practice-change-label"></summary>
+        <fieldset id="practice-algs" class="algs"></fieldset>
+      </details>
+      <button id="practice-start" type="button" class="primary practice-start"></button>
     </div>
-    <div id="practice-tabs" class="row practice-tabs" role="group" data-i18n-aria-label="practice.tabs">
-      <button type="button" data-tab="practice" data-i18n="practice.tab.practice"></button>
-      <button type="button" data-tab="quiz" data-i18n="practice.tab.quiz"></button>
-      <button type="button" data-tab="drill" data-i18n="practice.tab.drill"></button>
-    </div>
-    <p id="practice-help" class="hint"></p>
-    <fieldset id="practice-algs" class="algs"></fieldset>
-    <section id="practice-test" hidden>
-      <div class="row"><button id="practice-quiz" type="button" class="primary" data-i18n="practice.testStart"></button></div>
-    </section>
-    <section id="practice-static">
-      <dl>
-        <div id="practice-setup-row"><dt data-i18n="practice.setup"></dt><dd><code id="practice-setup"></code><p id="practice-setup-note"></p></dd></div>
-        <dt id="practice-alg-label"></dt><dd><code id="practice-alg"></code></dd>
-      </dl>
+    <div id="practice-focus" class="practice-view" hidden>
+      <div class="row practice-bar">
+        <button id="practice-back" type="button" class="small" data-i18n="practice.back"></button>
+        <span id="practice-mode" class="hint"></span>
+        <button id="practice-reveal" type="button" class="small"></button>
+      </div>
+      <div id="practice-card" class="practice-card">
+        <ol id="practice-steps" class="steps" data-i18n-aria-label="practice.steps">
+          <li id="practice-step-scramble" data-i18n="practice.stepScramble"></li>
+          <li id="practice-step-solve" data-i18n="practice.stepSolve"></li>
+        </ol>
+        <p id="practice-card-top" class="card-top"></p>
+        <div id="practice-card-scramble" class="card-scramble">
+          <div id="practice-card-diagram" class="card-diagram"></div>
+          <div><code id="practice-setup" class="card-moves"></code><p id="practice-setup-note"></p></div>
+        </div>
+        <div id="practice-rotate" class="rotate"></div>
+        <div id="practice-next" class="next" aria-live="polite"></div>
+        <button id="practice-clock" type="button" class="practice-clock" aria-describedby="practice-card-hint">0.00</button>
+        <p id="practice-delta" class="delta" aria-live="polite"></p>
+        <div id="practice-desc" aria-live="polite"></div>
+        <div id="practice-list" class="tokens"></div>
+        <p id="practice-solution" class="card-solution"><span id="practice-alg-label" class="hint"></span> <code id="practice-alg"></code></p>
+        <p id="practice-card-hint" class="hint"></p>
+        <div id="practice-grade" class="row grade">
+          <button id="practice-clean" type="button" class="primary" data-i18n="practice.cleanBtn"></button>
+          <button id="practice-fail" type="button" data-i18n="practice.failBtn"></button>
+        </div>
+        <div class="row"><button id="practice-again" type="button" class="primary" hidden></button></div>
+      </div>
+      <p id="practice-notice" class="hint practice-notice" aria-live="polite"></p>
+      <div class="row practice-actions">
+        <button id="practice-peek" type="button" data-i18n="practice.peek"></button>
+        <button id="practice-another" type="button" data-i18n="practice.another"></button>
+        <button id="practice-lap-fail" type="button" data-i18n="practice.failBtn"></button>
+        <button id="practice-finish" type="button" data-i18n="practice.finish"></button>
+      </div>
+      <div id="practice-session" class="practice-session"></div>
       <div id="practice-fingers"></div>
-    </section>
-    <section id="practice-timer" hidden>
-      <button id="practice-clock" type="button" class="practice-clock">0.00</button>
-      <div class="row"><button id="practice-another" type="button" data-i18n="practice.another"></button></div>
-    </section>
-    <section id="practice-guided" aria-live="polite" hidden>
-      <ol id="practice-steps" class="steps" data-i18n-aria-label="practice.steps">
-        <li id="practice-step-scramble" data-i18n="practice.stepScramble"></li>
-        <li id="practice-step-solve" data-i18n="practice.stepSolve"></li>
-      </ol>
-      <div id="practice-rotate" class="rotate"></div>
-      <div id="practice-next" class="next"></div>
-      <div id="practice-desc"></div>
-      <div id="practice-list" class="tokens"></div>
-      <p id="practice-result"></p>
-      <div class="row"><button id="practice-again" class="primary" data-i18n="practice.again" hidden></button></div>
-    </section>
-    <div id="practice-anim" class="row"></div>
-    <div id="practice-player" class="anim-player" role="group" data-i18n-aria-label="anim.label" hidden></div>
-    <div class="stats-row">
-      <p id="practice-stats" class="hint"></p>
+      <div id="practice-anim" class="row"></div>
+      <div id="practice-player" class="anim-player" role="group" data-i18n-aria-label="anim.label" hidden></div>
     </div>
+    <div id="practice-tiles" class="practice-tiles"></div>
   </dialog>
   <dialog id="quiz" class="sheet" aria-labelledby="quiz-title">
     <form method="dialog" class="sheet-head">
