@@ -348,6 +348,7 @@ export const pt: Partial<Record<MessageKey, string>> = {
   'academy.notation': 'Notação e gatilhos',
   'academy.schedule': 'Calendário e metas',
   'academy.progression': 'Progressão',
+  'academy.tips': 'Se algo der errado',
   'academy.quiz': 'Quiz',
   'academy.quizOf': 'Quiz: {name}',
   'academy.quizPhase': 'Quiz',

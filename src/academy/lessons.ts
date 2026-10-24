@@ -154,19 +154,22 @@ function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
     title: t('lesson.hold'),
     steps: [...splitSteps(loc(m.orientation)), ...splitSteps(m.notation ? loc(m.notation) : '')].map(text),
   };
-  const lesson = (id: string, title: string, intro: string, cases: Case[], diagram: Phase['diagram']): Lesson => {
+  // goal and tips: a phase taught step by step (types.ts), each one step, the tips after its cases
+  const lesson = (id: string, title: string, intro: string, cases: Case[], diagram: Phase['diagram'], goal = '', tips = ''): Lesson => {
     const n = cases.length;
     const asked = [...new Set([n - 1, Math.floor((n - 1) / 2)])].filter((i) => i >= 0); // two spread out, if there are two
     return {
       id,
       title,
       steps: [
+        ...(goal ? [text({ text: goal })] : []),
         ...splitSteps(intro).map(text),
         ...cases.map((c): LessonStep => {
           const alg = algOf(c);
           const text = [`**${t('practice.recognition')}:** ${loc(c.recognition)}`, ...(c.note ? [loc(c.note)] : [])].join('\n');
           return { kind: 'cube', title: caseTitle(c), text, setup: caseSetup(alg).join(' '), alg, doSetup: false, stage: c.stage };
         }),
+        ...(tips ? [text({ title: t('academy.tips'), text: tips })] : []),
         ...asked.map((i): LessonStep => ({
           kind: 'case', caseId: cases[i].id, alg: cases[i].algs[0].alg, stage: cases[i].stage, diagram, // the case's own state: what its recognition reads
           choices: caseChoices(cases, i).map((c) => ({ id: c.id, label: c.code })),
@@ -179,9 +182,12 @@ function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
     const desc = phase.description ? loc(phase.description) : '';
     const cases = phase.groups.flatMap((g) => g.cases);
     const id = m === beginner ? phase.id.replace(/^prin-/, '') : phase.id; // the beginner's ids predate other methods' lessons
-    if (cases.length <= MAX_CASES) return [lesson(id, loc(phase.name), desc, cases, phase.diagram)];
+    const [goal, tips] = [phase.goal ? loc(phase.goal) : '', phase.tips ? loc(phase.tips) : ''];
+    if (cases.length <= MAX_CASES) return [lesson(id, loc(phase.name), desc, cases, phase.diagram, goal, tips)];
+    const last = phase.groups.length - 1; // the goal opens the phase's first lesson, the tips close its last
     return phase.groups.map((g, i) => lesson(g.id, `${loc(phase.name)} · ${loc(g.name)}`,
-      [...(i ? [] : [desc]), ...(g.description ? [loc(g.description)] : [])].join('\n'), g.cases, phase.diagram));
+      [...(i ? [] : [desc]), ...(g.description ? [loc(g.description)] : [])].join('\n'), g.cases, phase.diagram,
+      i ? '' : goal, i === last ? tips : ''));
   })];
 }
 

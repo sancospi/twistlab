@@ -100,6 +100,11 @@ export interface OfficialQuiz {
 export interface Phase {
   id: string;
   name: Localized;
+  // A phase taught step by step (the beginner's): its goal on top, beside a figure of it; the description then reads
+  // as the lesson, and the tips, folded, say what to do when something goes wrong.
+  goal?: Localized;
+  goalFigure?: string; // a case id: the figure shows its state instead of the solved cube (a goal solved can't show)
+  tips?: Localized;
   description?: Localized;
   diagram: 'iso' | 'top';
   groups: Group[];

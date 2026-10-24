@@ -344,6 +344,7 @@ export const en: Record<MessageKey, string> = {
   'academy.notation': 'Notation and triggers',
   'academy.schedule': 'Schedule and goals',
   'academy.progression': 'Progression',
+  'academy.tips': 'If something goes wrong',
   'academy.quiz': 'Quiz',
   'academy.quizOf': 'Quiz: {name}',
   'academy.quizPhase': 'Quiz',
