@@ -23,7 +23,8 @@ test('compare: first time, new best, off the average', () => {
   assert.deepEqual(compare(2800, s), { kind: 'avg', delta: 300 });
 });
 
-test('summary: reps, best and mean of the sitting', () => {
+test('summary: all the reps of the sitting, the best and mean of the clean ones', () => {
   assert.deepEqual(summary([]), { reps: 0, best: null, mean: null });
-  assert.deepEqual(summary([{ ms: 3000, clean: true }, { ms: 1000, clean: false }, { ms: 2000, clean: true }]), { reps: 3, best: 1000, mean: 2000 });
+  assert.deepEqual(summary([{ ms: 3000, clean: true }, { ms: 1000, clean: false }, { ms: 2000, clean: true }]), { reps: 3, best: 2000, mean: 2500 });
+  assert.deepEqual(summary([{ ms: 400, clean: false }]), { reps: 1, best: null, mean: null });
 });

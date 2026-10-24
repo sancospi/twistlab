@@ -322,6 +322,7 @@
     .anim-player twisty-player { width: 100%; height: 260px; }
     /* Practice dialog (practice.ts): Preparar (the case, the algorithm, Empezar) and Practicar (the clock card, big) */
     .practice-view { display: grid; gap: 10px; }
+    @media (min-width: 601px) { #practice[open] { margin-top: 16px; margin-bottom: auto; } } /* top-anchored: it doesn't jump as the card's state changes its height */
     .sheet-head .help-toggle { margin-left: auto; min-width: 44px; min-height: 44px; border-radius: 50%; font-weight: 700; }
     .sheet-head .help-toggle[aria-expanded="true"] { background: var(--fg); color: var(--bg); }
     .practice-help { padding: 10px 12px; border-radius: 8px; background: #0b0d12aa; color: var(--muted); font-size: 0.9286rem; line-height: 1.5; }
@@ -342,39 +343,48 @@
     .practice-tiles > div { display: grid; gap: 2px; align-content: start; padding: 6px 10px; border-radius: 8px; background: #0b0d12aa; }
     .practice-tiles small { color: var(--muted); font-size: 0.7857rem; }
     .practice-tiles strong { font: 700 1.1429rem ui-monospace, monospace; font-variant-numeric: tabular-nums; }
-    .streak { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
-    .streak i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--muted); }
+    .streak { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; }
+    .streak .dots { display: flex; gap: 2px; }
+    .streak i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--muted); }
     .streak i.on { border-color: var(--accent); background: var(--accent); }
-    .streak span { margin-left: 4px; font: 600 0.8571rem ui-monospace, monospace; color: var(--muted); }
-    .streak.done span { color: var(--accent); }
+    .streak > span:last-child { font: 600 0.8571rem ui-monospace, monospace; color: var(--muted); }
+    .streak.done > span:last-child { color: var(--accent); }
     @media (prefers-reduced-motion: no-preference) {
       .streak.celebrate i { animation: streak-pop .5s ease-out both; }
       .streak.celebrate i:nth-child(odd) { animation-delay: .08s; }
     }
     @keyframes streak-pop { 50% { transform: scale(1.7); } }
-    .practice-bar { align-items: center; justify-content: space-between; }
-    .practice-bar #practice-mode { flex: 1; text-align: center; }
-    .practice-bar #practice-reveal[aria-pressed="false"] { background: none; outline: 1px dashed #2a3142; }
+    .practice-bar { align-items: center; justify-content: space-between; flex-wrap: nowrap; }
+    .practice-bar button { flex: none; min-height: 44px; }
+    .practice-bar #practice-mode { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+    .practice-bar #practice-reveal { border: 1px solid transparent; }
+    .practice-bar #practice-reveal.off { background: none; border: 1px dashed var(--muted); }
     .practice-card { display: grid; gap: 8px; justify-items: center; align-content: center; min-height: min(56dvh, 460px); padding: 16px 12px;
       border-radius: 12px; background: #2a3142; text-align: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
     .practice-card[data-tap] { cursor: pointer; }
+    .practice-card:focus { outline: none; } /* focused by script only (the cube's flow): the state's outline still shows */
     .practice-card[data-state="running"] { outline: 2px solid var(--accent); }
     .practice-card .row:has(> [hidden]:only-child) { display: none; }
     .practice-card .steps { width: 100%; }
+    .practice-card .steps li { background: none; } /* on the card's own color: the current step gets the dark pill */
+    .practice-card .steps li[aria-current="step"] { background: var(--bg); }
+    .practice-card .hint, .practice-card .card-top, .practice-card .card-solution { color: #a3a9b8; } /* --muted is under 4.5:1 on the card */
     .card-top { color: var(--muted); font-weight: 600; }
     .card-scramble { display: flex; gap: 12px; align-items: center; justify-content: center; text-align: left; }
     .card-diagram svg { width: min(84px, 22vw); height: auto; display: block; }
-    .card-moves { font: 700 clamp(1.5rem, 6.5vw, 2rem)/1.35 ui-monospace, monospace; word-spacing: .15ch; text-wrap: balance; }
+    .card-moves { display: block; font: 700 clamp(1.5rem, 6.5vw, 2rem)/1.35 ui-monospace, monospace; word-spacing: .15ch; text-wrap: balance; }
     .card-solution { color: var(--muted); }
     .card-solution code { font: 700 1.1429rem ui-monospace, monospace; color: var(--fg); }
     .practice-card .practice-clock { background: none; font-size: clamp(4rem, 19vw, 6.4286rem); line-height: 1.05; padding: 0 8px; }
     .practice-card .practice-clock.small { font-size: 2.2857rem; }
     .practice-card .practice-clock.running { color: var(--accent); }
     .practice-card .delta { font-weight: 600; }
-    .delta.best { color: var(--accent); }
+    .delta.faster { color: var(--accent); }
     .delta.slower { color: #facc15; }
     .practice-card .grade { width: min(100%, 420px); flex-wrap: nowrap; }
-    .practice-card .grade button { flex: 1 1 0; min-width: 0; }
+    .practice-card .grade button { flex: 1 1 0; min-width: 0; white-space: nowrap; }
+    .key-hint { margin-left: .5em; }
+    @media (hover: none) { .key-hint { display: none; } } /* touch: no keyboard to press it on */
     .practice-card .grade button, .practice-card #practice-again { min-height: 52px; font-size: 1.1429rem; }
     .practice-card #practice-again { min-width: 12em; }
     .practice-card .grade #practice-fail { background: #0b0d12; }
@@ -1151,7 +1161,7 @@
         <span id="practice-mode" class="hint"></span>
         <button id="practice-reveal" type="button" class="small"></button>
       </div>
-      <div id="practice-card" class="practice-card">
+      <div id="practice-card" class="practice-card" tabindex="-1">
         <ol id="practice-steps" class="steps" data-i18n-aria-label="practice.steps">
           <li id="practice-step-scramble" data-i18n="practice.stepScramble"></li>
           <li id="practice-step-solve" data-i18n="practice.stepSolve"></li>
@@ -1164,22 +1174,21 @@
         <div id="practice-rotate" class="rotate"></div>
         <div id="practice-next" class="next" aria-live="polite"></div>
         <button id="practice-clock" type="button" class="practice-clock" aria-describedby="practice-card-hint">0.00</button>
-        <p id="practice-delta" class="delta" aria-live="polite"></p>
+        <p id="practice-delta" class="delta"></p>
         <div id="practice-desc" aria-live="polite"></div>
         <div id="practice-list" class="tokens"></div>
         <p id="practice-solution" class="card-solution"><span id="practice-alg-label" class="hint"></span> <code id="practice-alg"></code></p>
         <p id="practice-card-hint" class="hint"></p>
         <div id="practice-grade" class="row grade">
           <button id="practice-clean" type="button" class="primary" data-i18n="practice.cleanBtn"></button>
-          <button id="practice-fail" type="button" data-i18n="practice.failBtn"></button>
+          <button id="practice-fail" type="button" aria-keyshortcuts="x"><span data-i18n="practice.failBtn"></span><kbd class="key-hint" aria-hidden="true">X</kbd></button>
         </div>
         <div class="row"><button id="practice-again" type="button" class="primary" hidden></button></div>
       </div>
-      <p id="practice-notice" class="hint practice-notice" aria-live="polite"></p>
+      <p id="practice-notice" class="hint practice-notice"></p>
       <div class="row practice-actions">
         <button id="practice-peek" type="button" data-i18n="practice.peek"></button>
-        <button id="practice-another" type="button" data-i18n="practice.another"></button>
-        <button id="practice-lap-fail" type="button" data-i18n="practice.failBtn"></button>
+        <button id="practice-lap-fail" type="button" aria-keyshortcuts="x"><span data-i18n="practice.failBtn"></span><kbd class="key-hint" aria-hidden="true">X</kbd></button>
         <button id="practice-finish" type="button" data-i18n="practice.finish"></button>
       </div>
       <div id="practice-session" class="practice-session"></div>
@@ -1188,6 +1197,7 @@
       <div id="practice-player" class="anim-player" role="group" data-i18n-aria-label="anim.label" hidden></div>
     </div>
     <div id="practice-tiles" class="practice-tiles"></div>
+    <p id="practice-status" class="sr-only" role="status"></p>
   </dialog>
   <dialog id="quiz" class="sheet" aria-labelledby="quiz-title">
     <form method="dialog" class="sheet-head">

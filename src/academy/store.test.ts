@@ -6,21 +6,22 @@ import {
 } from './store.ts';
 import { findCase } from './methods.ts';
 
-test('addRep aggregates reps, best, last 10, streaks', () => {
+test('addRep aggregates reps, best and last 10 of the clean ones, streaks', () => {
   let s: CaseStats | undefined;
   for (let i = 0; i < 12; i++) s = addRep(s, { ms: 1000 + i, moves: 8, htm: 7, clean: i !== 5 }, 100 + i);
   assert.equal(s!.reps, 12);
   assert.equal(s!.clean, 11);
   assert.equal(s!.best, 1000);
-  assert.deepEqual(s!.last, [1011, 1010, 1009, 1008, 1007, 1006, 1005, 1004, 1003, 1002]);
-  assert.equal(average(s!), 1006.5);
+  assert.deepEqual(s!.last, [1011, 1010, 1009, 1008, 1007, 1006, 1004, 1003, 1002, 1001]); // the miss (1005) left out
+  assert.equal(average(s!), 1006.1);
   assert.equal(s!.streak, 6); // reps 6..11 after the miss at 5
   assert.equal(s!.bestStreak, 6);
   assert.equal(s!.lastPracticed, 111);
   const missed = addRep(s, { ms: 900, moves: 9, htm: 9, clean: false }, 200);
   assert.equal(missed.streak, 0);
   assert.equal(missed.bestStreak, 6);
-  assert.equal(missed.best, 900);
+  assert.equal(missed.best, 1000); // a failed rep's time isn't a mark
+  assert.deepEqual(missed.last, s!.last);
 });
 
 test('parseStats keeps valid entries and drops corrupted ones', () => {

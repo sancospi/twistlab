@@ -1,9 +1,9 @@
 // Practice one case, in three ways (tabs), the same three as on its page and in this order:
-// - Practicar (aprender): a fresh scramble of the case each repetition (another AUF and last layer, so it isn't learnt
-//   as text), solved with its solution. With a synced cube: 1) Mezcla walks the cube there, 2) Resuelve follows the
+// - Practicar (aprender): the case set up from solved by the chosen algorithm backwards, and solved with the algorithm
+//   (a random state is the Quiz's). With a synced cube: 1) Mezcla walks the cube there, 2) Resuelve follows the
 //   solution token by token, with corrections, timed from the first turn. Without one: the scramble big on the clock
 //   card; a tap (or Space) hides it and starts the clock, the next stops it, and the user says how it went (Limpio /
-//   Fallé) before the next scramble comes up.
+//   Fallé) before the scramble comes back for the next repetition.
 // - Quiz (retener): explains and opens the quiz of the case's group (quiz.ts).
 // - Memoria muscular (agilizar): the algorithm alone, no scramble. With a cube it's followed from whatever state the
 //   cube is in (the next turn after a rep starts another); without one, a series: each tap ends a repetition and starts
@@ -11,7 +11,8 @@
 // Two views: Preparar (the case, its recognition, the algorithm to use, Empezar) and Practicar (the clock card, big,
 // with the screen kept awake). The solution shows while learning and hides by itself after FADE_AFTER clean in a row
 // (Solución toggles it for the sitting; Ver solución shows it once, and that repetition isn't clean). Every repetition
-// (time, moves, clean) counts towards the plan's drill criterion: the streak of STREAK_GOAL, drawn as dots.
+// (time, moves, clean) counts towards the plan's drill criterion: the streak of STREAK_GOAL, drawn as dots; only the
+// clean ones' times make the best and the average.
 import { TwistyPlayer } from 'cubing/twisty';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
@@ -233,10 +234,11 @@ export async function openPractice(c: Case, onChange: (c: Case) => void, quiz: (
   helpToggle.ariaExpanded = 'false';
   anim.set(false); // the figure is the default; the animation is asked for
   renderInfo();
-  cube.listener = puzzleOf(c.stage) === '3x3x3' ? listener : null;
+  cube.listener = listener; // a 2x2 case too: its note on the 3x3 cube follows the connection
   dialog.showModal();
   choose(preferred(c));
-  $('practice-start').focus(); // Space/Enter: Empezar
+  focus('practice-start'); // Space/Enter: Empezar
+  dialog.scrollTop = 0;
 }
 
 dialog.addEventListener('close', () => {
@@ -304,7 +306,8 @@ function showPrep() {
   notice = '';
   showContent();
   render();
-  $('practice-start').focus();
+  focus('practice-start');
+  dialog.scrollTop = 0;
 }
 
 /** Empezar: the quiz (it takes the dialog's place), or Practicar on the clock card. */
@@ -318,6 +321,7 @@ function enterFocus() {
   seriesDone = [];
   void keepAwake(true);
   start();
+  dialog.scrollTop = 0;
 }
 
 /** Starts the current tab on the card: with a cube, set the case up (Practicar) or follow the algorithm from anywhere
@@ -327,13 +331,16 @@ function start() {
   comparison = null;
   peek = helped = false;
   showContent();
-  if (linked() && tab === 'practice') return startScramble();
-  if (linked() && tab === 'drill') {
-    beginSolve();
-    return render();
+  if (linked()) {
+    if (tab === 'practice') startScramble();
+    else {
+      beginSolve();
+      render();
+    }
+    return focus('practice-card'); // inside the view (Empezar is gone); the cube drives it
   }
   render();
-  $('practice-clock').focus(); // Space then starts the clock natively
+  focus('practice-clock'); // Space then starts the clock natively
 }
 
 /** The figures (the chosen algorithm's case), the scramble, the algorithm and its fingers. */
@@ -378,10 +385,12 @@ function beginSolve() {
 }
 
 function finishRep() {
-  record({ ms: performance.now() - startedAt, moves: done.length, htm: turnCount(done), clean: clean && !helped });
+  const r: Rep = { ms: performance.now() - startedAt, moves: done.length, htm: turnCount(done), clean: clean && !helped };
+  record(r);
   mode = 'result';
   render();
-  $('practice-again').focus(); // Space/Enter start the next rep natively (otherwise × keeps the focus and Space closes)
+  announce(`${formatTime(r.ms)}. ${comparisonText(comparison!)} · ${t(r.clean ? 'practice.clean' : 'practice.notClean')}. ${notice}`);
+  if (tab === 'practice') focus('practice-again'); // Space/Enter start the next rep natively (otherwise × keeps the focus and Space closes)
 }
 
 /** Records a repetition: the stats, the sitting, and what changed with it (the solution's view, the criterion). */
@@ -401,7 +410,7 @@ function record(r: Rep) {
 
 const listener: CubeListener = {
   move(move) {
-    if (view !== 'focus') return; // Preparar: the cube is free
+    if (view !== 'focus' || !linked()) return; // Preparar: the cube is free; a 2x2 case isn't done on it
     if (mode === 'result' && tab === 'drill') beginSolve(); // the next turn starts the next repetition
     if (mode === 'scramble') {
       guide.onMove(move);
@@ -419,7 +428,8 @@ const listener: CubeListener = {
         if (tab === 'drill') beginSolve();
         else startScramble();
       } else if (follower.done) {
-        if (tab === 'drill' || goalReached(kase.stage, cube.pattern()!, YELLOW_UP)) finishRep(); // drill: any start state; the frame: Roux's blocks
+        // drill: any start state; the frame: Roux's blocks. finishRep renders and places the focus: nothing after it
+        if (tab === 'drill' || goalReached(kase.stage, cube.pattern()!, YELLOW_UP)) return finishRep();
         else startScramble(); // can't happen from the exact state; start over rather than record nonsense
       }
     }
@@ -458,21 +468,15 @@ export function fingersView(tokens: string[]): HTMLDetailsElement {
 
 $('practice-start').onclick = enterFocus;
 $('practice-back').onclick = showPrep;
-/** After a button on the card: the clock keeps the focus, so Space is the clock again (not that button once more). */
-const refocus = () => $('practice-clock').focus();
+/** Focus without scrolling: on a phone the sheet would jump to the element, past the title and the bar. */
+const focus = (id: string) => $(id).focus({ preventScroll: true });
+/** After a button: the clock keeps the focus, so Space is the clock again (not that button once more); stopped, Limpio. */
+const refocus = () => {
+  if (view === 'focus' && !linked()) focus(hand === 'stopped' ? 'practice-clean' : 'practice-clock');
+};
 $('practice-again').onclick = () => {
   newRep();
   start();
-};
-$('practice-another').onclick = () => {
-  newRep();
-  if (linked()) startScramble();
-  else {
-    hand = 'ready';
-    showContent();
-    render();
-  }
-  refocus();
 };
 $('practice-peek').onclick = () => {
   peek = helped = true;
@@ -486,6 +490,7 @@ $('practice-reveal').onclick = () => {
   else if (midRep()) helped = true; // seen mid-repetition: it isn't from memory any more
   notice = '';
   render();
+  refocus();
 };
 $('practice-clean').onclick = () => grade(true);
 $('practice-fail').onclick = () => grade(false);
@@ -503,10 +508,16 @@ helpToggle.onclick = () => {
   helpToggle.ariaExpanded = String(!helpBox.hidden);
 };
 
-// Without a cube: the card is the clock (tap anywhere on it, or Space). Its moves and buttons keep their own taps.
+// Without a cube: the card is the clock (tap anywhere on it, or Space). Its moves and buttons keep their own taps, and
+// the tap that closes a move's tooltip (light dismiss lets it through, even on the tooltip: it's outside the modal) is
+// only that.
 const clockTime = $('practice-clock');
+let tipAtDown = false;
+dialog.addEventListener('pointerdown', () => void (tipAtDown = !!document.getElementById('tip')?.matches(':popover-open')), true);
 $('practice-card').addEventListener('click', (e) => {
-  if (!(e.target as Element).closest('button:not(#practice-clock), a, summary, input')) act();
+  const dismissing = tipAtDown && e.detail > 0; // e.detail 0: Space or Enter on the clock
+  tipAtDown = false;
+  if (!dismissing && !(e.target as Element).closest('button:not(#practice-clock), a, summary, input')) act();
 });
 dialog.addEventListener('keydown', (e) => {
   const target = e.target as Element;
@@ -516,15 +527,18 @@ dialog.addEventListener('keydown', (e) => {
     else return;
     return e.preventDefault();
   }
-  if (e.code !== 'Space' || target.closest?.('button, input, select, summary, a')) return;
+  // a focused control presses itself (inside the 3D player's shadow DOM too, hence the composed path)
+  if (e.code !== 'Space' || e.composedPath().some((n) => n instanceof Element && n.matches('button, input, select, summary, a, twisty-player'))) return;
   if (view === 'prep') {
     e.preventDefault();
     if (!e.repeat) enterFocus();
     return;
   }
   if (linked()) return;
-  e.preventDefault(); // a focused button presses itself; elsewhere Space is the clock
-  if (!e.repeat) act();
+  e.preventDefault(); // elsewhere Space is the clock; stopped (the focus left Limpio), Limpio
+  if (e.repeat) return;
+  if (tab === 'practice' && hand === 'stopped') grade(true);
+  else act();
 });
 
 /** A tap on the card: start, stop (Practicar: then Limpio / Fallé), or end a lap (Memoria muscular). */
@@ -547,7 +561,8 @@ function act() {
     hand = 'stopped';
     comparison = compare(stoppedMs, statsFor(kase.id));
     render();
-    return $('practice-clean').focus(); // Space: Limpio; X: Fallé
+    announce(`${formatTime(stoppedMs)}. ${comparisonText(comparison)}. ${t(helped ? 'practice.card.peeked' : 'practice.card.grade')}`);
+    return focus('practice-clean'); // Space: Limpio; X: Fallé
   }
   render();
 }
@@ -562,6 +577,7 @@ function grade(ok: boolean) {
   hand = 'ready';
   showContent();
   render();
+  announce(notice);
   refocus();
 }
 
@@ -576,6 +592,7 @@ function lap(ok: boolean) {
   series.push({ ms: r.ms, clean: r.clean });
   peek = helped = false;
   render();
+  announce(`${t(r.clean ? 'practice.lastLap' : 'practice.repBad', { time: formatTime(r.ms) })}. ${notice}`);
 }
 
 /** Terminar serie: the lap under way is dropped; the series is summed up. */
@@ -584,7 +601,16 @@ function finishSeries() {
   stopAll();
   peek = helped = false;
   render();
+  announce($('practice-delta').textContent ?? '');
   refocus();
+}
+
+/** Read out once (the card's own texts aren't live regions: they'd repeat on every render). Cleared first, so the
+ *  same message twice in a row is read again. */
+function announce(msg: string) {
+  const status = $('practice-status');
+  status.textContent = '';
+  requestAnimationFrame(() => (status.textContent = msg.trim()));
 }
 
 /** The running time, frame by frame: the hand clock, or the cube's solve since its first turn. */
@@ -612,7 +638,7 @@ async function keepAwake(on: boolean) {
   if (wake || !('wakeLock' in navigator)) return;
   try {
     const lock = await navigator.wakeLock.request('screen');
-    if (!dialog.open || view !== 'focus') return void lock.release(); // left meanwhile
+    if (wake || !dialog.open || view !== 'focus') return void lock.release(); // another request won, or left meanwhile
     wake = lock;
     lock.addEventListener('release', () => void (wake === lock && (wake = null)));
   } catch {} // not allowed (battery saver, a hidden page): the screen just behaves as usual
@@ -730,7 +756,10 @@ const helpKey = (): MessageKey =>
   : tab === 'drill' ? (linked() ? 'practice.drillHint' : 'practice.helpDrill')
   : linked() ? 'practice.helpPracticeCube' : 'practice.helpPractice';
 
-const show = (id: string, on: boolean) => void ($(id).hidden = !on);
+// renderFocus hides everything and shows what the state needs; applied at the end, only what changes (hiding a focused
+// button, even for an instant, drops its focus)
+let batch: Map<string, boolean> | null = null;
+const show = (id: string, on: boolean) => void (batch ? batch.set(id, on) : ($(id).hidden = !on));
 const text = (id: string, s: string) => {
   $(id).textContent = s;
   show(id, !!s);
@@ -761,15 +790,16 @@ function renderFocus() {
   const on = solutionView(streakNow(), choice) === 'shown'; // Solución (a peek aside)
   $('practice-mode').textContent = t(`practice.tab.${tab}`);
   const reveal = $('practice-reveal');
-  reveal.textContent = t(on ? 'practice.solutionShown' : 'practice.solutionHidden');
-  reveal.ariaPressed = String(on);
+  reveal.textContent = t(on ? 'practice.solutionShown' : 'practice.solutionHidden'); // the label says the state
+  reveal.classList.toggle('off', !on);
   const cubeOn = !!linked();
   const card = $('practice-card');
   card.dataset.state = cubeOn ? mode : hand;
   card.toggleAttribute('data-tap', !cubeOn && hand !== 'stopped');
   // everything off, then what the state shows
+  batch = new Map();
   for (const id of ['practice-steps', 'practice-card-scramble', 'practice-rotate', 'practice-next', 'practice-delta', 'practice-desc',
-    'practice-list', 'practice-solution', 'practice-grade', 'practice-again', 'practice-peek', 'practice-another', 'practice-lap-fail', 'practice-finish']) show(id, false);
+    'practice-list', 'practice-solution', 'practice-grade', 'practice-again', 'practice-peek', 'practice-lap-fail', 'practice-finish']) show(id, false);
   fingerNow.hidden = true; // renderSolve shows it
   $('practice-delta').className = 'delta';
   const clock = $('practice-clock');
@@ -781,6 +811,8 @@ function renderFocus() {
   text('practice-notice', notice);
   show('practice-fingers', shown);
   show('practice-anim', shown);
+  for (const [id, on] of batch) if ($(id).hidden === on) $(id).hidden = !on;
+  batch = null;
   if (!shown) anim.set(false);
   renderSession();
 }
@@ -807,25 +839,31 @@ function renderHand(shown: boolean) {
   } else if (!practice && ready && seriesDone.length) {
     const s = summary(seriesDone);
     const n = htm(centerMoves(active(), IDENTITY));
-    text('practice-delta', t('practice.series', { reps: tp('academy.reps', s.reps), mean: formatTime(s.mean!), tps: ((n * 1000) / s.mean!).toFixed(1) }));
+    const reps = tp('academy.reps', s.reps);
+    text('practice-delta', s.mean === null ? t('practice.seriesNone', { reps })
+      : t('practice.series', { reps, mean: formatTime(s.mean), tps: ((n * 1000) / s.mean).toFixed(1) }));
   }
   text('practice-card-hint', hand === 'stopped' ? t(helped ? 'practice.card.peeked' : 'practice.card.grade')
     : practice ? t(ready ? 'practice.card.ready' : 'practice.timerStop')
     : t(ready ? 'practice.card.readyDrill' : 'practice.card.lap'));
   show('practice-peek', !shown && hand !== 'stopped');
-  show('practice-another', practice && ready);
   show('practice-lap-fail', !practice && hand === 'running');
   show('practice-finish', !practice && hand === 'running');
+}
+
+/** "Tu primera marca", "¡Mejor marca! (−0.25)", "+0.32 vs. tu media". */
+function comparisonText(c: Comparison): string {
+  if (c.kind === 'first') return t('practice.first');
+  if (c.kind === 'best') return t('practice.newBest', { by: formatTime(c.by) });
+  const delta = formatTime(Math.abs(c.delta));
+  return t('practice.vsAvg', { delta: delta === formatTime(0) ? delta : (c.delta < 0 ? '−' : '+') + delta });
 }
 
 /** The time against the case's record, colored: a new best or faster than the average green, slower yellow. */
 function deltaView(c: Comparison | null, extra = '') {
   if (!c) return;
   const d = $('practice-delta');
-  const sign = (ms: number) => (ms < 0 ? '−' : '+') + formatTime(Math.abs(ms));
-  text('practice-delta', (c.kind === 'first' ? t('practice.first')
-    : c.kind === 'best' ? t('practice.newBest', { by: formatTime(c.by) })
-    : t('practice.vsAvg', { delta: sign(c.delta) })) + extra);
+  text('practice-delta', comparisonText(c) + extra);
   d.classList.toggle('faster', c.kind === 'best' || (c.kind === 'avg' && c.delta < 0));
   d.classList.toggle('slower', c.kind === 'avg' && c.delta > 0);
 }
@@ -840,7 +878,6 @@ function renderCube(shown: boolean) {
   text('practice-card-hint', mode === 'result' && !practice ? t('practice.card.nextTurn') : '');
   if (mode === 'scramble') {
     show('practice-clock', false);
-    show('practice-another', practice);
     return renderScramble();
   }
   if (mode === 'solve') {
@@ -912,7 +949,7 @@ function renderTiles() {
     className: ['streak', streak >= STREAK_GOAL ? 'done' : '', celebrate ? 'celebrate' : ''].filter(Boolean).join(' '),
     role: 'img',
     ariaLabel: streak >= STREAK_GOAL ? t('practice.streakDone', { goal: STREAK_GOAL }) : t('practice.streak', { n: streak, goal: STREAK_GOAL }),
-  }, ...Array.from({ length: STREAK_GOAL }, (_, i) => el('i', { className: i < streak ? 'on' : '' })),
+  }, el('span', { className: 'dots' }, ...Array.from({ length: STREAK_GOAL }, (_, i) => el('i', { className: i < streak ? 'on' : '' }))),
   el('span', { textContent: `${streak}/${STREAK_GOAL}` }));
   celebrate = false; // once: the next render draws the dots still
   tiles.replaceChildren(
@@ -929,7 +966,7 @@ function renderSession() {
   const s = summary(session);
   const shown = session.slice(-SESSION_SHOWN).reverse();
   box.replaceChildren(
-    el('p', { className: 'hint', textContent: t('practice.session', { reps: tp('academy.reps', s.reps), best: formatTime(s.best!), mean: formatTime(s.mean!) }) }),
+    el('p', { className: 'hint', textContent: t('practice.session', { reps: tp('academy.reps', s.reps), best: s.best === null ? '–' : formatTime(s.best), mean: s.mean === null ? '–' : formatTime(s.mean) }) }),
     el('ol', { className: 'session-reps', ariaLabel: t('practice.sessionList') }, ...shown.map((r) => {
       const time = formatTime(r.ms);
       return el('li', r.clean ? { textContent: time } : { className: 'bad', textContent: time, ariaLabel: t('practice.repBad', { time }) });

@@ -28,9 +28,9 @@ export interface SessionRep {
   clean: boolean;
 }
 
-/** The sitting's numbers: how many, the best and the mean (null with none). */
+/** The sitting's numbers: how many, and the best and mean of the clean ones (null with none), as the case's stats. */
 export function summary(reps: readonly SessionRep[]): { reps: number; best: number | null; mean: number | null } {
-  if (!reps.length) return { reps: 0, best: null, mean: null };
-  const times = reps.map((r) => r.ms);
+  const times = reps.filter((r) => r.clean).map((r) => r.ms);
+  if (!times.length) return { reps: reps.length, best: null, mean: null };
   return { reps: reps.length, best: Math.min(...times), mean: times.reduce((a, b) => a + b, 0) / times.length };
 }

@@ -9,14 +9,14 @@ export interface Rep {
   ms: number; // first move to done
   moves: number; // quarter turns reported by the cube
   htm: number; // the same moves in half-turn metric
-  clean: boolean; // no wrong move
+  clean: boolean; // no wrong move (without a cube: the user's word for it)
 }
 
 export interface CaseStats {
   reps: number;
   clean: number;
-  best: number | null; // ms
-  last: number[]; // ms of the last reps, newest first
+  best: number | null; // ms, of a clean rep
+  last: number[]; // ms of the last clean reps, newest first
   streak: number; // clean reps in a row right now
   bestStreak: number;
   lastPracticed: number; // epoch ms
@@ -31,14 +31,16 @@ export const STREAK_GOAL = 10; // the plan's drill criterion: 10 in a row withou
 const isTime = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n) && n >= 0;
 const isCount = (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 0;
 
-/** Stats with a new rep folded in. */
+/** Stats with a new rep folded in. Only a clean rep's time counts (best, average): a failed one may be an attempt
+ *  given up halfway. */
 export function addRep(s: CaseStats | undefined, rep: Rep, now: number): CaseStats {
   const streak = rep.clean ? (s?.streak ?? 0) + 1 : 0;
+  const best = s?.best ?? null;
   return {
     reps: (s?.reps ?? 0) + 1,
     clean: (s?.clean ?? 0) + (rep.clean ? 1 : 0),
-    best: s?.best == null ? rep.ms : Math.min(s.best, rep.ms),
-    last: [rep.ms, ...(s?.last ?? [])].slice(0, LAST),
+    best: !rep.clean ? best : best === null ? rep.ms : Math.min(best, rep.ms),
+    last: rep.clean ? [rep.ms, ...(s?.last ?? [])].slice(0, LAST) : s?.last ?? [],
     streak,
     bestStreak: Math.max(s?.bestStreak ?? 0, streak),
     lastPracticed: now,
