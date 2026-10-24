@@ -390,10 +390,22 @@ function phaseView(phase: Phase): HTMLElement {
       ...phase.quizzes.map((quiz) => quizButton(loc(quiz.name), { kind: 'official', quiz, phase })))] : []))]; // none without cases
   return el('section', { className: 'academy-phase', id: anchor(phase.id) },
     el('h2', { textContent: loc(phase.name) }),
-    ...(phase.description ? [prose(loc(phase.description), 'prose hint')] : []),
+    ...(phase.goal ? [goalView(phase)] : []),
+    // with a goal, the description is the lesson itself: full-size text, not a note
+    ...(phase.description ? [prose(loc(phase.description), phase.goal ? 'prose' : 'prose hint')] : []),
+    ...(phase.tips ? [el('details', { className: 'academy-tips' }, el('summary', { textContent: t('academy.tips') }), prose(loc(phase.tips)))] : []),
     ...(phase.progression ? [el('details', {}, el('summary', { textContent: t('academy.progression') }), prose(loc(phase.progression)))] : []),
     ...quizzes,
     el('div', { className: 'academy-groups' }, ...phase.groups.map((g) => groupView(phase, g))));
+}
+
+/** A phase's goal: what it leaves done, beside the cube as it ends up (masked as its cases: what doesn't matter yet, grey). */
+function goalView(phase: Phase): HTMLElement {
+  const shown = allCases(METHODS.find((x) => x.phases.includes(phase))!).find((c) => c.id === phase.goalFigure);
+  const state = shown ? caseState(kpuzzle, shown.algs[0].alg, IDENTITY) : kpuzzle.defaultPattern();
+  const figure = el('div', { className: 'phase-goal-figure', ariaHidden: 'true' });
+  figure.innerHTML = caseDiagram(phase.diagram, phase.groups[0].cases[0].stage, patternToFacelets(state), { size: 84 });
+  return el('div', { className: 'phase-goal' }, figure, prose(loc(phase.goal!)));
 }
 
 /** "Última capa completa" (OLL then PLL on random states), in the PLL phase of a method that has OLL and PLL. */

@@ -345,6 +345,7 @@ export const es = {
   'academy.notation': 'Notación y gatillos',
   'academy.schedule': 'Calendario y metas',
   'academy.progression': 'Progresión',
+  'academy.tips': 'Si algo sale mal',
   'academy.quiz': 'Quiz',
   'academy.quizOf': 'Quiz: {name}',
   'academy.quizPhase': 'Quiz',

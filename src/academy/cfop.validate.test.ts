@@ -41,6 +41,16 @@ test('all methods: every case is of its method\'s puzzle', () => {
   for (const m of METHODS) for (const c of allCases(m)) assert.equal(puzzleOf(c.stage), m.puzzle ?? '3x3x3', `${m.id}: ${c.id} (${c.stage})`);
 });
 
+test("all methods: a phase's goal figure shows its goal reached (the solved cube, or the case it names)", () => {
+  for (const m of METHODS) for (const p of m.phases.filter((x) => x.goal)) {
+    const stage = p.groups[0]?.cases[0]?.stage; // the figure is masked as the phase's cases
+    assert.ok(stage, `${p.id}: a goal needs cases`);
+    const shown = p.goalFigure ? allCases(m).find((c) => c.id === p.goalFigure) : null;
+    assert.ok(!p.goalFigure || shown, `${p.id}: ${p.goalFigure} isn't a case of ${m.id}`);
+    assert.ok(goalReached(stage, shown ? caseState(kpuzzle, shown.algs[0].alg, IDENTITY) : solved, 'U'), p.id);
+  }
+});
+
 test('all methods: setups and algorithms tokenize in clean notation, setup = main alg undone (centers fixed)', () => {
   for (const c of cases) {
     assert.ok(c.algs.length >= 1 && c.algs[0].id === 'main', c.id);

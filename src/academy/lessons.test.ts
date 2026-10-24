@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { loc, t } from '../i18n.ts';
 import { tokenize } from '../notation.ts';
 import { beginner } from './beginner.ts';
 import { cfopReduced } from './cfop.ts';
@@ -70,7 +71,13 @@ test('lessons: every guide with lessons builds them from its own data', () => {
   const cases = beginner.phases.flatMap((p) => p.groups.flatMap((g) => g.cases));
   const shown = courseFor(beginner.id, (c) => `${c.algs[0].alg} U U'`)!.lessons.flatMap((l) => l.steps).filter((s) => s.kind === 'cube' && s.stage);
   assert.equal(shown.length, cases.length);
-  assert.ok(shown.every((s) => s.kind === 'cube' && s.alg.endsWith("U U'")));  // the 2x2's lessons play on a 2x2
+  assert.ok(shown.every((s) => s.kind === 'cube' && s.alg.endsWith("U U'")));
+  // a phase taught step by step: its goal opens the lesson, its tips come right after the cases
+  for (const [phase, l] of beginner.phases.map((p, i) => [p, prin.lessons[i + 1]] as const)) {
+    assert.deepEqual(l.steps[0], { kind: 'text', text: loc(phase.goal!) }, l.id);
+    const tips = l.steps.findIndex((s) => s.kind === 'text' && s.title === t('academy.tips'));
+    assert.ok(tips > 0 && l.steps[tips - 1].kind === 'cube' && l.steps[tips + 1]?.kind === 'case', l.id);
+  }  // the 2x2's lessons play on a 2x2
   for (const id of ['principiante-2x2', 'ortega']) assert.equal(courseFor(id)?.puzzle, '2x2x2');
 });
 
