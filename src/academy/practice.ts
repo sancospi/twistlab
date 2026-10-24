@@ -851,8 +851,8 @@ function renderHand(shown: boolean) {
   show('practice-finish', !practice && hand === 'running');
 }
 
-/** "Tu primera marca", "¡Mejor marca! (−0.25)", "+0.32 vs. tu media". */
-function comparisonText(c: Comparison): string {
+/** "Tu primera marca", "¡Mejor marca! (−0.25)", "+0.32 vs. tu media" (the quiz's clock card says it too). */
+export function comparisonText(c: Comparison): string {
   if (c.kind === 'first') return t('practice.first');
   if (c.kind === 'best') return t('practice.newBest', { by: formatTime(c.by) });
   const delta = formatTime(Math.abs(c.delta));

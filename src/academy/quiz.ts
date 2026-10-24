@@ -3,8 +3,9 @@
 // order (uniform, as often as they come up in a solve, due first). Each item, timed:
 // - With a synced cube: 1) Mezcla, guided to a random state of the case; 2) Resuelve, on the clock from the first
 //   turn, without being asked its name. Graded by itself (time, turns, efficiency).
-// - Without one: 1) Reconoce, pick the case shown in a figure (no arrows: they'd give it away); 2) Resuelve, set the
-//   random-state scramble up on a normal cube and solve it on a clock started and stopped by hand, then say how it went.
+// - Without one: the clock card, as in Practicar: the figure (no arrows: they'd give the case away) and the random-state
+//   scramble, big; a tap (or Space) hides them and starts the clock, the next stops it, then Limpio (Siguiente) or Fallé
+//   (the answer, graded as failed).
 // Solved: the time, turns and grade with the case's best and average, then Repetir (the same case, another state) or
 // Siguiente. A wrong answer, "Me atasqué", or (with the cube) too many turns or too long: the explanation (figure,
 // algorithm with its triggers, recognition, fingers, animation on demand), then Reintentar or Siguiente. Saltar is
@@ -26,7 +27,8 @@ import { heldColors, netSVG } from './diagram.ts';
 import { cube, type CubeListener } from './link.ts';
 import { METHODS, findCase } from './methods.ts';
 import { inlineText } from '../rich-text-view.ts';
-import { Animation, caseSVG, el, fingersView, loadCase, movesView, openPractice } from './practice.ts';
+import { Animation, caseSVG, comparisonText, el, fingersView, loadCase, movesView, openPractice } from './practice.ts';
+import { compare } from './practiceSession.ts';
 import { caseProbability } from './probability.ts';
 import { average, learningFor, load, preferred, recordGrade, recordRep, save, setting, statsFor, type Grade } from './store.ts';
 import {
@@ -43,6 +45,12 @@ export type QuizScope =
 const $ = (id: string) => document.getElementById(id)!;
 const dialog = $('quiz') as HTMLDialogElement;
 const body = $('quiz-body');
+const helpBox = $('quiz-help'); // the "?": how the screen works, in full (outside #quiz-body, which is rebuilt)
+const helpToggle = $('quiz-help-toggle');
+helpToggle.onclick = () => {
+  helpBox.hidden = !helpBox.hidden;
+  helpToggle.ariaExpanded = String(!helpBox.hidden);
+};
 const status = $('quiz-status'); // persistent live region: #quiz-body is rebuilt, so one inside it wouldn't be announced reliably
 
 const PER_CASE = [3, 5, 10, 20];
@@ -149,6 +157,8 @@ export async function openQuiz(s: QuizScope, onDone: () => void = () => {}): Pro
   pickGrid = null;
   selection = initialSelection();
   $('quiz-title').textContent = scopeTitle(s);
+  helpBox.hidden = true;
+  helpToggle.ariaExpanded = 'false';
   cube.listener = listener;
   if (!dialog.open) dialog.showModal(); // "repeat the failed ones" reopens from inside
   render();
@@ -343,8 +353,9 @@ function retryClock() {
   render();
 }
 
-/** A wrong answer, "Me atasqué" / "No lo sé", or (on the cube) too many turns or too long: graded as failed, explained. */
-function stuck() {
+/** "Me atasqué", "Ver respuesta", Fallé (`fail`), or (on the cube) too many turns or too long: graded as failed,
+ *  explained. */
+function stuck(w: Why = 'stuck') {
   const item = items[index];
   guide.stop();
   if (screen === 'clock') attempts.at(-1)!.correct = false;
@@ -354,7 +365,7 @@ function stuck() {
     logs.push({ item, n: index + 1, done, skipped: false, assisted });
   }
   gradeItem(item, 'fail');
-  explain('stuck');
+  explain(w);
 }
 
 function explain(w: Why) {
@@ -466,13 +477,18 @@ function tick() {
 }
 
 // On document: re-rendering drops the focus to <body>, outside the dialog, where its own listener can't hear.
+// The hand clock's keys: Space starts and stops it, then means Limpio; X, once stopped, is Fallé.
 document.addEventListener('keydown', (e) => {
-  if (!dialog.open || e.ctrlKey || e.metaKey || e.altKey) return;
-  if (screen === 'clock' && e.code === 'Space' && !(e.target as Element).closest?.('button, input, select, summary, a')) {
-    e.preventDefault(); // a focused button presses itself; elsewhere Space is the clock
-    if (!e.repeat) toggleClock();
-    return;
+  if (!dialog.open || e.ctrlKey || e.metaKey || e.altKey || screen !== 'clock' || e.repeat) return;
+  const target = e.target as Element;
+  if (e.code === 'KeyX' && clockMs !== null && !target.closest?.('input')) {
+    e.preventDefault();
+    return stuck('fail');
   }
+  if (e.code !== 'Space' || target.closest?.('button, input, select, summary, a')) return;
+  e.preventDefault(); // a focused button presses itself; elsewhere Space is the clock
+  if (clockMs !== null) solvedByHand();
+  else toggleClock();
 });
 
 // --- Rendering ---
@@ -509,6 +525,22 @@ function render() {
   (same ? kept || main : main || kept)?.focus({ preventScroll: screen === 'setup' });
   const text = statusText();
   if (status.textContent !== text) status.textContent = text; // unchanged text isn't announced again
+  helpBox.textContent = helpText();
+  helpToggle.hidden = !helpBox.textContent;
+  if (helpToggle.hidden) helpBox.hidden = true;
+}
+
+/** The "?" of each screen: what the screen itself keeps to a line. */
+function helpText(): string {
+  switch (screen) {
+    case 'setup': return [t(executionNext() ? 'quiz.howCube' : 'quiz.howNoCube'), `${t('neutral.option')}: ${t('neutral.optionHint')}`].join(' ');
+    case 'clock': return [t(clockMs !== null ? 'quiz.helpClockDone' : 'quiz.helpClock'), items[index]?.random ? t('quiz.randomState') : ''].join(' ').trim();
+    case 'scramble': return t('quiz.helpScramble');
+    case 'solve': return t('quiz.helpSolve');
+    case 'done': return t(feedback?.grade === 'fail' ? 'quiz.helpDoneFail' : 'quiz.helpDone');
+    case 'explain': return t('quiz.helpExplain');
+    default: return '';
+  }
 }
 
 /** What the live region says: the question, the next scramble move, the result… */
@@ -516,7 +548,9 @@ function statusText(): string {
   const where = items.length ? t('quiz.progress', { n: index + 1, total: items.length }) : '';
   const item = items[index];
   switch (screen) {
-    case 'clock': return `${where}. ${neutral && !clockAt && clockMs === null ? `${holdText(item)} ` : ''}${t(clockMs !== null ? 'quiz.helpClockDone' : clockAt ? 'practice.timerStop' : 'quiz.helpClock')}`;
+    case 'clock': return clockMs !== null // stopped: the time, against the case's record, and the question
+      ? `${where}. ${formatTime(clockMs)}. ${comparisonText(compare(clockMs, statsFor(item.c.id)))}. ${t('practice.card.grade')}`
+      : `${where}. ${neutral && !clockAt ? `${holdText(item)} ` : ''}${t(clockAt ? 'practice.timerStop' : 'quiz.helpClock')}`;
     case 'scramble': return [nextMove() ?? '', scrambleDesc(), neutral && item ? holdText(item, 'neutral.holdAfter') : ''].join(' ').trim();
     case 'solve': return `${where}. ${t('quiz.helpSolve')}${neutral ? ` ${holdText(item, 'neutral.holdSolve')}` : ''}`; // not the clock: it would talk every frame
     case 'done': return `${feedbackText(feedback!)} ${t('quiz.time', { time: formatTime(itemTime()) })}`;
@@ -526,16 +560,16 @@ function statusText(): string {
   }
 }
 
-/** A radio option (label, optional hint) that keeps the focus across re-renders. */
-function option(name: string, value: string, checked: boolean, choose: () => void, label: string, hint = '', disabled = false): HTMLElement {
-  const input = el('input', { type: 'radio', name, checked, disabled });
+/** A choice as a chip (a radio or a checkbox, with an optional count) that keeps the focus across re-renders. */
+function chip(type: 'radio' | 'checkbox', name: string, value: string, checked: boolean, choose: (on: boolean) => void, label: string, count?: number, disabled = false): HTMLElement {
+  const input = el('input', { type, name, checked, disabled });
   input.dataset.action = `${name}-${value}`;
   input.onchange = () => {
-    choose();
+    choose(input.checked);
     render();
   };
-  return el('label', { className: 'quiz-mode' }, input,
-    el('span', {}, el('strong', { textContent: label }), ...(hint ? [el('br'), el('small', { textContent: hint })] : [])));
+  return el('label', { className: 'quiz-chip' }, input, el('span', { textContent: label }),
+    ...(count === undefined ? [] : [el('small', { textContent: String(count) })]));
 }
 
 const SELECTION_LABEL: Record<Selection, MessageKey> = {
@@ -563,40 +597,37 @@ function renderSetup(): Node[] {
       const count = selected(x).length;
       const label = t(SELECTION_LABEL[x], { code: one?.code ?? '' });
       // by hand stays choosable with none ticked: that's where you tick them
-      const choice = option('quiz-select', x, x === selection, () => save('quiz-select', (selection = x)), label, tp('quiz.cases', count), !count && x !== 'pick');
+      const choice = chip('radio', 'quiz-select', x, x === selection, () => save('quiz-select', (selection = x)), label, count, !count && x !== 'pick');
       choice.querySelector('small')!.dataset.count = x;
       return choice;
     });
     // no case of the scope with a probability (F2L, the beginner's last layer): it would just be uniform
     const noOdds = scopeCases(scope).every((c) => caseProbability(c.id, kpuzzle) === null);
-    const orders = ORDERS.map((x) => option('quiz-order', x, x === order, () => save('quiz-order', (order = x)), t(ORDER_LABEL[x][0]), t(ORDER_LABEL[x][1]),
+    const orders = ORDERS.map((x) => chip('radio', 'quiz-order', x, x === order, () => save('quiz-order', (order = x)), t(ORDER_LABEL[x][0]), undefined,
       x === 'probability' && noOdds));
     const cases = selected().length;
     n = cases * perCase;
-    const summary = p(setupSummary(cases), 'hint');
-    summary.dataset.count = 'total';
     out.push(
-      el('fieldset', { className: 'quiz-modes quiz-choices' }, el('legend', { textContent: t('quiz.which') }), ...choices),
+      el('fieldset', { className: 'chips-field' }, el('legend', { textContent: t('quiz.which') }), el('div', { className: 'chip-set' }, ...choices)),
       ...(selection === 'pick' ? [pickView()] : []),
-      ...(selection === 'one' ? [] : [el('fieldset', { className: 'quiz-modes' }, el('legend', { textContent: t('quiz.order') }), ...orders)]),
-      el('label', { className: 'academy-method' }, t('quiz.perCase'), perCaseSelect()),
-      summary);
+      ...(selection === 'one' ? [] : [el('fieldset', { className: 'chips-field' }, el('legend', { textContent: t('quiz.order') }),
+        el('div', { className: 'chip-set' }, ...orders), p(t(ORDER_LABEL[order][1]), 'hint'))]),
+      el('div', { className: 'row quiz-setup-row' }, el('label', { className: 'academy-method' }, t('quiz.perCase'), perCaseSelect()), neutralChip()));
   }
-  out.push(p(t(execution ? 'quiz.howCube' : 'quiz.howNoCube')));
+  if (scope.kind !== 'cases') out.push(el('div', { className: 'row quiz-setup-row' }, neutralChip()));
   if (cube.pattern() && !execution) out.push(p(t('practice.no2x2Cube'), 'hint'));
-  const box = el('input', { type: 'checkbox', checked: neutral });
-  box.dataset.action = 'neutral';
-  box.onchange = () => save('quiz-neutral', (neutral = box.checked));
-  out.push(el('label', { className: 'quiz-mode' }, box,
-    el('span', {}, el('strong', { textContent: t('neutral.option') }), el('br'), el('small', { textContent: t('neutral.optionHint') }))));
-  const last = lastResult(scopeId(scope));
-  if (last) out.push(p(t('quiz.last', { result: summaryLine(last) }), 'hint'));
-  const go = button(t('quiz.start'), start, 'primary');
+  const go = button(t('quiz.start'), start, 'primary practice-start');
   go.disabled = !n;
   go.dataset.focus = '';
-  out.push(el('div', { className: 'row' }, go));
+  const last = lastResult(scopeId(scope));
+  const summary = p([...(scope.kind === 'cases' ? [setupSummary(n / perCase)] : []), ...(last ? [t('quiz.last', { result: summaryLine(last) })] : [])].join(' · '), 'hint');
+  summary.dataset.count = 'total';
+  out.push(go, summary);
   return out;
 }
+
+/** Color neutral, as a chip (its explanation is behind the "?"). */
+const neutralChip = () => chip('checkbox', 'neutral', 'on', neutral, (on) => save('quiz-neutral', (neutral = on)), t('neutral.option'));
 
 function perCaseSelect(): HTMLSelectElement {
   const select = el('select', {}, ...PER_CASE.map((k) => el('option', { value: String(k), textContent: String(k), selected: k === perCase })));
@@ -613,8 +644,9 @@ const setupSummary = (cases: number) => `${tp('quiz.cases', cases)} · ${tp('qui
  *  clicked checkbox, doesn't move the focus to "Empezar"). */
 function pickedChanged() {
   const n = selected('pick').length;
-  body.querySelector('[data-count="pick"]')!.textContent = tp('quiz.cases', n);
-  body.querySelector('[data-count="total"]')!.textContent = setupSummary(n);
+  body.querySelector('[data-count="pick"]')!.textContent = String(n);
+  const last = lastResult(scopeId(scope));
+  body.querySelector('[data-count="total"]')!.textContent = [setupSummary(n), ...(last ? [t('quiz.last', { result: summaryLine(last) })] : [])].join(' · ');
   body.querySelector<HTMLButtonElement>('[data-focus]')!.disabled = !n;
 }
 
@@ -659,7 +691,28 @@ const holdHint = (item: Item, key?: MessageKey): Node[] => (neutral ? [el('p', {
 const summaryLine = (r: SessionRecord) =>
   [percent(r.accuracy), timeOr(r.ms), ...(r.efficiency === null ? [] : [t('quiz.effShort', { pct: percent(r.efficiency) })])].join(' · ');
 
-const progress = () => p(t('quiz.progress', { n: index + 1, total: items.length }), 'hint');
+/** "3 de 35" with a bar. */
+const progress = () => {
+  const bar = el('div', { className: 'quiz-bar', ariaHidden: 'true' }, el('span'));
+  (bar.firstChild as HTMLElement).style.width = `${(100 * index) / items.length}%`;
+  return el('div', { className: 'quiz-progress' }, bar, el('span', { className: 'hint', textContent: t('quiz.progress', { n: index + 1, total: items.length }) }));
+};
+
+/** The clock card (practice.ts draws Practicar's the same way): `state` for its look, `onTap` makes it a tap target. */
+function card(state: string, children: Node[], onTap?: () => void): HTMLElement {
+  const box = el('div', { className: 'practice-card quiz-card' }, ...children);
+  box.dataset.state = state;
+  if (onTap) {
+    box.toggleAttribute('data-tap', true);
+    box.onclick = (e) => {
+      if (!(e.target as Element).closest('button:not([data-action="clock"]), a, summary, input')) onTap(); // the clock: its tap bubbles here
+    };
+  }
+  return box;
+}
+
+/** The row of the screen's other actions, under the card. */
+const actions = (...buttons: HTMLElement[]) => el('div', { className: 'row practice-actions' }, ...buttons);
 
 /** The item's state as a figure; `arrows` (PLL) only once the case is known. */
 function diagram(item: Item, size = 180, arrows = false): HTMLElement {
@@ -674,29 +727,34 @@ const steps = (current: 1 | 2) => el('ol', { className: 'steps', ariaLabel: t('p
     el('li', { textContent: text, ...(i + 1 === current ? { ariaCurrent: 'step' } : {}) })));
 
 /** "Me atasqué" (or "No lo sé" on the question): the explanation. */
-const stuckButton = (label: MessageKey = 'quiz.stuck') => action('stuck', t(label), stuck);
+const stuckButton = (label: MessageKey = 'quiz.stuck') => action('stuck', t(label), () => stuck());
 
-/** Without a cube: the scramble (figure without arrows: the case isn't named), a clock you start and stop by hand,
- *  then Siguiente, Reintentar or Ver respuesta. */
+/** Without a cube, the clock card: listo, the figure (no arrows: the case isn't named) and the scramble, big; a tap or
+ *  Space hides them and starts the clock; parado, the time against the case's record, Limpio (solved: Siguiente) or
+ *  Fallé (the answer). Lo resolví, Saltar and Ver respuesta stay under it. */
 function renderClock(): Node[] {
   const item = items[index];
   const stopped = clockMs !== null;
-  // stopped, it's no longer a button: the focus moves on to "Siguiente"
+  const ready = !clockAt && !stopped;
+  // stopped, it's no longer a button: the focus moves on to Limpio
   const clock = stopped ? el('div', { className: 'practice-clock', textContent: formatTime(clockMs!) })
-    : el('button', { type: 'button', className: `practice-clock${clockAt ? ' running' : ''}`, onclick: toggleClock },
-      el('span', { id: 'quiz-clock', textContent: formatTime(clockAt ? performance.now() - clockAt : 0) }), el('br'),
-      el('small', { className: 'hint', textContent: t(clockAt ? 'practice.timerStop' : 'practice.timerStart') }));
+    : el('button', { type: 'button', className: `practice-clock${clockAt ? ' running' : ''}${ready ? ' small' : ''}` },
+      el('span', { id: 'quiz-clock', textContent: formatTime(clockAt ? performance.now() - clockAt : 0) }));
   if (!stopped) Object.assign(clock.dataset, { action: 'clock', focus: '' });
-  const out: Node[] = [
-    progress(), steps(clockAt || stopped ? 2 : 1), p(t(stopped ? 'quiz.helpClockDone' : 'quiz.helpClock'), 'hint'),
-    ...holdHint(item), diagram(item), ...itemScramble(), clock,
-  ];
-  if (!stopped) return [...out, el('div', { className: 'row' }, action('solved', t('quiz.solvedNoClock'), solvedNoClock),
-    action('skip', t('quiz.skip'), skip), stuckButton('quiz.showAnswer'))];
-  const go = action('next', t(index + 1 < items.length ? 'quiz.next' : 'quiz.finish'), solvedByHand);
-  go.className = 'primary';
-  go.dataset.focus = '';
-  return [...out, el('div', { className: 'row' }, go, action('retry', t('quiz.retryItem'), retryClock), stuckButton('quiz.showAnswer'))];
+  const hint = p(t(stopped ? 'practice.card.grade' : clockAt ? 'practice.timerStop' : 'practice.card.ready'), 'hint');
+  if (!stopped) {
+    return [progress(), card(clockAt ? 'running' : 'ready', [...holdHint(item), ...(ready ? itemScramble() : []), clock, hint], toggleClock),
+      actions(action('solved', t('quiz.solvedNoClock'), solvedNoClock), action('skip', t('quiz.skip'), skip), stuckButton('quiz.showAnswer'))];
+  }
+  const delta = p(comparisonText(compare(clockMs!, statsFor(item.c.id))), 'delta');
+  const ok = action('next', t('practice.cleanBtn'), solvedByHand);
+  ok.className = 'primary';
+  ok.dataset.focus = '';
+  const miss = action('stuck', '', () => stuck('fail'));
+  miss.ariaKeyShortcuts = 'x';
+  miss.append(el('span', { textContent: t('practice.failBtn') }), el('kbd', { className: 'key-hint', ariaHidden: 'true', textContent: 'X' }));
+  return [progress(), card('stopped', [clock, delta, hint, el('div', { className: 'row grade' }, ok, miss)]),
+    actions(action('retry', t('quiz.retryItem'), retryClock))];
 }
 
 /** The item's time: on the cube, first turn to solved; without one, the hand clock. */
@@ -735,13 +793,17 @@ function renderDone(): Node[] {
   const s = statsFor(f.item.c.id);
   const avg = s && average(s);
   return [
-    progress(), p(t(f.grade === 'fail' ? 'quiz.helpDoneFail' : 'quiz.helpDone'), 'hint'),
-    el('p', { className: 'next', textContent: formatTime(itemTime()) }),
-    p(t('quiz.recognized', { time: formatTime(a.recognitionMs) }), 'hint'),
-    ...(a.htm === undefined ? [] : [p(t('practice.rep', { moves: a.moves!, htm: a.htm, ref: a.refHtm ?? '–' }), 'hint')]),
-    ...(s ? [p(t('quiz.caseStats', { best: timeOr(s.best), avg: timeOr(avg ?? null) }), 'hint')] : []),
+    progress(),
+    card('result', [
+      el('div', { className: 'practice-clock', textContent: formatTime(itemTime()) }),
+      p(feedbackText(f), `delta ${f.grade === 'fail' ? 'slower' : 'faster'}`),
+      p(t('quiz.recognized', { time: formatTime(a.recognitionMs) }), 'hint'),
+      ...(a.htm === undefined ? [] : [p(t('practice.rep', { moves: a.moves!, htm: a.htm, ref: a.refHtm ?? '–' }), 'hint')]),
+      ...(s ? [p(t('quiz.caseStats', { best: timeOr(s.best), avg: timeOr(avg ?? null) }), 'hint')] : []),
+      el('div', { className: 'row grade' }, nextButton(true), ...(f.grade === 'fail' ? [retryButton()] : [action('repeat', t('quiz.repeat'), repeat)])),
+    ]),
     feedbackView(f),
-    el('div', { className: 'row' }, ...(f.grade === 'fail' ? [retryButton()] : []), action('repeat', t('quiz.repeat'), repeat), nextButton(true), ...(f.grade === 'fail' ? reviewButton(f.item) : [])),
+    ...(f.grade === 'fail' ? [actions(action('repeat', t('quiz.repeat'), repeat), ...reviewButton(f.item))] : []),
   ];
 }
 
@@ -761,7 +823,6 @@ function renderExplain(): Node[] {
       el('p', { className: 'hint' }, ...inlineText(loc(item.c.recognition))),
       movesView(tokens), fingersView(tokens)]),
     el('div', { className: 'row' }, anim.button()),
-    p(t('quiz.helpExplain'), 'hint'),
     el('div', { className: 'row' }, retry, nextButton(false), ...reviewButton(item)),
   ];
 }
@@ -774,28 +835,29 @@ function reviewButton(item: Item): HTMLElement[] {
   return [b];
 }
 
-/** Without a smart cube the user sets each item up by hand: the plan's scramble, or a random-state one. */
+/** Without a smart cube the user sets each item up by hand: the plan's scramble, or a random-state one, big on the card
+ *  next to the state's figure. */
 function itemScramble(): Node[] {
   if (mode !== 'recognition') return [];
   const { scramble: s, random } = items[index];
-  const code = el('code', { textContent: s ?? t('quiz.preparing'), ariaBusy: String(s == null) });
+  const code = el('code', { className: 'card-moves', textContent: s ?? t('quiz.preparing'), ariaBusy: String(s == null) });
   code.dataset.scramble = ''; // filled in place when the solver answers (prefetch)
-  const hint = el('p', { className: 'hint', textContent: t('quiz.randomState'), hidden: !random }); // not true of the fallback
+  const hint = el('p', { className: 'hint', textContent: t('quiz.randomStateShort'), hidden: !random }); // not true of the fallback
   hint.dataset.random = '';
-  return [...scrambleToggle([`${t('quiz.scramble')}: `, code]), scrambleNote(items[index].hold.U, items[index].hold.F), hint];
+  return [el('div', { className: 'card-scramble' }, diagram(items[index], 96),
+    el('div', {}, code, scrambleNote(items[index].hold.U, items[index].hold.F), hint)), ...netToggle()];
 }
 
-/** Tapping the scramble shows (or hides) the whole state it leads to as a 2D net, to check the cube by eye. */
-function scrambleToggle(content: (Node | string)[]): Node[] {
-  const b = action('net', '', () => { save('quiz-net', (showNet = !showNet)); render(); });
-  b.className = 'scramble-toggle';
+/** "Ver en 2D": the whole state the scramble leads to as a net, to check the cube by eye (kept across items). */
+function netToggle(): Node[] {
+  const b = action('net', t(showNet ? 'quiz.net2dHide' : 'quiz.net2d'), () => { save('quiz-net', (showNet = !showNet)); render(); });
+  b.className = 'small';
   b.ariaExpanded = String(showNet);
   b.title = t(showNet ? 'quiz.netHide' : 'quiz.netShow');
-  b.append(...content);
   if (!showNet) return [b];
   const net = el('figure', { className: 'quiz-net' });
   const item = items[index];
-  net.innerHTML = netSVG(patternToFacelets(item.user), { size: 260, title: t('quiz.netTitle'), colors: heldColors(item.hold) });
+  net.innerHTML = netSVG(patternToFacelets(item.user), { size: 220, title: t('quiz.netTitle'), colors: heldColors(item.hold) });
   net.append(el('figcaption', { className: 'hint', textContent: neutral ? holdText(item, 'neutral.netCaption') : t('quiz.netCaption') }));
   return [b, net];
 }
@@ -823,10 +885,11 @@ function feedbackText(f: Feedback): string {
   return why ? `${t('quiz.gradedFail')} · ${why}` : t('quiz.gradedFail');
 }
 
+/** The solved case: its figure, name and algorithm (the grade is on the card above). */
 function feedbackView(f: Feedback): HTMLElement {
   const pic = el('div', { className: 'quiz-feedback-diagram', ariaHidden: 'true' }); // the case's name is next to it
   pic.innerHTML = caseSVG(f.item.c, f.item.user, { size: 72, colors: heldColors(f.item.hold), arrows: !f.item.steps });
-  return el('div', { className: 'quiz-feedback' }, pic, el('div', {}, p(feedbackText(f), f.grade === 'fail' ? 'bad' : 'ok'), ...howTo(f.item)));
+  return el('div', { className: 'quiz-feedback' }, pic, el('div', {}, ...howTo(f.item)));
 }
 
 const nextMove = () => {
@@ -842,25 +905,32 @@ function scrambleDesc(): string {
 function renderScramble(): Node[] {
   const g = guide.guide;
   return [
-    progress(), steps(1), p(t('quiz.helpScramble'), 'hint'),
-    el('div', { className: 'next', textContent: nextMove() ?? '…' }),
-    el('div', { textContent: scrambleDesc() }),
-    ...holdHint(items[index], 'neutral.holdAfter'),
-    ...scrambleToggle([el('span', { className: 'tokens' }, ...(g?.steps ?? []).flatMap((m, i) => [el('span', { textContent: cube.label(m), className: i === 0 ? 'current' : '' }), ' ']))]),
-    diagram(items[index], 120), // where the scramble leads
-    el('div', { className: 'row' }, action('skip', t('quiz.skip'), skip)),
+    progress(),
+    card('scramble', [
+      steps(1),
+      el('div', { className: 'next', textContent: nextMove() ?? '…' }),
+      el('div', { textContent: scrambleDesc() }),
+      ...holdHint(items[index], 'neutral.holdAfter'),
+      el('div', { className: 'tokens' }, ...(g?.steps ?? []).flatMap((m, i) => [el('span', { textContent: cube.label(m), className: i === 0 ? 'current' : '' }), ' '])),
+      diagram(items[index], 96), // where the scramble leads
+      ...netToggle(),
+    ]),
+    actions(action('skip', t('quiz.skip'), skip)),
   ];
 }
 
 function renderSolve(): Node[] {
   const item = items[index];
   return [
-    progress(), steps(2), p(t('quiz.helpSolve'), 'hint'),
-    el('div', { id: 'quiz-clock', className: 'next', role: 'timer', textContent: formatTime(firstMoveAt ? performance.now() - firstMoveAt : 0) }),
-    ...holdHint(item, 'neutral.holdSolve'),
-    diagram(item, 120),
-    p(tp('quiz.turns', turnCount(done)), 'hint'), // as the review counts them
-    el('div', { className: 'row' }, action('skip', t('quiz.skip'), skip), stuckButton()),
+    progress(),
+    card(firstMoveAt ? 'running' : 'solve', [
+      steps(2),
+      ...holdHint(item, 'neutral.holdSolve'),
+      el('div', { id: 'quiz-clock', className: `practice-clock${firstMoveAt ? ' running' : ''}`, role: 'timer', textContent: formatTime(firstMoveAt ? performance.now() - firstMoveAt : 0) }),
+      p(tp('quiz.turns', turnCount(done)), 'hint'), // as the review counts them
+      diagram(item, 96),
+    ]),
+    actions(action('skip', t('quiz.skip'), skip), stuckButton()),
   ];
 }
 
@@ -869,12 +939,12 @@ function renderResults(): Node[] {
   const s = score(attempts);
   const cases = byCase(attempts);
   const execution = mode === 'execution';
-  const row = (k: string, v: string) => [el('dt', { textContent: k }), el('dd', { textContent: v })];
-  const summary = el('dl', {},
-    ...row(t('quiz.accuracy'), t('quiz.accuracyValue', { pct: percent(s.accuracy), correct: s.correct, n: s.n })),
-    ...row(t('quiz.avgRecognition'), timeOr(s.recognitionMs)),
-    ...row(t('quiz.avgExecution'), timeOr(s.executionMs)), // both modes time the solve
-    ...(execution ? row(t('quiz.avgEfficiency'), pctOr(s.efficiency)) : []));
+  const tile = (k: string, v: string, sub = '') => el('div', {}, el('small', { textContent: k }), el('strong', { textContent: v }), ...(sub ? [el('small', { textContent: sub })] : []));
+  const summary = el('div', { className: 'quiz-tiles' },
+    tile(t('quiz.accuracy'), percent(s.accuracy), t('quiz.accuracyOf', { correct: s.correct, n: s.n })),
+    tile(t('quiz.avgRecognition'), timeOr(s.recognitionMs)),
+    tile(t('quiz.avgExecution'), timeOr(s.executionMs)), // both modes time the solve
+    ...(execution ? [tile(t('quiz.avgEfficiency'), pctOr(s.efficiency))] : []));
   const th = (text: string) => el('th', { textContent: text, scope: 'col' });
   const td = (text: string) => el('td', { textContent: text });
   const table = el('table', { className: 'quiz-table' },
@@ -893,7 +963,7 @@ function renderResults(): Node[] {
   if (retry.length) {
     const again = button(t('quiz.retry', { n: retry.length }), () => void openQuiz({
       kind: 'cases', id: `${scopeId(scope)}:retry`, cases: retry, answers: scopeCases(scope), title: t('quiz.retryTitle', { title: scopeTitle(scope) }),
-    }, onClose), 'primary');
+    }, onClose), 'primary practice-start');
     again.dataset.focus = '';
     actions.append(again, close);
   } else {

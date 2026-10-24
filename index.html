@@ -387,7 +387,7 @@
     @media (hover: none) { .key-hint { display: none; } } /* touch: no keyboard to press it on */
     .practice-card .grade button, .practice-card #practice-again { min-height: 52px; font-size: 1.1429rem; }
     .practice-card #practice-again { min-width: 12em; }
-    .practice-card .grade #practice-fail { background: #0b0d12; }
+    .practice-card button:not(.primary, .practice-clock, .move) { background: #0b0d12; } /* the card is a button's color */
     .practice-actions { justify-content: center; }
     .practice-actions button { min-height: 44px; }
     .practice-actions:not(:has(> :not([hidden]))) { display: none; }
@@ -410,6 +410,29 @@
     .tokens .current { color: var(--fg); font-weight: 700; text-decoration: underline; }
     /* Quiz */
     #quiz-body { display: grid; gap: 10px; }
+    @media (min-width: 601px) { #quiz[open] { margin-top: 16px; margin-bottom: auto; } } /* like Practicar: no jump between screens */
+    .quiz-progress { display: flex; align-items: center; gap: 10px; }
+    .quiz-bar { flex: 1; height: 6px; border-radius: 3px; background: #2a3142; overflow: hidden; }
+    .quiz-bar span { display: block; height: 100%; background: var(--accent); }
+    .quiz-card { min-height: min(48dvh, 420px); }
+    .quiz-card .card-scramble { flex-direction: column; text-align: center; }
+    .quiz-card .card-moves { font-size: clamp(1.25rem, 5.2vw, 1.6rem); }
+    .quiz-card .quiz-diagram svg { width: min(96px, 26vw); }
+    .quiz-card .tokens { text-align: center; }
+    .chips-field { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
+    .chips-field legend { margin-bottom: 6px; padding: 0; color: var(--muted); }
+    .chip-set { display: flex; flex-wrap: wrap; gap: 6px; }
+    .quiz-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 6px 14px; border-radius: 999px; background: #2a3142; cursor: pointer; }
+    .quiz-chip input { appearance: none; position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; } /* still focusable: the chip shows it */
+    .quiz-chip:has(input:checked) { background: var(--fg); color: var(--bg); font-weight: 700; }
+    .quiz-chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .quiz-chip:has(input:disabled) { opacity: .45; cursor: default; }
+    .quiz-chip small { font: 600 0.8571rem ui-monospace, monospace; opacity: .75; }
+    .quiz-setup-row { align-items: center; justify-content: space-between; }
+    .quiz-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; }
+    .quiz-tiles > div { display: grid; gap: 2px; align-content: start; padding: 8px 10px; border-radius: 8px; background: #0b0d12aa; }
+    .quiz-tiles small { color: var(--muted); font-size: 0.7857rem; }
+    .quiz-tiles strong { font: 700 1.5rem ui-monospace, monospace; font-variant-numeric: tabular-nums; }
     .quiz-diagram { display: grid; place-items: center; }
     .quiz-diagram svg { width: min(180px, 50vw); height: auto; }
     .answers { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
@@ -1202,8 +1225,10 @@
   <dialog id="quiz" class="sheet" aria-labelledby="quiz-title">
     <form method="dialog" class="sheet-head">
       <h2 id="quiz-title"></h2>
+      <button id="quiz-help-toggle" type="button" class="help-toggle" aria-expanded="false" aria-controls="quiz-help" data-i18n-aria-label="practice.helpLabel" data-i18n-title="practice.helpLabel">?</button>
       <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
     </form>
+    <p id="quiz-help" class="practice-help" hidden></p>
     <!-- the explanation's animation: outside #quiz-body, which is rebuilt on every render, so it's never re-attached; above it, so it's seen -->
     <div id="quiz-player" class="anim-player" role="group" data-i18n-aria-label="anim.label" hidden></div>
     <div id="quiz-body"></div>
