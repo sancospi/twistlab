@@ -15,10 +15,15 @@ export const solutionView = (streak: number, choice: SolutionView | null): Solut
 /** A new time against the case's stats before it: the first one, a new best (by how much), or off the average. */
 export type Comparison = { kind: 'first' } | { kind: 'best'; by: number } | { kind: 'avg'; delta: number };
 
-export function compare(ms: number, before: CaseStats | undefined): Comparison {
+const shown = (ms: number) => Math.floor(ms / 10) * 10; // as formatTime shows it: hundredths, truncated
+
+/** `clean`: whether the time will count (a failed or helped one never claims a first mark or a best: only clean times
+ *  make them); null when there's nothing to say. A best by less than a shown hundredth isn't one. */
+export function compare(ms: number, before: CaseStats | undefined, clean = true): Comparison | null {
   const avg = before && average(before);
-  if (!before || before.best === null || avg == null) return { kind: 'first' };
-  if (ms < before.best) return { kind: 'best', by: before.best - ms };
+  if (!before || before.best === null || avg == null) return clean ? { kind: 'first' } : null;
+  const by = shown(before.best) - shown(ms);
+  if (clean && by > 0) return { kind: 'best', by };
   return { kind: 'avg', delta: ms - avg };
 }
 

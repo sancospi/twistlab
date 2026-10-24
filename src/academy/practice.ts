@@ -389,7 +389,7 @@ function finishRep() {
   record(r);
   mode = 'result';
   render();
-  announce(`${formatTime(r.ms)}. ${comparisonText(comparison!)} · ${t(r.clean ? 'practice.clean' : 'practice.notClean')}. ${notice}`);
+  announce(`${formatTime(r.ms)}. ${comparison ? `${comparisonText(comparison)} · ` : ''}${t(r.clean ? 'practice.clean' : 'practice.notClean')}. ${notice}`);
   if (tab === 'practice') focus('practice-again'); // Space/Enter start the next rep natively (otherwise × keeps the focus and Space closes)
 }
 
@@ -397,7 +397,7 @@ function finishRep() {
 function record(r: Rep) {
   const before = statsFor(kase.id);
   const was = solutionView(before?.streak ?? 0, choice);
-  comparison = compare(r.ms, before);
+  comparison = compare(r.ms, before, r.clean);
   lastRep = r;
   const s = recordRep(kase.id, r);
   session.push({ ms: r.ms, clean: r.clean });
@@ -470,9 +470,12 @@ $('practice-start').onclick = enterFocus;
 $('practice-back').onclick = showPrep;
 /** Focus without scrolling: on a phone the sheet would jump to the element, past the title and the bar. */
 const focus = (id: string) => $(id).focus({ preventScroll: true });
-/** After a button: the clock keeps the focus, so Space is the clock again (not that button once more); stopped, Limpio. */
+/** After a button: the clock keeps the focus, so Space is the clock again (not that button once more); stopped, Limpio;
+ *  with the cube, after a rep, Otra vez. */
 const refocus = () => {
-  if (view === 'focus' && !linked()) focus(hand === 'stopped' ? 'practice-clean' : 'practice-clock');
+  if (view !== 'focus') return;
+  if (!linked()) focus(hand === 'stopped' ? 'practice-clean' : 'practice-clock');
+  else if (tab === 'practice' && mode === 'result') focus('practice-again');
 };
 $('practice-again').onclick = () => {
   newRep();
@@ -534,7 +537,12 @@ dialog.addEventListener('keydown', (e) => {
     if (!e.repeat) enterFocus();
     return;
   }
-  if (linked()) return;
+  if (linked()) { // with the cube Space is only Otra vez, after a rep (wherever the focus went)
+    if (tab !== 'practice' || mode !== 'result') return;
+    e.preventDefault();
+    if (!e.repeat) $('practice-again').click();
+    return;
+  }
   e.preventDefault(); // elsewhere Space is the clock; stopped (the focus left Limpio), Limpio
   if (e.repeat) return;
   if (tab === 'practice' && hand === 'stopped') grade(true);
@@ -559,9 +567,9 @@ function act() {
     stoppedMs = now - timerAt;
     stopTimer();
     hand = 'stopped';
-    comparison = compare(stoppedMs, statsFor(kase.id));
+    comparison = compare(stoppedMs, statsFor(kase.id), !helped);
     render();
-    announce(`${formatTime(stoppedMs)}. ${comparisonText(comparison)}. ${t(helped ? 'practice.card.peeked' : 'practice.card.grade')}`);
+    announce(`${formatTime(stoppedMs)}. ${comparison ? `${comparisonText(comparison)}. ` : ''}${t(helped ? 'practice.card.peeked' : 'practice.card.grade')}`);
     return focus('practice-clean'); // Space: Limpio; X: Fallé
   }
   render();
@@ -859,13 +867,15 @@ export function comparisonText(c: Comparison): string {
   return t('practice.vsAvg', { delta: delta === formatTime(0) ? delta : (c.delta < 0 ? '−' : '+') + delta });
 }
 
-/** The time against the case's record, colored: a new best or faster than the average green, slower yellow. */
+/** Its color: a new best or faster than the average green ('faster'), slower yellow ('slower'). */
+export const deltaClass = (c: Comparison | null): string =>
+  !c || c.kind === 'first' ? '' : c.kind === 'best' || c.delta < 0 ? 'faster' : c.delta > 0 ? 'slower' : '';
+
+/** The time against the case's record, colored; `extra` after it (or alone, with nothing to compare). */
 function deltaView(c: Comparison | null, extra = '') {
-  if (!c) return;
-  const d = $('practice-delta');
-  text('practice-delta', comparisonText(c) + extra);
-  d.classList.toggle('faster', c.kind === 'best' || (c.kind === 'avg' && c.delta < 0));
-  d.classList.toggle('slower', c.kind === 'avg' && c.delta > 0);
+  const s = (c ? comparisonText(c) : '') + extra;
+  text('practice-delta', c ? s : s.replace(/^ · /, ''));
+  $('practice-delta').className = ['delta', deltaClass(c)].filter(Boolean).join(' ');
 }
 
 /** With the smart cube: Mezcla (walk there), Resuelve (follow the solution), the result. */

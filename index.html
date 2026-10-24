@@ -368,7 +368,7 @@
     .practice-card .steps { width: 100%; }
     .practice-card .steps li { background: none; } /* on the card's own color: the current step gets the dark pill */
     .practice-card .steps li[aria-current="step"] { background: var(--bg); }
-    .practice-card .hint, .practice-card .card-top, .practice-card .card-solution { color: #a3a9b8; } /* --muted is under 4.5:1 on the card */
+    .practice-card .hint, .practice-card .card-top, .practice-card .card-solution, .practice-card .tokens, .practice-card .steps li { color: #a3a9b8; } /* --muted is under 4.5:1 on the card */
     .card-top { color: var(--muted); font-weight: 600; }
     .card-scramble { display: flex; gap: 12px; align-items: center; justify-content: center; text-align: left; }
     .card-diagram svg { width: min(84px, 22vw); height: auto; display: block; }
@@ -409,7 +409,7 @@
     .tokens .done { opacity: .5; }
     .tokens .current { color: var(--fg); font-weight: 700; text-decoration: underline; }
     /* Quiz */
-    #quiz-body { display: grid; gap: 10px; }
+    #quiz-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
     @media (min-width: 601px) { #quiz[open] { margin-top: 16px; margin-bottom: auto; } } /* like Practicar: no jump between screens */
     .quiz-progress { display: flex; align-items: center; gap: 10px; }
     .quiz-bar { flex: 1; height: 6px; border-radius: 3px; background: #2a3142; overflow: hidden; }
@@ -419,6 +419,9 @@
     .quiz-card .card-moves { font-size: clamp(1.25rem, 5.2vw, 1.6rem); }
     .quiz-card .quiz-diagram svg { width: min(96px, 26vw); }
     .quiz-card .tokens { text-align: center; }
+    .quiz-card .grade { flex-wrap: wrap; } /* its labels are longer than Limpio / Fallé ("Ver resultados", "Tentar de novo") */
+    .quiz-card .grade button { flex: 1 1 auto; }
+    .quiz-card [data-action="net"] { min-height: 44px; padding-inline: 14px; } /* a near miss would start the clock */
     .chips-field { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
     .chips-field legend { margin-bottom: 6px; padding: 0; color: var(--muted); }
     .chip-set { display: flex; flex-wrap: wrap; gap: 6px; }

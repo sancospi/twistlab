@@ -27,7 +27,7 @@ import { heldColors, netSVG } from './diagram.ts';
 import { cube, type CubeListener } from './link.ts';
 import { METHODS, findCase } from './methods.ts';
 import { inlineText } from '../rich-text-view.ts';
-import { Animation, caseSVG, comparisonText, el, fingersView, loadCase, movesView, openPractice } from './practice.ts';
+import { Animation, caseSVG, comparisonText, deltaClass, el, fingersView, loadCase, movesView, openPractice } from './practice.ts';
 import { compare } from './practiceSession.ts';
 import { caseProbability } from './probability.ts';
 import { average, learningFor, load, preferred, recordGrade, recordRep, save, setting, statsFor, type Grade } from './store.ts';
@@ -269,6 +269,7 @@ function prefetch(i: number) {
     code.textContent = item.scramble;
     code.ariaBusy = 'false';
     body.querySelector<HTMLElement>('[data-random]')!.hidden = !item.random;
+    helpBox.textContent = helpText(); // the "?" explains the random state
   });
 }
 
@@ -279,6 +280,7 @@ function gradeItem(item: Item, g: Grade, time?: Parameters<typeof recordGrade>[2
 }
 
 function startItem() {
+  rendered = null; // a new item is a new screen for the focus: its clock, not the last item's Saltar or Lo resolví
   assisted = false;
   done = [];
   firstMoveAt = 0;
@@ -549,7 +551,7 @@ function statusText(): string {
   const item = items[index];
   switch (screen) {
     case 'clock': return clockMs !== null // stopped: the time, against the case's record, and the question
-      ? `${where}. ${formatTime(clockMs)}. ${comparisonText(compare(clockMs, statsFor(item.c.id)))}. ${t('practice.card.grade')}`
+      ? `${where}. ${formatTime(clockMs)}. ${comparisonText(compare(clockMs, statsFor(item.c.id))!)}. ${t('practice.card.grade')}`
       : `${where}. ${neutral && !clockAt ? `${holdText(item)} ` : ''}${t(clockAt ? 'practice.timerStop' : 'quiz.helpClock')}`;
     case 'scramble': return [nextMove() ?? '', scrambleDesc(), neutral && item ? holdText(item, 'neutral.holdAfter') : ''].join(' ').trim();
     case 'solve': return `${where}. ${t('quiz.helpSolve')}${neutral ? ` ${holdText(item, 'neutral.holdSolve')}` : ''}`; // not the clock: it would talk every frame
@@ -568,9 +570,17 @@ function chip(type: 'radio' | 'checkbox', name: string, value: string, checked: 
     choose(input.checked);
     render();
   };
-  return el('label', { className: 'quiz-chip' }, input, el('span', { textContent: label }),
-    ...(count === undefined ? [] : [el('small', { textContent: String(count) })]));
+  return el('label', { className: 'quiz-chip' }, input, el('span', { textContent: label }), ...(count === undefined ? [] : [chipCount(count)]));
 }
+
+/** A chip's count: the number on screen, "7 casos" for a screen reader. */
+function chipCount(n: number): HTMLElement {
+  const box = el('small');
+  setCount(box, n);
+  return box;
+}
+const setCount = (box: HTMLElement, n: number) =>
+  box.replaceChildren(el('span', { ariaHidden: 'true', textContent: String(n) }), el('span', { className: 'sr-only', textContent: tp('quiz.cases', n) }));
 
 const SELECTION_LABEL: Record<Selection, MessageKey> = {
   one: 'quiz.selOne', pick: 'quiz.selPick', due: 'quiz.selDue', learning: 'quiz.selLearning', known: 'quiz.selKnown', slow: 'quiz.selSlow', all: 'quiz.selAll',
@@ -644,7 +654,7 @@ const setupSummary = (cases: number) => `${tp('quiz.cases', cases)} · ${tp('qui
  *  clicked checkbox, doesn't move the focus to "Empezar"). */
 function pickedChanged() {
   const n = selected('pick').length;
-  body.querySelector('[data-count="pick"]')!.textContent = String(n);
+  setCount(body.querySelector<HTMLElement>('[data-count="pick"]')!, n);
   const last = lastResult(scopeId(scope));
   body.querySelector('[data-count="total"]')!.textContent = [setupSummary(n), ...(last ? [t('quiz.last', { result: summaryLine(last) })] : [])].join(' · ');
   body.querySelector<HTMLButtonElement>('[data-focus]')!.disabled = !n;
@@ -742,11 +752,14 @@ function renderClock(): Node[] {
       el('span', { id: 'quiz-clock', textContent: formatTime(clockAt ? performance.now() - clockAt : 0) }));
   if (!stopped) Object.assign(clock.dataset, { action: 'clock', focus: '' });
   const hint = p(t(stopped ? 'practice.card.grade' : clockAt ? 'practice.timerStop' : 'practice.card.ready'), 'hint');
+  hint.id = 'quiz-card-hint';
+  clock.setAttribute('aria-describedby', hint.id);
   if (!stopped) {
     return [progress(), card(clockAt ? 'running' : 'ready', [...holdHint(item), ...(ready ? itemScramble() : []), clock, hint], toggleClock),
       actions(action('solved', t('quiz.solvedNoClock'), solvedNoClock), action('skip', t('quiz.skip'), skip), stuckButton('quiz.showAnswer'))];
   }
-  const delta = p(comparisonText(compare(clockMs!, statsFor(item.c.id))), 'delta');
+  const c = compare(clockMs!, statsFor(item.c.id))!; // clean until said otherwise: never null
+  const delta = p(comparisonText(c), ['delta', deltaClass(c)].filter(Boolean).join(' '));
   const ok = action('next', t('practice.cleanBtn'), solvedByHand);
   ok.className = 'primary';
   ok.dataset.focus = '';
@@ -764,6 +777,7 @@ const itemTime = () => attempts.at(-1)?.executionMs ?? 0;
 function retryButton(): HTMLElement {
   const b = action('retry', t('quiz.retryItem'), () => {
     retried = true;
+    anim.set(false); // the explanation's animation: the clock card comes back alone
     if (fromClock) {
       clockAt = 0;
       clockMs = null;
@@ -850,7 +864,11 @@ function itemScramble(): Node[] {
 
 /** "Ver en 2D": the whole state the scramble leads to as a net, to check the cube by eye (kept across items). */
 function netToggle(): Node[] {
-  const b = action('net', t(showNet ? 'quiz.net2dHide' : 'quiz.net2d'), () => { save('quiz-net', (showNet = !showNet)); render(); });
+  const b = action('net', t(showNet ? 'quiz.net2dHide' : 'quiz.net2d'), () => {
+    save('quiz-net', (showNet = !showNet));
+    render();
+    body.querySelector<HTMLElement>('[data-action="clock"]')?.focus({ preventScroll: true }); // Space: the clock again, not the net
+  });
   b.className = 'small';
   b.ariaExpanded = String(showNet);
   b.title = t(showNet ? 'quiz.netHide' : 'quiz.netShow');
