@@ -53,15 +53,28 @@ export function algView(alg: string | string[], opts: AlgViewOptions = {}): HTML
   return out;
 }
 
-/** Moves with common triggers in parentheses and repeated blocks as (block)×n, nested: ((R' D' R D)×2 U)×2. */
+const SHORT_TRIGGER = 4; // moves: a trigger this long keeps to one line
+
+/** Moves with common triggers in parentheses and repeated blocks as (block)×n, nested: ((R' D' R D)×2 U)×2. Each
+ *  parenthesis stays on the line of the move next to it (`pre` / `post`: the ones opening before the first move and
+ *  closing after the last), never alone at the start or end of a line; a short trigger (R U R' U') stays whole (a Sune
+ *  may not fit a narrow line in big text). */
 function grouped(tokens: string[], button: (token: string) => HTMLElement): (Node | string)[] {
-  const render = (parts: AlgPart[]): (Node | string)[] => parts.flatMap((p, i) => {
+  const moves = (tokens: string[], pre: string, post: string) => tokens.flatMap((token, j) => {
+    const b = button(token);
+    const open = j === 0 ? pre : '', close = j === tokens.length - 1 ? post : '';
+    const node = open || close ? Object.assign(document.createElement('span'), { className: 'nowrap' }) : b;
+    if (node !== b) node.append(open, b, close);
+    return j ? [' ', node] : [node];
+  });
+  const render = (parts: AlgPart[], pre = '', post = ''): (Node | string)[] => parts.flatMap((p, i) => {
     const sep = i ? [' '] : [];
-    const moves = (tokens: string[]) => tokens.flatMap((token, j) => (j ? [' ', button(token)] : [button(token)]));
-    if (p.kind === 'moves') return [...sep, ...moves(p.tokens)];
+    const open = i === 0 ? pre : '', close = i === parts.length - 1 ? post : '';
+    if (p.kind === 'moves') return [...sep, ...moves(p.tokens, open, close)];
     const group = Object.assign(document.createElement('span'), { className: p.kind === 'trigger' ? 'alg-trigger' : 'repeat' }); // not .trigger: case pages use it
-    if (p.kind === 'trigger') group.append('(', ...moves(p.tokens), ')');
-    else group.append('(', ...render(p.parts), `)×${p.times}`);
+    if (p.kind === 'trigger' && p.tokens.length <= SHORT_TRIGGER) group.classList.add('nowrap');
+    if (p.kind === 'trigger') group.append(...moves(p.tokens, `${open}(`, `)${close}`));
+    else group.append(...render(p.parts, `${open}(`, `)×${p.times}${close}`));
     return [...sep, group];
   });
   return render(algParts(tokens));

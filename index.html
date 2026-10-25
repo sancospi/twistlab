@@ -184,6 +184,7 @@
     .bsolve-stage li.done { opacity: .75; }
     .bsolve-stage li p { margin: 0 0 2px; }
     .alg .move.setup { color: var(--muted); font-style: italic; }
+    .alg .nowrap { white-space: nowrap; } /* a parenthesis and its move never split, nor a short trigger: lines break between groups */
     .tile-strip.tile-net svg { flex: 0 1 120px; } /* the Academia tile: one net, not a strip */
     @media (max-width: 600px) { #mod-paint { padding: 16px; } }
     /* medium widths: a tighter bar, so the 17px menu stays on one line down to ~870px (it wraps below that) */
@@ -380,8 +381,8 @@
     .practice-card .steps li[aria-current="step"] { background: var(--bg); }
     .practice-card .hint, .practice-card .card-top, .practice-card .card-solution, .practice-card .tokens, .practice-card .steps li { color: #a3a9b8; } /* --muted is under 4.5:1 on the card */
     .card-top { color: var(--muted); font-weight: 600; }
-    .card-scramble { display: flex; gap: 12px; align-items: center; justify-content: center; text-align: left; }
-    .card-diagram svg { width: min(84px, 22vw); height: auto; display: block; }
+    .card-scramble { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; } /* the figure on top: the scramble gets the card's width */
+    .card-diagram svg { width: min(96px, 26vw); height: auto; display: block; }
     .card-moves { display: block; font: 700 clamp(1.5rem, 6.5vw, 2rem)/1.35 ui-monospace, monospace; word-spacing: .15ch; text-wrap: balance; }
     .card-solution { color: var(--muted); }
     .card-solution code { font: 700 1.1429rem ui-monospace, monospace; color: var(--fg); }
@@ -425,7 +426,6 @@
     .quiz-bar { flex: 1; height: 6px; border-radius: 3px; background: #2a3142; overflow: hidden; }
     .quiz-bar span { display: block; height: 100%; background: var(--accent); }
     .quiz-card { min-height: min(48dvh, 420px); }
-    .quiz-card .card-scramble { flex-direction: column; text-align: center; }
     .quiz-card .card-moves { font-size: clamp(1.25rem, 5.2vw, 1.6rem); }
     .quiz-card .quiz-diagram svg { width: min(96px, 26vw); }
     .quiz-card .tokens { text-align: center; }

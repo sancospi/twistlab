@@ -348,7 +348,7 @@ function showContent() {
   const figure = (size: number) => caseSVG(kase, rep.user, { size, title: t('academy.diagram', { code: kase.code }), arrows: true });
   // the chosen algorithm backwards on every tab: the same case seen the same way as its scramble and animation
   $('practice-diagram').innerHTML = figure(120);
-  $('practice-card-diagram').innerHTML = figure(84);
+  $('practice-card-diagram').innerHTML = figure(96);
   $('practice-chosen').replaceChildren(movesView(tokens),
     el('span', { className: 'hint', textContent: `${sourceLabel(variant)} · ${t('practice.htm', { n: htm(centerMoves(tokens, IDENTITY)) })}` }));
   $('practice-setup').replaceChildren(algView(rep.spec.moves));
