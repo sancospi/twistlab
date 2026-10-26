@@ -1,4 +1,7 @@
 // Registry of every method the academy teaches, and lookups across them.
+// ponytail: importing them all puts the 8 methods and every translation in one chunk, so every route downloads the same
+// ~1 MB of JS (~300 KB gz): cheap while sw.js precaches it and the pages are prerendered. If it ever has to be split,
+// first load cfop.en/pt.ts and beginner2x2.en/pt.ts only for their language (~17 KB gz).
 import type { Case, Method } from './types.ts';
 import { beginner } from './beginner.ts';
 import { cfopReduced } from './cfop.ts';
