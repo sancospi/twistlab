@@ -32,6 +32,7 @@ button.wrong { background: $bad; color: $on-bad; }
 button:disabled { opacity: .4; cursor: default; }
 select { font: inherit; padding: 6px 8px; border: 0; border-radius: 8px; background: $raised; color: var(--fg); }
 summary { cursor: pointer; font-weight: 600; }
+@media (pointer: coarse) { summary { padding-block: 8px; } } /* a finger's target: a fold's line alone is ~22px */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; color: var(--muted); }
 dd { margin: 0; color: var(--fg); }

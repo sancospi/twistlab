@@ -61,6 +61,13 @@ body[data-module="academy"] .panel { @include full-page; }
 .crumbs { margin-bottom: 16px; color: var(--muted); font-size: 0.9286rem; }
 .crumbs a { color: var(--fg); }
 .crumbs-back { margin-right: 12px; padding: 6px 12px; }
+/* a finger's target: the crumbs' links grow without moving the page (an inline link's padding doesn't), Hoy's steps
+   spaced so their links don't overlap */
+@media (pointer: coarse) {
+  .crumbs a { padding-block: 12px; }
+  .today-steps { gap: 12px; }
+  .today-steps a { padding-block: 6px; }
+}
 .academy-home { display: grid; gap: 12px; }
 .tile.tile-today { border-color: var(--accent); }
 .today { display: grid; gap: 12px; max-width: 640px; }
