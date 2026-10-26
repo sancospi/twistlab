@@ -229,12 +229,12 @@ function cubeStep(s: Extract<LessonStep, { kind: 'cube' }>) {
   const mine = el('button', { type: 'button', textContent: t('lesson.onCube') });
   const pick = (b: HTMLButtonElement | null) => [virtual, mine].forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
   pick(null);
-  const watch = (play: boolean) => {
+  const watch = (play: boolean, delay = 0) => {
     pick(virtual);
     onCube = false;
     stopFollowing();
     area.replaceChildren(el('p', { className: 'hint', textContent: t('lesson.virtualHint') }));
-    if (play) playOnce();
+    if (play) playOnce(delay);
   };
   virtual.onclick = () => watch(true);
   mine.onclick = () => {
@@ -246,9 +246,10 @@ function cubeStep(s: Extract<LessonStep, { kind: 'cube' }>) {
   };
   body.replaceChildren(el('div', { className: 'row lesson-ways', role: 'group', ariaLabel: t('lesson.how') }, virtual, mine), area);
   // a synced cube is followed right away; else it plays once, unless the system asks for less motion (the player's own
-  // play button, or "Cubo virtual", still plays it)
+  // play button, or "Cubo virtual", still plays it at once). A case waits first: its "Reconocimiento" describes the
+  // state before it's solved, so the learner sees that state while reading
   if (smart() || onCube) mine.click();
-  else watch(!matchMedia('(prefers-reduced-motion: reduce)').matches);
+  else watch(!matchMedia('(prefers-reduced-motion: reduce)').matches, s.stage ? 1500 : 0);
 }
 
 function stopFollowing() {
