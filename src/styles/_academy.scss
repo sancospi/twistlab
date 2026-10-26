@@ -10,6 +10,7 @@ body[data-module="academy"] .panel { @include full-page; }
 /* Phones: no side navigation, so the phase pills stick under the bar, in one row that scrolls sideways */
 .academy-nav { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none;
   margin: 0 -24px; padding: 8px 24px; background: var(--bg); border-bottom: 1px solid $raised; }
+@media (prefers-reduced-motion: no-preference) { .academy-nav { scroll-behavior: smooth; } } /* the pill being read, kept in view (view.ts) */
 .academy-nav a { flex: none; color: var(--fg); text-decoration: none; padding: 4px 10px; border-radius: 8px; background: $raised; font-size: 0.9286rem; white-space: nowrap; }
 .academy-nav a:hover, .academy-nav a:focus-visible { background: $raised-hover; }
 .academy-nav a[aria-current="location"] { background: var(--fg); color: var(--bg); font-weight: 600; } /* selected, like a switch; green is for actions */

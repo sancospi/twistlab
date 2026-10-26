@@ -199,8 +199,9 @@ function followPhase(root: HTMLElement, nav: HTMLElement) {
       if (!e.isIntersecting) continue;
       links.forEach((a, id) => (id === e.target.id ? a.setAttribute('aria-current', 'location') : a.removeAttribute('aria-current')));
       const a = links.get(e.target.id);
-      // phones: keep the pill in view by scrolling the row sideways only (never the page under the reader)
-      if (a && nav.scrollWidth > nav.clientWidth) nav.scrollTo({ left: a.offsetLeft - nav.clientWidth / 2 + a.offsetWidth / 2, behavior: 'smooth' });
+      // phones: keep the pill in view by scrolling the row sideways only (never the page under the reader); smoothly
+      // unless the system asks for less motion (_academy.scss)
+      if (a && nav.scrollWidth > nav.clientWidth) nav.scrollTo({ left: a.offsetLeft - nav.clientWidth / 2 + a.offsetWidth / 2 });
     }
   }, { root: root.closest('.panel'), rootMargin: '-25% 0px -70% 0px' }); // "being read" = crossing the upper part
   root.querySelectorAll('.academy-phase').forEach((s) => phaseObserver!.observe(s));

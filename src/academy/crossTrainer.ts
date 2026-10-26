@@ -348,7 +348,8 @@ export function show3D(title: string, setup: string, alg: string, puzzle: Puzzle
   aim(viewerPlayer); // the figures' corner, whatever the last drag left
   viewerPlayer.jumpToStart();
   clearTimeout(autoplay);
-  autoplay = window.setTimeout(() => viewerPlayer!.play(), 600); // the start first, then the solution once
+  // the start first, then the solution once; with less motion asked for, the player's play button does it
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) autoplay = window.setTimeout(() => viewerPlayer!.play(), 600);
 }
 viewer.addEventListener('close', () => {
   clearTimeout(autoplay);

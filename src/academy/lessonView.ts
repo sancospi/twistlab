@@ -218,13 +218,14 @@ function cubeStep(s: Extract<LessonStep, { kind: 'cube' }>) {
   const mine = el('button', { type: 'button', textContent: t('lesson.onCube') });
   const pick = (b: HTMLButtonElement | null) => [virtual, mine].forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
   pick(null);
-  virtual.onclick = () => {
+  const watch = (play: boolean) => {
     pick(virtual);
     onCube = false;
     stopFollowing();
     area.replaceChildren(el('p', { className: 'hint', textContent: t('lesson.virtualHint') }));
-    playOnce();
+    if (play) playOnce();
   };
+  virtual.onclick = () => watch(true);
   mine.onclick = () => {
     pick(mine);
     onCube = true;
@@ -233,7 +234,10 @@ function cubeStep(s: Extract<LessonStep, { kind: 'cube' }>) {
     doIt(s, area);
   };
   body.replaceChildren(el('div', { className: 'row lesson-ways', role: 'group', ariaLabel: t('lesson.how') }, virtual, mine), area);
-  (smart() || onCube ? mine : virtual).click(); // a synced cube is followed right away; else it plays once
+  // a synced cube is followed right away; else it plays once, unless the system asks for less motion (the player's own
+  // play button, or "Cubo virtual", still plays it)
+  if (smart() || onCube) mine.click();
+  else watch(!matchMedia('(prefers-reduced-motion: reduce)').matches);
 }
 
 function stopFollowing() {
