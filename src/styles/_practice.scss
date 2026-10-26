@@ -45,10 +45,12 @@
 .practice-card[data-tap] { cursor: pointer; }
 .practice-card:focus { outline: none; } /* focused by script only (the cube's flow): the state's outline still shows */
 .practice-card[data-state="running"] { outline: 2px solid var(--accent); }
-/* The hand clock running (Practicar, the quiz): the card is the whole screen with just the time, so any tap stops it
-   and there's nothing else to hit by mistake. Not Memoria muscular: its buttons end a lap as failed or the series. */
+/* The hand clock running (Practicar, the quiz): the card is the whole screen with just the time (and Practicar's
+   solution while it's on, to read while solving, or De memoria), so any tap stops it and there's nothing else to hit by
+   mistake: the solution's moves don't take taps then. Not Memoria muscular: its buttons end a lap as failed or the series. */
 .practice-card[data-tap][data-state="running"]:not([data-tab="drill"]) { position: fixed; inset: 0; z-index: 1; min-height: 0; border-radius: 0; outline: none; touch-action: none; }
-.practice-card[data-tap][data-state="running"]:not([data-tab="drill"]) > :not(.practice-clock, #practice-card-hint, #quiz-card-hint) { display: none; }
+.practice-card[data-tap][data-state="running"]:not([data-tab="drill"]) > :not(.practice-clock, .card-top, #practice-solution, #practice-card-hint, #quiz-card-hint) { display: none; }
+.practice-card[data-tap][data-state="running"]:not([data-tab="drill"]) #practice-solution { pointer-events: none; }
 .practice-card .row:has(> [hidden]:only-child) { display: none; }
 .practice-card .steps { width: 100%; }
 .practice-card .steps li { background: none; } /* on the card's own color: the current step gets the dark pill */
