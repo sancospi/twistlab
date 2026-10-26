@@ -385,7 +385,7 @@ function explain(w: Why) {
 
 /** Closes the quiz and drills the case: its practice on the Memoria muscular tab. */
 function reviewNow(c: Case) {
-  dialog.close(); // its 'close' saves the items done so far // releases the cube for the practice
+  dialog.close(); // releases the cube for the practice; its 'close' saves the items done so far
   void openPractice(c, () => {}, 'drill');
 }
 
@@ -1012,7 +1012,7 @@ export const dueDay = new Intl.DateTimeFormat(lang, { weekday: 'short', day: 'nu
 /** When the session's cases come back in the spaced repetition: how many today, else the nearest day. */
 function comeBack(): HTMLElement[] {
   const now = Date.now();
-  const due = [...new Set(attempts.map((a) => a.caseId))].flatMap((id) => learningFor(id) ?? []); // none: all retries
+  const due = [...new Set(attempts.map((a) => a.caseId))].flatMap((id) => learningFor(id) ?? []); // none: never graded (Saltar, or Reintentar before a verdict)
   if (!due.length) return [];
   const today = due.filter((l) => isDue(l, now)).length;
   return [p(today ? tp('quiz.backToday', today) : `${t('case.due')}: ${dueDay.format(Math.min(...due.map((l) => l.due)))}`, 'hint')];
