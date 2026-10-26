@@ -20,7 +20,7 @@
 .quiz-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 6px 14px; border-radius: 999px; background: $raised; cursor: pointer; }
 .quiz-chip input { appearance: none; position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; } /* still focusable: the chip shows it */
 .quiz-chip:has(input:checked) { background: var(--fg); color: var(--bg); font-weight: 700; }
-.quiz-chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.quiz-chip:has(input:focus-visible) { outline: 2px solid var(--fg); outline-offset: 2px; }
 .quiz-chip:has(input:disabled) { opacity: .45; cursor: default; }
 .quiz-chip small { font: 600 0.8571rem var(--mono); opacity: .75; }
 .quiz-setup-row { align-items: center; justify-content: space-between; }
