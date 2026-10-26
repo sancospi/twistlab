@@ -18,7 +18,7 @@ import { patternToFacelets } from '../facelets.ts';
 import { IDENTITY, YELLOW_UP, centerMoves, htm, merge, tokenize, turnCount, unmapMove, type Face, type Frame } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView, scrambleNote } from '../notation-view.ts';
-import { loc, percent, t, tp, type MessageKey } from '../i18n.ts';
+import { lang, loc, percent, t, tp, type MessageKey } from '../i18n.ts';
 import {
   HOLDS, caseState, goalReached, holdIn, llSpecs, llSteps, makeQuizItems, quizPattern, randomStateScramble, specsFor,
   type Auf, type LLStep, type QuizSpec,
@@ -32,7 +32,7 @@ import { $, el } from '../el.ts';
 import { openSheet } from '../router.ts';
 import { compare } from './practiceSession.ts';
 import { caseProbability } from './probability.ts';
-import { average, learningFor, load, preferred, recordGrade, recordRep, save, setting, statsFor, type Grade } from './store.ts';
+import { average, isDue, learningFor, load, preferred, recordGrade, recordRep, save, setting, statsFor, type Grade } from './store.ts';
 import {
   addSession, aufFor, autoGrade, byCase, isStuck, lastSession, parseHistory, referenceHtm, review, score, selectCases, solutionFor, spacedTiers,
   toRetry, weightedOrder, type Attempt, type Issue, type Order, type QuizMode, type Selection, type SessionRecord,
@@ -1003,7 +1003,19 @@ function renderResults(): Node[] {
     actions.append(close);
   }
   return [el('h3', { textContent: t('quiz.results') }), summary, table, ...(execution ? reviewSection(issues) : []),
-    ...(bad.length ? [] : [p(t('quiz.allGood'), 'ok')]), actions];
+    ...(bad.length ? [] : [p(t('quiz.allGood'), 'ok')]), ...comeBack(), actions];
+}
+
+/** A review's day, as the case page shows it. */
+export const dueDay = new Intl.DateTimeFormat(lang, { weekday: 'short', day: 'numeric', month: 'short' });
+
+/** When the session's cases come back in the spaced repetition: how many today, else the nearest day. */
+function comeBack(): HTMLElement[] {
+  const now = Date.now();
+  const due = [...new Set(attempts.map((a) => a.caseId))].flatMap((id) => learningFor(id) ?? []); // none: all retries
+  if (!due.length) return [];
+  const today = due.filter((l) => isDue(l, now)).length;
+  return [p(today ? tp('quiz.backToday', today) : `${t('case.due')}: ${dueDay.format(Math.min(...due.map((l) => l.due)))}`, 'hint')];
 }
 
 /** Solve mode: every item with an error, with its review. */

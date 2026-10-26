@@ -523,6 +523,8 @@ export const pt: Record<MessageKey, string> = {
   'quiz.retry': 'Repetir os errados ({n})',
   'quiz.retryTitle': '{title} · revisão',
   'quiz.allGood': 'Sem erros nem casos lentos. Muito bem!',
+  'quiz.backToday.one': '{n} caso volta hoje para a sua revisão.',
+  'quiz.backToday.other': '{n} casos voltam hoje para a sua revisão.',
   // Full last layer drill (quiz.ts, scope 'll')
   'll.title': 'Última camada completa',
   'll.hint': 'OLL e PLL seguidas, a partir de uma última camada aleatória com o F2L feito',

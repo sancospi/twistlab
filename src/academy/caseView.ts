@@ -9,7 +9,7 @@ import { patternToFacelets } from '../facelets.ts';
 import { IDENTITY, algTags, caseSetup, centerMoves, htm, tokenize, triggerSegments } from '../notation.ts';
 import { algView, scrambleNote } from '../notation-view.ts';
 import { inlineText } from '../rich-text-view.ts';
-import { lang, loc, t, tp, type MessageKey } from '../i18n.ts';
+import { loc, t, tp, type MessageKey } from '../i18n.ts';
 import { routePath } from '../router.ts';
 import { formatTime } from '../timer.ts';
 import { caseState, practiceSpec } from './cube.ts';
@@ -19,7 +19,7 @@ import { METHODS } from './methods.ts';
 import { Animation, fingersView, loadCase, moreAlgs, movesView, openPractice, sourceLabel } from './practice.ts';
 import { $, el } from '../el.ts';
 import { caseProbability, formatProbability } from './probability.ts';
-import { openQuiz } from './quiz.ts';
+import { dueDay, openQuiz } from './quiz.ts';
 import { average, byChoice, isDue, learnStatus, learningFor, preferred, setPreferred, statsFor, variants } from './store.ts';
 import { caseLabel, type AlgVariant, type Case, type Group, type Method, type Phase } from './types.ts';
 
@@ -166,8 +166,6 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
     text([loc(m.name), loc(phase.name), loc(group.name)].join(' · '), 'hint'));
 }
 
-const day = new Intl.DateTimeFormat(lang, { weekday: 'short', day: 'numeric', month: 'short' });
-
 function yourData(c: Case): HTMLElement {
   const s = statsFor(c.id);
   const l = learningFor(c.id);
@@ -178,7 +176,7 @@ function yourData(c: Case): HTMLElement {
     ...(s?.best == null ? [] : row(t('case.best'), formatTime(s.best))),
     ...(avg == null || s!.last.length < 2 ? [] : row(t('case.avg', { n: s!.last.length }), formatTime(avg))), // one rep: that's the best
     ...row(t('case.status'), t(`library.status.${learnStatus(l)}`)),
-    ...row(t('case.due'), !l ? t('case.dueNone') : isDue(l, Date.now()) ? t('case.dueToday') : day.format(l.due)));
+    ...row(t('case.due'), !l ? t('case.dueNone') : isDue(l, Date.now()) ? t('case.dueToday') : dueDay.format(l.due)));
 }
 
 // --- The library: every case of every method, with search and filters ---

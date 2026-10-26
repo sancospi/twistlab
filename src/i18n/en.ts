@@ -521,6 +521,8 @@ export const en: Record<MessageKey, string> = {
   'quiz.retry': 'Repeat the missed ones ({n})',
   'quiz.retryTitle': '{title} · review',
   'quiz.allGood': 'No misses and no slow cases. Well done!',
+  'quiz.backToday.one': '{n} case comes back to your reviews today.',
+  'quiz.backToday.other': '{n} cases come back to your reviews today.',
   'll.title': 'Full last layer',
   'll.hint': 'OLL and PLL back to back, from a random last layer with F2L done',
   'll.intro': 'Each scramble leaves a random last layer with F2L done. Solve it all in one go: first the OLL, then the PLL, with your chosen algorithms. Showing the answer gives both cases with their algorithms.',
