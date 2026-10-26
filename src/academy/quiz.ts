@@ -211,7 +211,7 @@ function initialSelection(): Selection {
   if (oneCase()) return retry ? 'one' : 'all';
   if (scope.cases.length < scopeCases(scope).length) return 'pick';
   if (retry || scope.id === 'today' || scope.id === 'analysis-slow' || scope.id === 'library') return 'all'; // every case is being retried, is due (Hoy's review), was shown as slow (Progreso) or was just filtered (the library)
-  const last = setting<Selection>('quiz-select', 'all', (v) => SELECTIONS.includes(v));
+  const last = setting<Selection>('quiz-select', 'due', (v) => SELECTIONS.includes(v)); // never chosen: start from the fallbacks below, not Todos
   return last !== 'one' && offered(last) ? last : offered('due') ? 'due' : offered('learning') ? 'learning' : 'all';
 }
 
