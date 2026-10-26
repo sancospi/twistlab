@@ -92,6 +92,7 @@ interface Feedback {
   grade: Grade;
   issue: Issue | null; // solve mode: why it failed
   extra: number; // ...and by how many turns, for 'extra'
+  attempt: Attempt; // its time and turns (a retry's are shown, not scored)
 }
 
 // ask (Reconoce) → clock (Resuelve) without a cube, scramble (Mezcla) → solve (Resuelve) with one; then done, or
@@ -361,8 +362,10 @@ function stuck(w: Why = 'stuck') {
   if (screen === 'clock') attempts.at(-1)!.correct = false;
   if (screen === 'solve') {
     assisted = true;
-    attempts.push({ caseId: item.c.id, correct: false, recognitionMs: (firstMoveAt || performance.now()) - shownAt });
-    logs.push({ item, n: index + 1, done, skipped: false, assisted });
+    if (!retried) { // a retry's item is already scored, and reviewed, by its first try
+      attempts.push({ caseId: item.c.id, correct: false, recognitionMs: (firstMoveAt || performance.now()) - shownAt });
+      logs.push({ item, n: index + 1, done, skipped: false, assisted });
+    }
   }
   gradeItem(item, 'fail');
   explain(w);
@@ -388,8 +391,7 @@ function solved() {
   const g = autoGrade(issue, now - shownAt, item.hold !== IDENTITY ? null : learningFor(item.c.id)?.solveMs ?? null);
   recordRep(item.c.id, { ms: now - firstMoveAt, moves: done.length, htm: turnCount(done), clean: !issue });
   gradeItem(item, g, issue || item.hold !== IDENTITY ? undefined : now - shownAt); // regripping is in the clock when neutral
-  feedback = { item, grade: g, issue, extra };
-  attempts.push({
+  const attempt: Attempt = {
     caseId: item.c.id,
     correct: !assisted,
     recognitionMs: firstMoveAt - shownAt,
@@ -397,8 +399,12 @@ function solved() {
     moves: done.length,
     htm: turnCount(done), // undone slips count: they cost time
     refHtm: referenceHtm(item.c, item.user, preferred(item.c)) ?? undefined, // the algorithm being practised
-  });
-  logs.push({ item, n: index + 1, done, skipped: false, assisted });
+  };
+  feedback = { item, grade: g, issue, extra, attempt };
+  if (!retried) { // a retry's item is already scored, and reviewed, by its first try: "3 de 3", not "3 de 6"
+    attempts.push(attempt);
+    logs.push({ item, n: index + 1, done, skipped: false, assisted });
+  }
   screen = 'done';
   render();
 }
@@ -409,8 +415,10 @@ function skip() {
   const item = items[index];
   if (screen === 'solve') gradeItem(item, 'fail');
   if (screen === 'clock') attempts.at(-1)!.correct = false;
-  else attempts.push({ caseId: item.c.id, correct: false, recognitionMs: screen === 'solve' ? performance.now() - shownAt : 0 });
-  logs.push({ item, n: index + 1, done, skipped: true, assisted });
+  else if (!retried) { // a retry's item is already scored by its first try
+    attempts.push({ caseId: item.c.id, correct: false, recognitionMs: screen === 'solve' ? performance.now() - shownAt : 0 });
+    logs.push({ item, n: index + 1, done, skipped: true, assisted });
+  }
   next();
 }
 
@@ -766,8 +774,8 @@ function renderClock(): Node[] {
     actions(action('retry', t('quiz.retryItem'), retryClock))];
 }
 
-/** The item's time: on the cube, first turn to solved; without one, the hand clock. */
-const itemTime = () => attempts.at(-1)?.executionMs ?? 0;
+/** The solved item's time (on the cube): first turn to solved. */
+const itemTime = () => feedback?.attempt.executionMs ?? 0;
 
 /** Reintentar: the same item; without a cube, after a failed solve, only the solve clock (the case is already known). */
 function retryButton(): HTMLElement {
@@ -799,7 +807,7 @@ function nextButton(primary: boolean): HTMLElement {
 /** Solved: time, turns and grade, the case's best and average; Repetir (the same case, another state) or Siguiente. */
 function renderDone(): Node[] {
   const f = feedback!;
-  const a = attempts.at(-1)!;
+  const a = f.attempt;
   const s = statsFor(f.item.c.id);
   const avg = s && average(s);
   return [
@@ -1005,6 +1013,6 @@ function reviewSection(issues: ReturnType<typeof reviewed>): Node[] {
         el('span', { className: 'bad', textContent: r.issue === 'extra' ? tp('quiz.reviewExtra', r.extra) : t(r.issue === 'skipped' ? 'quiz.reviewSkipped' : 'quiz.reviewAssisted') })),
       el('p', {}, `${t('quiz.reviewAlg')}: `, algView(solution(l.item))),
       // where it went off course: the user's turns from there in red, the expected turn at that point underlined
-      ...(l.skipped && !r.mine.length ? [] : [el('p', {}, `${t('quiz.reviewMine')}: `, turns(l.item, r.mine, (i) => i >= r.divergeAt, 'bad'))]),
+      ...(!r.mine.length ? [] : [el('p', {}, `${t('quiz.reviewMine')}: `, turns(l.item, r.mine, (i) => i >= r.divergeAt, 'bad'))]),
       el('p', {}, `${t('quiz.reviewExpected')}: `, turns(l.item, r.expected, (i) => !l.skipped && i === r.divergeAt && r.divergeAt < r.mine.length, 'current'))))];
 }
