@@ -54,14 +54,14 @@
 .trainer-aufs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .trainer-aufs button { min-height: 52px; }
 .trainer-buttons button.right { background: var(--accent); color: $on-accent; }
-.trainer-buttons button.wrong { background: $bad; color: #2b0606; }
+.trainer-buttons button.wrong { background: $bad; color: $on-bad; }
 .trainer-col { display: grid; gap: 10px; align-content: start; }
 .trainer-switch .hint { align-self: center; margin-right: 4px; }
 .lookahead-stage { display: grid; gap: 10px; }
 .lookahead-stage p { overflow-wrap: anywhere; }
 .lookahead-next { font-weight: 700; }
 .lookahead-run { display: flex; gap: 12px; align-items: center; font: 700 2rem var(--mono); font-variant-numeric: tabular-nums; }
-.beat { width: 24px; height: 24px; border-radius: 50%; background: #2a2f3a; flex: none; }
+.beat { width: 24px; height: 24px; border-radius: 50%; background: $raised; flex: none; }
 .beat.on { background: var(--accent); }
 .lookahead-result { font-weight: 700; }
 /* Reconocer PLL on a wide screen: the figure beside the answers, so a round fits without scrolling */

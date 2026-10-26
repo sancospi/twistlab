@@ -8,7 +8,7 @@
 .alg .move.done { opacity: .5; }
 .alg .move.current { color: var(--fg); font-weight: 700; text-decoration: underline; }
 .alg .move.bad { color: $bad; text-decoration: underline; }
-.tip { position: fixed; inset: auto; margin: 0; width: 220px; overflow: hidden; padding: 10px; border: 1px solid $raised; border-radius: 10px; background: #151924; color: var(--fg); box-shadow: 0 8px 24px #0008; }
+.tip { position: fixed; inset: auto; margin: 0; width: 220px; overflow: hidden; padding: 10px; border: 1px solid $raised; border-radius: 10px; background: $sheet; color: var(--fg); box-shadow: 0 8px 24px #0008; }
 .tip twisty-player { width: 100%; height: 150px; } /* keep cubing.js's own display: overriding it collapses the canvas */
 .tip-text { display: grid; gap: 2px; font-size: 0.9286rem; }
 .tip-text strong { font: 700 1.2857rem var(--mono); }
@@ -44,7 +44,7 @@
 .academy-puzzle h3 { margin: 8px 0 0; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 16px; }
 .tile { display: grid; gap: 8px; align-content: start; padding: 16px; border-radius: 12px; background: $card; border: 1px solid $raised; color: var(--fg); text-decoration: none; }
-.tile:hover, .tile:focus-visible { border-color: var(--accent); background: #151924; }
+.tile:hover, .tile:focus-visible { border-color: var(--accent); background: $sheet; }
 .tile strong { font-size: 1.2857rem; }
 .tile .hint { margin: 0; }
 .tile-meta { font-size: 0.8571rem; color: var(--muted); }

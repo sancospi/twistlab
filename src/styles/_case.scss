@@ -25,7 +25,7 @@ body:not([data-module="academy"]) #case { display: none; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .chip { display: inline-block; padding: 4px 10px; border-radius: 999px; background: $raised; color: var(--fg); font-size: 0.8571rem; text-decoration: none; }
 a.chip { color: var(--fg); text-decoration: underline dotted #ffffff60; text-underline-offset: .2em; }
-a.chip:hover, a.chip:focus-visible { background: #3a4358; }
+a.chip:hover, a.chip:focus-visible { background: $raised-hover; }
 .case-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 8px; }
 .case-actions button { display: grid; gap: 4px; padding: 14px 16px; text-align: left; font-size: 1.1429rem; font-weight: 700; }
 .case-actions small { font-size: 0.8571rem; font-weight: 400; color: #b4bacb; }
@@ -93,6 +93,6 @@ a.card { color: var(--fg); text-decoration: none; border-radius: 8px; }
 .lesson-choices button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 8px; font: 700 1.1429rem var(--mono); }
 .lesson-choices button:disabled { opacity: 1; }
 .lesson-choices button.right { background: var(--accent); color: $on-accent; }
-.lesson-choices button.wrong { background: $bad; color: #2b0606; }
+.lesson-choices button.wrong { background: $bad; color: $on-bad; }
 .lesson-feedback { margin: 0; font-weight: 700; }
 @media (max-width: 600px) { .lesson-card { padding: 12px; } }

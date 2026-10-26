@@ -2,7 +2,7 @@
 @use 'tokens' as *;
 
 /* Dialogs: centered sheet, full screen on phones */
-.sheet { width: min(640px, 100vw - 32px); max-width: none; max-height: calc(100dvh - 32px); overflow-y: auto; padding: 16px; border: 0; border-radius: 12px; background: #151924; color: var(--fg); }
+.sheet { width: min(640px, 100vw - 32px); max-width: none; max-height: calc(100dvh - 32px); overflow-y: auto; padding: 16px; border: 0; border-radius: 12px; background: $sheet; color: var(--fg); }
 .sheet[open] { display: grid; gap: 10px; align-content: start; }
 .sheet::backdrop { background: #000b; }
 .sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

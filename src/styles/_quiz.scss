@@ -32,7 +32,7 @@
 .quiz-diagram svg { width: min(180px, 50vw); height: auto; }
 .answers { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
 .answers button { display: flex; align-items: center; justify-content: center; gap: 6px; }
-kbd { padding: 0 4px; border-radius: 4px; background: #0b0d12; color: var(--muted); font: 0.7857rem var(--mono); }
+kbd { padding: 0 4px; border-radius: 4px; background: var(--bg); color: var(--muted); font: 0.7857rem var(--mono); }
 .ok { color: var(--accent); font-weight: 700; }
 .bad { color: $bad; font-weight: 700; }
 .quiz-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }

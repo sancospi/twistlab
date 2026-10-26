@@ -11,6 +11,6 @@
   .header-status dt, .header-status dd:not(#status) { display: none; } /* just the status */
   .header-menu:not(:popover-open) { display: none; }
   .header-menu:popover-open { position: fixed; inset: var(--header-h) 0 auto 0; display: grid; gap: 12px; padding: 16px;
-    background: #151924; border-bottom: 1px solid $raised; box-shadow: 0 12px 24px #0008; }
+    background: $sheet; border-bottom: 1px solid $raised; box-shadow: 0 12px 24px #0008; }
   .header-menu .menu { flex: none; }
 }

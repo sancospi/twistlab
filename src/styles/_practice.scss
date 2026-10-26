@@ -72,7 +72,7 @@
 @media (hover: none) { .key-hint { display: none; } } /* touch: no keyboard to press it on */
 .practice-card .grade button, .practice-card #practice-again { min-height: 52px; font-size: 1.1429rem; }
 .practice-card #practice-again { min-width: 12em; }
-.practice-card button:not(.primary, .practice-clock, .move) { background: #0b0d12; } /* the card is a button's color */
+.practice-card button:not(.primary, .practice-clock, .move) { background: var(--bg); } /* the card is a button's color */
 .practice-actions { justify-content: center; }
 .practice-actions button { min-height: 44px; }
 .practice-actions:not(:has(> :not([hidden]))) { display: none; }

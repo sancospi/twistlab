@@ -1,10 +1,13 @@
 // Colours repeated across the screens (the rest are :root custom properties in _base.scss, which the code reads too)
 $raised: #2a3142; // buttons, chips and lines on the panel
+$raised-hover: #3a4358; // a raised pill or chip under the pointer
 $well: #0b0d12aa; // blocks set into the panel
 $card: #11141b; // cards
+$sheet: #151924; // dialogs, the ☰ menu, tooltips, a hovered card
 $warn: #facc15; // yellow: inspection's 8 s, warnings
 $on-accent: #062b14; // text on the green accent
 $bad: #f87171; // red: wrong, failed
+$on-bad: #2b0606; // text on the red
 
 // A screen that takes the whole page under the bar (the Academia, Pinta tu cubo, Progreso, Retos, Acerca de): the panel
 // fills it and nothing of the 3D cube shows behind

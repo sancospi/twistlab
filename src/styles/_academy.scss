@@ -10,7 +10,7 @@ body[data-module="academy"] .panel { @include full-page; }
 .academy-nav { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none;
   margin: 0 -24px; padding: 8px 24px; background: var(--bg); border-bottom: 1px solid $raised; }
 .academy-nav a { flex: none; color: var(--fg); text-decoration: none; padding: 4px 10px; border-radius: 8px; background: $raised; font-size: 0.9286rem; white-space: nowrap; }
-.academy-nav a:hover, .academy-nav a:focus-visible { background: #3a4358; }
+.academy-nav a:hover, .academy-nav a:focus-visible { background: $raised-hover; }
 .academy-nav a[aria-current="location"] { background: var(--accent); color: $on-accent; font-weight: 600; }
 .academy-nav ul { display: none; }
 .academy-phase, .academy-group { scroll-margin-top: 64px; } /* clear of the sticky pills */
