@@ -39,11 +39,13 @@ test('lessons: "which move?" has 4 different choices with the answer among them'
   assert.equal(new Set(moves).size, 3); // three different questions per lesson
 });
 
-test('lessons: case choices are at most 4, include the answer and keep the phase order', () => {
+test('lessons: case choices are at most 4, include the answer and keep the cyclic phase order from a random start', () => {
   const cases = [...'abcdef'].map((id) => ({ id }) as Case);
-  assert.deepEqual(caseChoices(cases, 5).map((c) => c.id), ['a', 'b', 'c', 'f']);
-  assert.deepEqual(caseChoices(cases, 1).map((c) => c.id), ['b', 'c', 'd', 'e']);
+  assert.deepEqual(caseChoices(cases, 5, () => 0).map((c) => c.id), ['a', 'b', 'c', 'f']);
+  assert.deepEqual(caseChoices(cases, 1, () => 0).map((c) => c.id), ['b', 'c', 'd', 'e']);
   assert.equal(caseChoices(cases.slice(0, 3), 0).length, 3);
+  // the last case isn't always the last button
+  assert.deepEqual(caseChoices(cases.slice(0, 4), 3, () => 0.3).map((c) => c.id), ['b', 'c', 'd', 'a']);
 });
 
 test('lessons: every guide with lessons builds them from its own data', () => {

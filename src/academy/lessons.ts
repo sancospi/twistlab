@@ -137,11 +137,14 @@ function guideLessons(g: TextGuide): Lesson[] {
 // --- A method (principiante, CFOP reducido): how to hold it, then per phase its goal and method, each case with its
 // algorithm, and "which case is it?". A phase with many cases (CFOP's F2L) gets a lesson per group instead. ---
 
-/** Up to 4 choices for a case among its phase's: all of them, or the case and the 3 after it (in phase order). */
-export function caseChoices(cases: Case[], answer: number): Case[] {
-  if (cases.length <= 4) return cases;
+/** Up to 4 choices for a case among its phase's: all of them, or the case and the 3 after it. They keep the phase's
+ *  cyclic order but start at a random one, so the answer's button doesn't give it away (asked last, it would always
+ *  be the last button). */
+export function caseChoices(cases: Case[], answer: number, rand = Math.random): Case[] {
   const picked = new Set([0, 1, 2, 3].map((k) => (answer + k) % cases.length));
-  return cases.filter((_, i) => picked.has(i));
+  const shown = cases.filter((_, i) => picked.has(i));
+  const r = Math.floor(rand() * shown.length);
+  return [...shown.slice(r), ...shown.slice(0, r)];
 }
 
 const MAX_CASES = 8; // more in one phase: a lesson per group, so a lesson stays short
