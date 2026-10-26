@@ -95,31 +95,31 @@ const F2L = (slug: string, recognition: string, alg: string, setup: string, n: s
   kase({ slug, code: slug.toUpperCase(), recognition, stage: 'f2l', alg, planB, setup, scdb: ['F2L', n], note });
 
 const f2lA = [
-  F2L('a1', 'Esquina arriba adelante-der, blanco al frente; arista arriba-derecha, verde arriba', "U R U' R'", "R U R' U'", '1'),
-  F2L('a2', 'Esquina arriba adelante-der, blanco a la derecha; arista arriba-adelante, naranja arriba', "F R' F' R", "R' F R F'", '2', "U' F' U F"),
-  F2L('a3', 'Esquina arriba adelante-der, blanco a la derecha; arista arriba-atrás, verde arriba', "R U R'", "R U' R'", '4'),
-  F2L('a4', 'Esquina arriba adelante-der, blanco al frente; arista arriba-izquierda, naranja arriba', "F' U' F", "F' U F", '3'),
+  F2L('a1', 'Esquina arriba adelante a la derecha, blanco al frente; arista arriba-derecha, verde arriba', "U R U' R'", "R U R' U'", '1'),
+  F2L('a2', 'Esquina arriba adelante a la derecha, blanco a la derecha; arista arriba-adelante, naranja arriba', "F R' F' R", "R' F R F'", '2', "U' F' U F"),
+  F2L('a3', 'Esquina arriba adelante a la derecha, blanco a la derecha; arista arriba-atrás, verde arriba', "R U R'", "R U' R'", '4'),
+  F2L('a4', 'Esquina arriba adelante a la derecha, blanco al frente; arista arriba-izquierda, naranja arriba', "F' U' F", "F' U F", '3'),
 ];
 const f2lB = [
-  F2L('b1', 'Esquina arriba adelante-der, blanco al frente; arista arriba-atrás, verde arriba', "U' R U R' U2 R U' R'", "R U R' U2 R U' R' U", '5'),
-  F2L('b2', 'Esquina arriba adelante-der, blanco a la derecha; arista arriba-izquierda, naranja arriba', "U' r U' R' U R U r'", "r U' R' U' R U r' U", '6', "U F' U' F U2 F' U F", R_NOTE),
-  F2L('b3', 'Esquina arriba adelante-der, blanco a la derecha; arista arriba-derecha, verde arriba', "U' R U' R' U R U R'", "R U' R' U' R U R' U", '14'),
-  F2L('b4', 'Esquina arriba adelante-der, blanco al frente; arista arriba-adelante, naranja arriba', "y' U R' U R U' R' U' R", "F' U F U F' U' F U'", '13', "U F' U F U' F' U' F", Y_NOTE),
+  F2L('b1', 'Esquina arriba adelante a la derecha, blanco al frente; arista arriba-atrás, verde arriba', "U' R U R' U2 R U' R'", "R U R' U2 R U' R' U", '5'),
+  F2L('b2', 'Esquina arriba adelante a la derecha, blanco a la derecha; arista arriba-izquierda, naranja arriba', "U' r U' R' U R U r'", "r U' R' U' R U r' U", '6', "U F' U' F U2 F' U F", R_NOTE),
+  F2L('b3', 'Esquina arriba adelante a la derecha, blanco a la derecha; arista arriba-derecha, verde arriba', "U' R U' R' U R U R'", "R U' R' U' R U R' U", '14'),
+  F2L('b4', 'Esquina arriba adelante a la derecha, blanco al frente; arista arriba-adelante, naranja arriba', "y' U R' U R U' R' U' R", "F' U F U F' U' F U'", '13', "U F' U F U' F' U' F", Y_NOTE),
 ];
 const f2lC = [
-  F2L('c1', 'Esquina arriba adelante-der, blanco al frente; arista arriba-izquierda, verde arriba', "U' R U2 R' U' R U2 R'", "R U2 R' U R U2 R' U", '7'),
-  F2L('c2', 'Esquina arriba adelante-der, blanco a la derecha; arista arriba-atrás, naranja arriba', "r' U2 R2 U R2 U r", "r' U' R2 U' R2 U2 r", '8', "U F' U2 F U2 F' U F", R_NOTE),
+  F2L('c1', 'Esquina arriba adelante a la derecha, blanco al frente; arista arriba-izquierda, verde arriba', "U' R U2 R' U' R U2 R'", "R U2 R' U R U2 R' U", '7'),
+  F2L('c2', 'Esquina arriba adelante a la derecha, blanco a la derecha; arista arriba-atrás, naranja arriba', "r' U2 R2 U R2 U r", "r' U' R2 U' R2 U2 r", '8', "U F' U2 F U2 F' U F", R_NOTE),
 ];
 const f2lD = [
-  F2L('d1', 'Esquina arriba adelante-der, blanco arriba; arista arriba-derecha, verde arriba', "R U2 R' U' R U R'", "R U' R' U R U2 R'", '17'),
-  F2L('d2', 'Esquina arriba adelante-der, blanco arriba; arista arriba-adelante, naranja arriba', "y' R' U2 R U R' U' R", "F' U F U' F' U2 F", '18', "F' U2 F U F' U' F", Y_NOTE),
-  F2L('d3', 'Esquina arriba adelante-der, blanco arriba; arista arriba-atrás, verde arriba', "U R U2 R' U R U' R'", "R U R' U' R U2 R' U'", '19'),
-  F2L('d4', 'Esquina arriba adelante-der, blanco arriba; arista arriba-izquierda, naranja arriba', "y' U' R' U2 R U' R' U R", "F' U' F U F' U2 F U", '20', "U' F' U2 F U' F' U F", Y_NOTE),
+  F2L('d1', 'Esquina arriba adelante a la derecha, blanco arriba; arista arriba-derecha, verde arriba', "R U2 R' U' R U R'", "R U' R' U R U2 R'", '17'),
+  F2L('d2', 'Esquina arriba adelante a la derecha, blanco arriba; arista arriba-adelante, naranja arriba', "y' R' U2 R U R' U' R", "F' U F U' F' U2 F", '18', "F' U2 F U F' U' F", Y_NOTE),
+  F2L('d3', 'Esquina arriba adelante a la derecha, blanco arriba; arista arriba-atrás, verde arriba', "U R U2 R' U R U' R'", "R U R' U' R U2 R' U'", '19'),
+  F2L('d4', 'Esquina arriba adelante a la derecha, blanco arriba; arista arriba-izquierda, naranja arriba', "y' U' R' U2 R U' R' U R", "F' U' F U F' U2 F U", '20', "U' F' U2 F U' F' U F", Y_NOTE),
 ];
 const f2lE = [
   F2L('e1', 'Esquina en la ranura, blanco al frente; arista arriba-derecha, verde arriba', "R U' R' U R U' R'", "R U R' U' R U R'", '27'),
   F2L('e2', 'Esquina en la ranura, blanco abajo; arista arriba-adelante, naranja arriba', "U R U' R' F R' F' R", "R' F R F' R U R' U'", '26', "U R U' R' U' F' U F"),
-  F2L('e3', 'Esquina arriba adelante-der, blanco arriba; arista bien puesta en la ranura', "U R U' R' U R U' R' U R U' R'", "R U R' U' R U R' U' R U R' U'", '32'),
+  F2L('e3', 'Esquina arriba adelante a la derecha, blanco arriba; arista bien puesta en la ranura', "U R U' R' U R U' R' U R U' R'", "R U R' U' R U R' U' R U R' U'", '32'),
   F2L('e4', 'Esquina en la ranura, blanco al frente; arista bien puesta en la ranura', "R U' R' U' R U R' U2 R U' R'", "R U R' U2 R U' R' U R U R'", '38'),
   F2L('e5', 'Esquina en la ranura, blanco a la derecha; arista bien puesta en la ranura', "R U' R' U R U2 R' U R U' R'", "R U R' U' R U2 R' U' R U R'", '39'),
 ];
@@ -137,19 +137,19 @@ const ollCross = [
 const SUNE_NOTE = 'Sune y Antisune son inversas: la preparación de una es el algoritmo de la otra. Apréndelas primero: salen mucho y comparten gatillos con la H.';
 const UL_NOTE = 'U y L son inversas: la preparación de una es el algoritmo de la otra. D gira la capa de abajo en sentido horario, mirándola desde abajo.';
 const ollCorners = [
-  kase({ slug: 'sune', code: 'Sune', recognition: '1 esquina arriba, adelante-izq; la de adelante-der muestra amarillo al frente', stage: 'oll-corners',
+  kase({ slug: 'sune', code: 'Sune', recognition: 'Una esquina arriba, la de adelante a la izquierda; la de adelante a la derecha muestra amarillo al frente', stage: 'oll-corners',
     alg: "R U R' U R U2 R'", setup: "R U2 R' U' R U' R'", scdb: ['OLL', '27'], note: SUNE_NOTE }),
-  kase({ slug: 'antisune', code: 'Antisune', recognition: '1 esquina arriba, atrás-der; la de adelante-izq muestra amarillo al frente', stage: 'oll-corners',
+  kase({ slug: 'antisune', code: 'Antisune', recognition: 'Una esquina arriba, la de atrás a la derecha; la de adelante a la izquierda muestra amarillo al frente', stage: 'oll-corners',
     alg: "R U2 R' U' R U' R'", setup: "R U R' U R U2 R'", scdb: ['OLL', '26'], note: SUNE_NOTE }),
-  kase({ slug: 'h', code: 'H', recognition: '0 arriba; dos amarillos a la izquierda y dos a la derecha', stage: 'oll-corners',
+  kase({ slug: 'h', code: 'H', recognition: 'Ninguna esquina arriba; dos amarillos a la izquierda y dos a la derecha', stage: 'oll-corners',
     alg: "R U R' U R U' R' U R U2 R'", setup: "R U2 R' U' R U R' U' R U' R'", scdb: ['OLL', '21'] }),
-  kase({ slug: 'pi', code: 'Pi', recognition: '0 arriba; dos amarillos a la izquierda, a la derecha uno al frente y otro atrás', stage: 'oll-corners',
+  kase({ slug: 'pi', code: 'Pi', recognition: 'Ninguna esquina arriba; dos amarillos a la izquierda, a la derecha uno al frente y otro atrás', stage: 'oll-corners',
     alg: "R U2 R2 U' R2 U' R2 U2 R", setup: "R' U2 R2 U R2 U R2 U2 R'", scdb: ['OLL', '22'] }),
-  kase({ slug: 'u', code: 'U', name: 'U (faros)', recognition: '2 arriba (las de atrás); dos amarillos al frente', stage: 'oll-corners',
+  kase({ slug: 'u', code: 'U', name: 'U (faros)', recognition: 'Dos esquinas arriba (las de atrás); dos amarillos al frente', stage: 'oll-corners',
     alg: "R2 D R' U2 R D' R' U2 R'", setup: "R U2 R D R' U2 R D' R2", scdb: ['OLL', '23'], note: UL_NOTE }),
-  kase({ slug: 't', code: 'T', recognition: '2 arriba (las de la derecha); a la izquierda un amarillo al frente y otro atrás', stage: 'oll-corners',
+  kase({ slug: 't', code: 'T', recognition: 'Dos esquinas arriba (las de la derecha); a la izquierda un amarillo al frente y otro atrás', stage: 'oll-corners',
     alg: "r U R' U' r' F R F'", setup: "F R' F' r U R U' r'", scdb: ['OLL', '24'] }),
-  kase({ slug: 'l-esquinas', code: 'L', name: 'L (esquinas)', recognition: '2 arriba en diagonal (atrás-izq y adelante-der); la de adelante-izq muestra amarillo al frente', stage: 'oll-corners',
+  kase({ slug: 'l-esquinas', code: 'L', name: 'L (esquinas)', recognition: 'Dos esquinas arriba en diagonal (atrás a la izquierda y adelante a la derecha); la de adelante a la izquierda muestra amarillo al frente', stage: 'oll-corners',
     alg: "R U2 R D R' U2 R D' R2", setup: "R2 D R' U2 R D' R' U2 R'", scdb: ['OLL', '25'], note: UL_NOTE }),
 ];
 
