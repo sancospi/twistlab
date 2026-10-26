@@ -426,24 +426,38 @@ helpToggle.onclick = () => {
 
 // Without a cube: the card is the clock (tap anywhere on it, or Space). Its moves and buttons keep their own taps, and
 // the tap that closes a move's tooltip (light dismiss lets it through, even on the tooltip: it's outside the modal) is
-// only that. Running, the touch itself stops it (or ends the lap), as the Resolver's does: a click is lost when a hurried
-// tap slides, and comes only once the finger lifts.
+// only that. Running, the touch itself stops it, as the Resolver's does: a click is lost when a hurried tap slides, and
+// comes only once the finger lifts. Memoria muscular's lap ends as the finger lifts, timed from the touch: its card
+// scrolls (Fallé and Terminar serie can be under the fold), and a swipe is cancelled instead of being a clean lap. Its
+// moves don't take taps then (_practice.scss): the whole card ends the lap.
 const clockTime = $('practice-clock');
 const ownTap = (e: Event) => !!(e.target as Element).closest('button:not(#practice-clock), a, summary, input');
 let tipAtDown = false;
 let downActed = false; // this press already stopped the clock: its click, wherever it lands (Limpio shows up under the finger), is only that
+let lapAt = 0; // Memoria muscular: when the press that may end the lap came down (0: none, or it became a scroll)
 dialog.addEventListener('pointerdown', () => {
   tipAtDown = !!document.getElementById('tip')?.matches(':popover-open');
   downActed = false;
+  lapAt = 0;
 }, true);
 dialog.addEventListener('click', (e) => {
   if (downActed && e.detail > 0) e.stopPropagation();
   downActed = false;
 }, true);
-$('practice-card').addEventListener('pointerdown', (e) => {
-  if (hand === 'running' && e.button === 0 && !ownTap(e)) (downActed = true), act();
+const card = $('practice-card');
+card.addEventListener('pointerdown', (e) => {
+  if (hand !== 'running' || e.button !== 0 || ownTap(e)) return;
+  if (tab === 'drill') lapAt = performance.now();
+  else (downActed = true), act();
 });
-$('practice-card').addEventListener('click', (e) => {
+card.addEventListener('pointerup', () => {
+  if (!lapAt || hand !== 'running') return;
+  downActed = true;
+  lap(true, lapAt);
+  lapAt = 0;
+});
+card.addEventListener('pointercancel', () => (lapAt = 0));
+card.addEventListener('click', (e) => {
   const dismissing = tipAtDown && e.detail > 0 && hand !== 'running'; // e.detail 0: Space or Enter on the clock; running, a tap stops
   tipAtDown = false;
   if (!dismissing && !ownTap(e)) act();
@@ -510,10 +524,9 @@ function grade(ok: boolean) {
   refocus();
 }
 
-/** Memoria muscular without a cube: a repetition ends (clean or not) and the next one starts. */
-function lap(ok: boolean) {
+/** Memoria muscular without a cube: a repetition ends (clean or not) and the next one starts, `now` (a touch's start). */
+function lap(ok: boolean, now = performance.now()) {
   if (hand !== 'running') return;
-  const now = performance.now();
   const n = htm(centerMoves(active(), IDENTITY));
   const r = { ms: now - timerAt, moves: n, htm: n, clean: ok && !helped };
   timerAt = now;
@@ -699,7 +712,6 @@ function renderCard() {
   reveal.textContent = t(on ? 'practice.solutionShown' : 'practice.solutionHidden'); // the label says the state
   reveal.classList.toggle('off', !on);
   const cubeOn = !!linked();
-  const card = $('practice-card');
   card.dataset.state = cubeOn ? mode : hand;
   card.dataset.tab = tab; // Memoria muscular keeps its card while running (index.html)
   card.classList.remove('undo'); // renderSolve marks a correction under way

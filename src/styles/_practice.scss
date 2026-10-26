@@ -48,6 +48,8 @@
 .practice-card[data-tap][data-state="running"]:not([data-tab="drill"]) { position: fixed; inset: 0; z-index: 1; min-height: 0; border-radius: 0; outline: none; touch-action: none; }
 .practice-card[data-tap][data-state="running"]:not([data-tab="drill"]) > :not(.practice-clock, .card-top, #practice-solution, #practice-card-hint, #quiz-card-hint) { display: none; }
 .practice-card[data-tap][data-state="running"]:not([data-tab="drill"]) #practice-solution { pointer-events: none; }
+/* Memoria muscular running: a tap on its algorithm ends the lap too (practice.ts), not a move's tooltip */
+.practice-card[data-tap][data-state="running"][data-tab="drill"] .move { pointer-events: none; }
 .practice-card .row:has(> [hidden]:only-child) { display: none; }
 .practice-card .steps { width: 100%; }
 .card-top { color: var(--muted); font-weight: 600; }
