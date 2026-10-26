@@ -29,7 +29,7 @@ export interface Score {
   accuracy: number; // 0..1
   recognitionMs: number | null; // averages over correct attempts only: a skipped or wrong one has no real time
   executionMs: number | null;
-  ms: number | null; // recognition + execution
+  ms: number | null; // recognition + execution, over timed attempts (one named without a cube may have no time)
   efficiency: number | null;
 }
 
@@ -41,7 +41,7 @@ export function score(attempts: Attempt[]): Score {
     accuracy: attempts.length ? ok.length / attempts.length : 0,
     recognitionMs: mean(ok.map((a) => a.recognitionMs)),
     executionMs: mean(ok.flatMap((a) => a.executionMs ?? [])),
-    ms: mean(ok.map((a) => a.recognitionMs + (a.executionMs ?? 0))),
+    ms: mean(ok.flatMap((a) => (a.recognitionMs || a.executionMs != null ? a.recognitionMs + (a.executionMs ?? 0) : []))),
     efficiency: mean(ok.flatMap((a) => (a.htm != null && a.refHtm != null ? efficiency(a.refHtm, a.htm) : []))),
   };
 }

@@ -37,6 +37,8 @@ test('score: accuracy over all, times and efficiency over correct attempts only'
   assert.equal(s.efficiency, 0.75);
   assert.deepEqual(score([]), { n: 0, correct: 0, accuracy: 0, recognitionMs: null, executionMs: null, ms: null, efficiency: null });
   assert.equal(score([rec('a', true, 1)]).efficiency, null); // recognition mode: no efficiency
+  // named without a cube and never timed: right, but no time to pull the mean down
+  assert.equal(score([rec('a', true, 0, { executionMs: 4000 }), rec('b', true, 0)]).ms, 4000);
 });
 
 test('byCase: worst first (accuracy, then slower, then less efficient); toRetry picks misses and slow cases', () => {
