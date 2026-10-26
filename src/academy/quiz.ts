@@ -741,6 +741,8 @@ function card(state: string, children: Node[], onTap?: () => void): HTMLElement 
 
 /** The row of the screen's other actions, under the card. */
 const actions = (...buttons: HTMLElement[]) => el('div', { className: 'row practice-actions' }, ...buttons);
+/** The explanation's: left-aligned, as its text above them (the centred clock card is not there). */
+const actionsStart = (...buttons: HTMLElement[]) => el('div', { className: 'row practice-actions start' }, ...buttons);
 
 /** The item's state as a figure; `arrows` (PLL) only once the case is known. */
 function diagram(item: Item, size = 180, arrows = false): HTMLElement {
@@ -856,8 +858,8 @@ function renderExplain(): Node[] {
       el('p', {}, el('strong', { textContent: caseLabel(item.c) })),
       el('p', { className: 'hint' }, ...inlineText(loc(item.c.recognition))),
       movesView(tokens), fingersView(tokens)]),
-    actions(anim.button()),
-    actions(retry, nextButton(false), ...reviewButton(item)),
+    actionsStart(anim.button()),
+    actionsStart(retry, nextButton(false), ...reviewButton(item)),
   ];
 }
 

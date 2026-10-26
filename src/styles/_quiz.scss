@@ -13,6 +13,7 @@
 .quiz-card .tokens { text-align: center; }
 .quiz-card .grade { flex-wrap: wrap; } /* its labels are longer than Limpio / Fallé ("Ver resultados", "Tentar de novo") */
 .quiz-card .grade button { flex: 1 1 auto; }
+.practice-actions.start { justify-content: flex-start; } /* the explanation's, under its left-aligned text */
 .quiz-card [data-action="net"] { min-height: 44px; padding-inline: 14px; } /* a near miss would start the clock */
 .chips-field { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
 .chips-field legend { margin-bottom: 6px; padding: 0; color: var(--muted); }
