@@ -16,6 +16,10 @@ test('table build is fast, and the depth distribution is the known one', () => {
     const counts = Array(9).fill(0);
     for (const x of d) if (x !== 255) counts[x]++;
     assert.deepEqual(counts, [1, 15, 158, 1394, 9809, 46381, 97254, 34966, 102]);
+    // FNV-1a of the whole table, taken from the array-based step() before its integer rewrite: same table, byte for byte
+    let h = 2166136261;
+    for (const x of d) h = Math.imul(h ^ x, 16777619) >>> 0;
+    assert.equal(h, { U: 3952224661, D: 1213830213 }[face]);
   }
 });
 

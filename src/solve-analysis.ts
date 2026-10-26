@@ -225,7 +225,7 @@ export function lessonsOf(kpuzzle: KPuzzle, a: Analysis): Lesson[] {
     const side = a.c !== 'U' && a.c !== 'D';
     const view = side ? withUp(states[0], ll) : states[0];
     const face = a.c === 'U' ? 'U' : 'D';
-    // ponytail: the first call per face builds the cross table (~120 ms on a desktop, cached after); warm it on connect if it nags
+    // ponytail: the first call per face builds the cross table (~25 ms on a desktop, cached after); warm it on connect if it nags
     const best = crossDistance(view, face);
     // ponytail: every turn counts, as in the cross trainer (crossTrainer.ts): a slip and its undo cost time
     const turns = turnCount(moves.slice(0, a.s[0]));
