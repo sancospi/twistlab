@@ -523,6 +523,10 @@ export const pt: Record<MessageKey, string> = {
   'quiz.retry': 'Repetir os errados ({n})',
   'quiz.retryTitle': '{title} · revisão',
   'quiz.allGood': 'Sem erros nem casos lentos. Muito bem!',
+  'quiz.nowKnown.one': 'Você já sabe: {cases}.',
+  'quiz.nowKnown.other': 'Você já sabe: {cases}.',
+  'quiz.started.one': '{n} caso novo na sua revisão.',
+  'quiz.started.other': '{n} casos novos na sua revisão.',
   'quiz.backToday.one': '{n} caso volta hoje para a sua revisão.',
   'quiz.backToday.other': '{n} casos voltam hoje para a sua revisão.',
   // Full last layer drill (quiz.ts, scope 'll')

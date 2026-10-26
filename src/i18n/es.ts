@@ -522,6 +522,10 @@ export const es = {
   'quiz.retry': 'Repetir los fallados ({n})',
   'quiz.retryTitle': '{title} · repaso',
   'quiz.allGood': 'Sin fallos ni casos lentos. ¡Bien hecho!',
+  'quiz.nowKnown.one': 'Ya sabes: {cases}.',
+  'quiz.nowKnown.other': 'Ya sabes: {cases}.',
+  'quiz.started.one': '{n} caso nuevo en tu repaso.',
+  'quiz.started.other': '{n} casos nuevos en tu repaso.',
   'quiz.backToday.one': '{n} caso vuelve hoy a tu repaso.',
   'quiz.backToday.other': '{n} casos vuelven hoy a tu repaso.',
   // Full last layer drill (quiz.ts, scope 'll')

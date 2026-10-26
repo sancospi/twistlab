@@ -13,7 +13,7 @@
 // always there. Every item with a verdict grades its case for the spaced repetition (store.ts; "Lo resolví" without the
 // clock moves on ungraded and out of the score) and every solve counts as a repetition of it (a retry, after the answer,
 // as a helped one); scoring lives in score.ts, a short history of sessions in this browser; the errors are reviewed at
-// the end.
+// the end, with what the session moved in the spaced repetition (cases now known, or new ones brought in).
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { describe, nextStep, PathGuide } from '../guide.ts';
@@ -35,7 +35,9 @@ import { $, el } from '../el.ts';
 import { openSheet } from '../router.ts';
 import { compare } from './practiceSession.ts';
 import { caseProbability } from './probability.ts';
-import { average, isDue, learningFor, load, preferred, recordGrade, recordRep, save, setting, statsFor, type Grade } from './store.ts';
+import {
+  average, isDue, learnStatus, learningFor, load, preferred, recordGrade, recordRep, save, setting, statsFor, type Grade, type LearnStatus,
+} from './store.ts';
 import {
   addSession, aufFor, autoGrade, byCase, isStuck, lastSession, parseHistory, referenceHtm, review, score, selectCases, solutionFor, spacedTiers,
   toRetry, weightedOrder, type Attempt, type Issue, type Order, type QuizMode, type Selection, type SessionRecord,
@@ -133,6 +135,7 @@ let picked = new Set<string>(); // "Elegir a mano"
 let pickGrid: HTMLElement | null = null; // built once per scope: one diagram per case
 let feedback: Feedback | null = null; // the solved item's, on the done screen
 let failed = new Set<string>(); // cases graded as failed this session: repeated with the misses
+let before = new Map<string, LearnStatus>(); // the session's cases' learning status at its start: the results say what moved
 /** Execution: what happened on each item, for the review at the end. */
 let logs: { item: Item; n: number; done: string[]; skipped: boolean; assisted: boolean }[] = [];
 
@@ -263,6 +266,8 @@ function start() {
   logs = [];
   feedback = null;
   failed = new Set();
+  // a full last layer's items grade the drill, not a case: nothing to report for it
+  before = new Map(items.filter(({ c }) => findCase(c.id)).map(({ c }): [string, LearnStatus] => [c.id, learnStatus(learningFor(c.id))]));
   startItem();
 }
 
@@ -1024,7 +1029,17 @@ function renderResults(): Node[] {
     actions.append(close);
   }
   return [el('h3', { textContent: t('quiz.results') }), summary, table, ...(execution ? reviewSection(issues) : []),
-    ...(bad.length ? [] : [p(t('quiz.allGood'), 'ok')]), ...comeBack(), actions];
+    ...(bad.length ? [] : [p(t('quiz.allGood'), 'ok')]), ...gains(), ...comeBack(), actions];
+}
+
+/** What the session moved in the spaced repetition: the cases it made known, else how many it brought in (a first
+ *  session can't make one known: its interval stays under KNOWN_DAYS). Nothing when nothing moved. */
+function gains(): HTMLElement[] {
+  const moved = (from: LearnStatus, to: LearnStatus) => [...before].filter(([id, s]) => s === from && learnStatus(learningFor(id)) === to).map(([id]) => id);
+  const known = moved('learning', 'known');
+  if (known.length) return [p(tp('quiz.nowKnown', known.length, { cases: known.map((id) => findCase(id)!.code).join(', ') }), 'ok')];
+  const started = moved('new', 'learning').length;
+  return started ? [p(tp('quiz.started', started), 'hint')] : [];
 }
 
 /** A review's day, as the case page shows it. */
