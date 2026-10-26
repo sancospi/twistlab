@@ -77,34 +77,34 @@ const oll = (slug: string, code: string, name: string | T, recognition: T, rank:
 
 const SUNE_NOTE: T = ['Sune y Antisune son inversas: la preparación de una es el algoritmo de la otra.', 'Sune and Antisune are inverses: the setup of one is the algorithm of the other.', 'Sune e Antisune são inversos: a preparação de um é o algoritmo do outro.'];
 const ollOne = [
-  oll('sune', 'Sune', 'Sune', ['1 amarilla arriba, adelante-izquierda; la de adelante-derecha mira al frente',
-    '1 yellow on top, front-left; the front-right one faces front', '1 amarela em cima, frente-esquerda; a da frente-direita olha para a frente'], 1,
+  oll('sune', 'Sune', 'Sune', ['Una amarilla arriba, adelante-izquierda; la de adelante-derecha mira al frente',
+    'One yellow on top, front-left; the front-right one faces front', 'Uma amarela em cima, frente-esquerda; a da frente-direita olha para a frente'], 1,
     "R U R' U R U2 R'", [[2, "R U R2 U' R2 U R"]], SUNE_NOTE),
-  oll('antisune', 'Antisune', 'Antisune', ['1 amarilla arriba, atrás-derecha; la de adelante-izquierda mira al frente',
-    '1 yellow on top, back-right; the front-left one faces front', '1 amarela em cima, atrás-direita; a da frente-esquerda olha para a frente'], 1,
+  oll('antisune', 'Antisune', 'Antisune', ['Una amarilla arriba, atrás-derecha; la de adelante-izquierda mira al frente',
+    'One yellow on top, back-right; the front-left one faces front', 'Uma amarela em cima, atrás-direita; a da frente-esquerda olha para a frente'], 1,
     "R U2 R' U' R U' R'", [[4, "R' F R F' R U R'", ['Sostenla con la amarilla de arriba adelante-derecha.', 'Hold it with the top yellow at front-right.', 'Segure com a amarela de cima na frente-direita.']]], SUNE_NOTE),
 ];
 const ollNone = [
-  oll('h', 'H', 'H', ['0 arriba; dos amarillas miran al frente y dos atrás', '0 on top; two yellows face front and two face back', '0 em cima; duas amarelas olham para a frente e duas para trás'], 1,
+  oll('h', 'H', 'H', ['Ninguna arriba; dos amarillas miran al frente y dos atrás', 'None on top; two yellows face front and two face back', 'Nenhuma em cima; duas amarelas olham para a frente e duas para trás'], 1,
     "R2 U2 R' U2 R2", [[2, "R2 U2 R U2 R2", ["Igual, con `R` en vez de `R'`.", "Same, with `R` instead of `R'`.", "Igual, com `R` em vez de `R'`."]],
       [3, "F R U R' U' R U R' U' R U R' U' F'", ["El gatillo `R U R' U'` 3 veces entre `F` y `F'`.", "The `R U R' U'` trigger 3 times between `F` and `F'`.", "O gatilho `R U R' U'` 3 vezes entre `F` e `F'`."]]],
     ['Si las amarillas miran a los lados, gira `U` antes.', 'If the yellows face the sides, turn `U` first.', 'Se as amarelas olharem para os lados, gire `U` antes.']),
-  oll('pi', 'Pi', 'Pi', ['0 arriba; dos amarillas miran a la izquierda; a la derecha, una al frente y otra atrás',
-    '0 on top; two yellows face left; on the right, one faces front and one faces back',
-    '0 em cima; duas amarelas olham para a esquerda; à direita, uma para a frente e outra para trás'], 1,
+  oll('pi', 'Pi', 'Pi', ['Ninguna arriba; dos amarillas miran a la izquierda; a la derecha, una al frente y otra atrás',
+    'None on top; two yellows face left; on the right, one faces front and one faces back',
+    'Nenhuma em cima; duas amarelas olham para a esquerda; à direita, uma para a frente e outra para trás'], 1,
     "F R U R' U' R U R' U' F'", [[3, "R U2 R2 U' R2 U' R2 U2 R", ['La misma del Pi en el CFOP.', 'The same one as the Pi in CFOP.', 'O mesmo do Pi no CFOP.']]],
     ["El gatillo `R U R' U'` 2 veces entre `F` y `F'`.", "The `R U R' U'` trigger 2 times between `F` and `F'`.", "O gatilho `R U R' U'` 2 vezes entre `F` e `F'`."]),
 ];
 const ollTwo = [
-  oll('u', 'U', ['U (faros)', 'U (faros)', 'U (faróis)'], ['2 arriba, las de la derecha; las otras dos miran a la izquierda', '2 on top, the right ones; the other two face left', '2 em cima, as da direita; as outras duas olham para a esquerda'], 1,
+  oll('u', 'U', ['U (faros)', 'U (faros)', 'U (faróis)'], ['Dos arriba, las de la derecha; las otras dos miran a la izquierda', 'Two on top, the right ones; the other two face left', 'Duas em cima, as da direita; as outras duas olham para a esquerda'], 1,
     "F R U R' U' F'", [[2, "y2 F U R U' R' F'", ['Empieza con `y2`: los faros pasan a la derecha.', 'Starts with `y2`: the headlights move to the right.', 'Começa com `y2`: os faróis passam para a direita.']]]),
-  oll('t', 'T', 'T', ['2 arriba, las de la derecha; a la izquierda, una mira al frente y otra atrás',
-    '2 on top, the right ones; on the left, one faces front and one faces back',
-    '2 em cima, as da direita; à esquerda, uma olha para a frente e outra para trás'], 1,
+  oll('t', 'T', 'T', ['Dos arriba, las de la derecha; a la izquierda, una mira al frente y otra atrás',
+    'Two on top, the right ones; on the left, one faces front and one faces back',
+    'Duas em cima, as da direita; à esquerda, uma olha para a frente e outra para trás'], 1,
     "R U R' U' R' F R F'", [[2, "U R U R' U' F' U' F"]]),
-  oll('l', 'L', 'L', ['2 arriba en diagonal (adelante-derecha y atrás-izquierda); la de adelante-izquierda mira al frente',
-    '2 on top in a diagonal (front-right and back-left); the front-left one faces front',
-    '2 em cima na diagonal (frente-direita e atrás-esquerda); a da frente-esquerda olha para a frente'], 3,
+  oll('l', 'L', 'L', ['Dos arriba en diagonal (adelante-derecha y atrás-izquierda); la de adelante-izquierda mira al frente',
+    'Two on top in a diagonal (front-right and back-left); the front-left one faces front',
+    'Duas em cima na diagonal (frente-direita e atrás-esquerda); a da frente-esquerda olha para a frente'], 3,
     "F R' F' R U R U' R'", [[2, "F R U' R' U' R U R' F'"]]),
 ];
 
@@ -124,11 +124,11 @@ const pblOne = [
     X2),
 ];
 const pblTwo = [
-  pbl('adj-adj', 'Adj-Adj', ['Adyacentes arriba y abajo', 'Adjacent on top and bottom', 'Adjacentes em cima e embaixo'], ['1 barra arriba y 1 abajo: las dos al frente', '1 bar on top and 1 on the bottom: both in front', '1 barra em cima e 1 embaixo: as duas na frente'], 1,
+  pbl('adj-adj', 'Adj-Adj', ['Adyacentes arriba y abajo', 'Adjacent on top and bottom', 'Adjacentes em cima e embaixo'], ['Una barra arriba y una abajo: las dos al frente', 'One bar on top and one on the bottom: both in front', 'Uma barra em cima e uma embaixo: as duas na frente'], 1,
     "R2 U' B2 U2 R2 U' R2", [[3, "R2 U R2 U2 F2 U F2"]]),
   pbl('diag-diag', 'Diag-Diag', ['Diagonal arriba y abajo', 'Diagonal on top and bottom', 'Diagonal em cima e embaixo'], ['Ninguna barra, ni arriba ni abajo', 'No bars, neither on top nor on the bottom', 'Nenhuma barra, nem em cima nem embaixo'], 1,
     'R2 F2 R2', [[2, 'R2 B2 R2']], ['Da igual cómo lo sostengas.', 'It does not matter how you hold it.', 'Tanto faz como você segura.']),
-  pbl('adj-diag', 'Adj-Diag', ['Adyacentes arriba, diagonal abajo', 'Adjacent on top, diagonal on the bottom', 'Adjacentes em cima, diagonal embaixo'], ['1 barra arriba, al frente. Abajo, ninguna', '1 bar on top, in front. Bottom: none', '1 barra em cima, na frente. Embaixo, nenhuma'], 1,
+  pbl('adj-diag', 'Adj-Diag', ['Adyacentes arriba, diagonal abajo', 'Adjacent on top, diagonal on the bottom', 'Adjacentes em cima, diagonal embaixo'], ['Una barra arriba, al frente. Abajo, ninguna', 'One bar on top, in front. Bottom: none', 'Uma barra em cima, na frente. Embaixo, nenhuma'], 1,
     "R U' R F2 R' U R'", [[2, "R' F R' F2 R U' R"]],
     ["Si la diagonal está arriba y la barra abajo, gira el cubo con `x2` (o `z2`) y es este caso. SpeedCubeDB también da uno directo: `R' D R' F2 R D' R`.",
       "If the diagonal is on top and the bar on the bottom, turn the cube with `x2` (or `z2`) and it is this case. SpeedCubeDB also gives a direct one: `R' D R' F2 R D' R`.",
@@ -294,9 +294,9 @@ export const ortega: Method = {
       ]),
       diagram: 'top',
       groups: [
-        { id: 'ortega-oll-una', name: tr('1 amarilla arriba', '1 yellow on top', '1 amarela em cima'), cases: ollOne },
-        { id: 'ortega-oll-ninguna', name: tr('0 amarillas arriba', '0 yellows on top', '0 amarelas em cima'), cases: ollNone },
-        { id: 'ortega-oll-dos', name: tr('2 amarillas arriba', '2 yellows on top', '2 amarelas em cima'), cases: ollTwo },
+        { id: 'ortega-oll-una', name: tr('Una amarilla arriba', 'One yellow on top', 'Uma amarela em cima'), cases: ollOne },
+        { id: 'ortega-oll-ninguna', name: tr('Ninguna amarilla arriba', 'No yellows on top', 'Nenhuma amarela em cima'), cases: ollNone },
+        { id: 'ortega-oll-dos', name: tr('Dos amarillas arriba', 'Two yellows on top', 'Duas amarelas em cima'), cases: ollTwo },
       ],
       quizzes: [],
     },

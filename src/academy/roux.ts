@@ -52,7 +52,7 @@ const fbFront = [
     ['Cuadrado de atrás hecho. El par de adelante está formado arriba, sobre la cara verde: verde al frente, rojo arriba y el blanco de la esquina mirando a la cara roja',
       "Back square done. The front pair is joined on top, above the green face: green in front, red on top and the corner's white facing the red side", 'Quadrado de trás feito. O par da frente está formado em cima, sobre a face verde: verde na frente, vermelho em cima e o branco da quina virado para a face vermelha'], "F'",
     ['Un solo giro: `F` y `B` sirven mientras su ranura del bloque esté libre.', 'A single turn: `F` and `B` work while their slot of the block is empty.', 'Um só movimento: `F` e `B` servem enquanto o slot deles no bloco estiver livre.']),
-  fb('delante-derecha', ['Frente der.', 'Front right', 'Frente dir.'], ['Par arriba, a la derecha', 'Pair on top, on the right', 'Par em cima, à direita'],
+  fb('delante-derecha', ['Frente derecha', 'Front right', 'Frente direita'], ['Par arriba, a la derecha', 'Pair on top, on the right', 'Par em cima, à direita'],
     ['Cuadrado de atrás hecho. El par de adelante está formado arriba al frente, hacia la derecha: verde arriba, rojo al frente y el blanco de la esquina mirando a la derecha',
       "Back square done. The front pair is joined on top at the front, towards the right: green on top, red in front and the corner's white facing right", 'Quadrado de trás feito. O par da frente está formado em cima na frente, para a direita: verde em cima, vermelho na frente e o branco da quina virado para a direita'], "L' U L",
     ["`L'` sube la ranura, `U` pone el par encima y `L` baja todo junto: como un par del F2L.", "`L'` lifts the slot, `U` puts the pair above it and `L` brings it all down: like an F2L pair.", "`L'` sobe o slot, `U` põe o par em cima dele e `L` desce tudo junto: como um par do F2L."]),
@@ -65,7 +65,7 @@ const fbBack = [
   fb('atras-arriba', ['Atrás', 'Back', 'Atrás'], ['Par arriba, atrás', 'Pair on top, at the back', 'Par em cima, atrás'],
     ['Par de adelante hecho. El de atrás está formado arriba, atrás a la izquierda: rojo arriba, azul atrás y el blanco de la esquina mirando a la cara roja',
       "Front pair done. The back one is joined on top, at the back left: red on top, blue at the back and the corner's white facing the red side", 'Par da frente feito. O de trás está formado em cima, atrás à esquerda: vermelho em cima, azul atrás e o branco da quina virado para a face vermelha'], 'B'),
-  fb('atras-derecha', ['Atrás der.', 'Back right', 'Atrás dir.'], ['Par arriba, atrás a la derecha', 'Pair on top, at the back right', 'Par em cima, atrás à direita'],
+  fb('atras-derecha', ['Atrás derecha', 'Back right', 'Atrás direita'], ['Par arriba, atrás a la derecha', 'Pair on top, at the back right', 'Par em cima, atrás à direita'],
     ['Par de adelante hecho. El de atrás está formado arriba, atrás a la derecha: azul arriba, rojo atrás y el blanco de la esquina mirando a la derecha',
       "Front pair done. The back one is joined on top, at the back right: blue on top, red at the back and the corner's white facing right", 'Par da frente feito. O de trás está formado em cima, atrás à direita: azul em cima, vermelho atrás e o branco da quina virado para a direita'], "L U' L'",
     ["El espejo de `L' U L` para la ranura de atrás.", "The mirror of `L' U L` for the back slot.", "O espelho de `L' U L` para o slot de trás."]),
@@ -76,23 +76,23 @@ const sb = (slug: string, code: T, name: T, recognition: T, alg: string, note?: 
   kase({ slug: `sb-${slug}`, stage: 'roux-sb', code, name, recognition, alg, note });
 
 const sbFront = [
-  sb('delante-izquierda', ['Frente izq.', 'Front left', 'Frente esq.'], ['Par arriba, al frente a la izquierda', 'Pair on top, front left', 'Par em cima, na frente à esquerda'],
+  sb('delante-izquierda', ['Frente izquierda', 'Front left', 'Frente esquerda'], ['Par arriba, al frente a la izquierda', 'Pair on top, front left', 'Par em cima, na frente à esquerda'],
     ['Primer bloque y cuadrado de atrás hechos. El par de adelante está formado arriba al frente, hacia la izquierda: verde arriba, naranja al frente y el blanco de la esquina mirando a la izquierda',
       "First block and back square done. The front pair is joined on top at the front, towards the left: green on top, orange in front and the corner's white facing left", 'Primeiro bloco e quadrado de trás feitos. O par da frente está formado em cima na frente, para a esquerda: verde em cima, laranja na frente e o branco da quina virado para a esquerda'], "R U' R'"),
   sb('delante-derecha', ['Derecha', 'Right', 'Direita'], ['Par arriba, a la derecha', 'Pair on top, on the right', 'Par em cima, à direita'],
     ['Primer bloque y cuadrado de atrás hechos. El par de adelante está formado arriba a la derecha: verde arriba, naranja a la derecha y el blanco de la esquina mirando al frente',
       "First block and back square done. The front pair is joined on top on the right: green on top, orange on the right and the corner's white facing front", 'Primeiro bloco e quadrado de trás feitos. O par da frente está formado em cima à direita: verde em cima, laranja à direita e o branco da quina virado para a frente'], "U R U' R'",
     ["`U` lo deja al frente a la izquierda: es el caso de `R U' R'`.", "`U` leaves it at the front left: it is the `R U' R'` case.", "`U` o deixa na frente à esquerda: é o caso de `R U' R'`."]),
-  sb('delante-r', ['Frente der.', 'Front right', 'Frente dir.'], ['Par arriba, con r', 'Pair on top, with r', 'Par em cima, com r'],
+  sb('delante-r', ['Frente derecha', 'Front right', 'Frente direita'], ['Par arriba, con r', 'Pair on top, with r', 'Par em cima, com r'],
     ['Primer bloque y cuadrado de atrás hechos. El par de adelante está formado arriba al frente, hacia la derecha: naranja arriba, verde al frente y el blanco de la esquina mirando a la derecha',
       "First block and back square done. The front pair is joined on top at the front, towards the right: orange on top, green in front and the corner's white facing right", 'Primeiro bloco e quadrado de trás feitos. O par da frente está formado em cima na frente, para a direita: laranja em cima, verde na frente e o branco da quina virado para a direita'], "r U r'",
     ['`r` sube la ranura junto con la capa `M`: las aristas del medio aún no importan.', '`r` lifts the slot together with the `M` layer: the middle edges do not matter yet.', '`r` sobe o slot junto com a camada `M`: as arestas do meio ainda não importam.']),
 ];
 const sbBack = [
-  sb('atras-izquierda', ['Atrás izq.', 'Back left', 'Atrás esq.'], ['Par arriba, atrás a la izquierda', 'Pair on top, back left', 'Par em cima, atrás à esquerda'],
+  sb('atras-izquierda', ['Atrás izquierda', 'Back left', 'Atrás esquerda'], ['Par arriba, atrás a la izquierda', 'Pair on top, back left', 'Par em cima, atrás à esquerda'],
     ['Primer bloque y par de adelante hechos. El de atrás está formado arriba, atrás hacia la izquierda: azul arriba, naranja atrás y el blanco de la esquina mirando a la izquierda',
       "First block and front pair done. The back one is joined on top at the back, towards the left: blue on top, orange at the back and the corner's white facing left", 'Primeiro bloco e par da frente feitos. O de trás está formado em cima atrás, para a esquerda: azul em cima, laranja atrás e o branco da quina virado para a esquerda'], "R' U R"),
-  sb('atras-r', ['Atrás der.', 'Back right', 'Atrás dir.'], ['Par arriba, atrás con r', 'Pair on top, back with r', 'Par em cima, atrás com r'],
+  sb('atras-r', ['Atrás derecha', 'Back right', 'Atrás direita'], ['Par arriba, atrás con r', 'Pair on top, back with r', 'Par em cima, atrás com r'],
     ['Primer bloque y par de adelante hechos. El de atrás está formado arriba, atrás a la derecha: naranja arriba, azul atrás y el blanco de la esquina mirando a la derecha',
       "First block and front pair done. The back one is joined on top at the back right: orange on top, blue at the back and the corner's white facing right", 'Primeiro bloco e par da frente feitos. O de trás está formado em cima, atrás à direita: laranja em cima, azul atrás e o branco da quina virado para a direita'], "r' U' r",
     ["Como `r U r'`, hacia atrás.", "Like `r U r'`, towards the back.", "Como `r U r'`, para trás."]),
@@ -105,13 +105,13 @@ const cmll = (shape: T) => (slug: string, code: string, name: T, scdb: string, l
   kase({ slug: `cmll-${slug}`, stage: 'cmll', code: [code, code, code], name, recognition: [`${shape[0]}. ${cap(look[0])}`, `${shape[1]}. ${cap(look[1])}`, `${shape[2]}. ${cap(look[2])}`], alg, alts, scdb });
 
 const cO = cmll(['Las 4 amarillas arriba', 'All 4 yellows on top', 'As 4 amarelas em cima']);
-const cH = cmll(['0 amarillas arriba: dos miran al frente y dos atrás', 'No yellows on top: two face front and two face back', '0 amarelas em cima: duas viradas para a frente e duas para trás']);
-const cPi = cmll(['0 amarillas arriba: dos miran a la izquierda; a la derecha, una al frente y otra atrás', 'No yellows on top: two face left; on the right, one faces front and one faces back', '0 amarelas em cima: duas viradas para a esquerda; à direita, uma para a frente e outra para trás']);
-const cU = cmll(['2 amarillas arriba, las de adelante; las de atrás miran atrás', '2 yellows on top, the front ones; the back ones face back', '2 amarelas em cima, as da frente; as de trás viradas para trás']);
-const cT = cmll(['2 amarillas arriba, las de adelante; las de atrás miran a los lados', '2 yellows on top, the front ones; the back ones face the sides', '2 amarelas em cima, as da frente; as de trás viradas para os lados']);
-const cS = cmll(['1 amarilla arriba, adelante a la derecha; la de adelante a la izquierda mira a la izquierda', '1 yellow on top, front right; the front-left one faces left', '1 amarela em cima, na frente à direita; a da frente à esquerda virada para a esquerda']);
-const cAS = cmll(['1 amarilla arriba, adelante a la izquierda; la de adelante a la derecha mira a la derecha', '1 yellow on top, front left; the front-right one faces right', '1 amarela em cima, na frente à esquerda; a da frente à direita virada para a direita']);
-const cL = cmll(['2 amarillas arriba en diagonal (adelante a la derecha y atrás a la izquierda); la de adelante a la izquierda mira a la izquierda', '2 yellows on top in a diagonal (front right and back left); the front-left one faces left', '2 amarelas em cima na diagonal (na frente à direita e atrás à esquerda); a da frente à esquerda virada para a esquerda']);
+const cH = cmll(['Ninguna amarilla arriba: dos miran al frente y dos atrás', 'No yellows on top: two face front and two face back', 'Nenhuma amarela em cima: duas viradas para a frente e duas para trás']);
+const cPi = cmll(['Ninguna amarilla arriba: dos miran a la izquierda; a la derecha, una al frente y otra atrás', 'No yellows on top: two face left; on the right, one faces front and one faces back', 'Nenhuma amarela em cima: duas viradas para a esquerda; à direita, uma para a frente e outra para trás']);
+const cU = cmll(['Dos amarillas arriba, las de adelante; las de atrás miran atrás', 'Two yellows on top, the front ones; the back ones face back', 'Duas amarelas em cima, as da frente; as de trás viradas para trás']);
+const cT = cmll(['Dos amarillas arriba, las de adelante; las de atrás miran a los lados', 'Two yellows on top, the front ones; the back ones face the sides', 'Duas amarelas em cima, as da frente; as de trás viradas para os lados']);
+const cS = cmll(['Una amarilla arriba, adelante a la derecha; la de adelante a la izquierda mira a la izquierda', 'One yellow on top, front right; the front-left one faces left', 'Uma amarela em cima, na frente à direita; a da frente à esquerda virada para a esquerda']);
+const cAS = cmll(['Una amarilla arriba, adelante a la izquierda; la de adelante a la derecha mira a la derecha', 'One yellow on top, front left; the front-right one faces right', 'Uma amarela em cima, na frente à esquerda; a da frente à direita virada para a direita']);
+const cL = cmll(['Dos amarillas arriba en diagonal (adelante a la derecha y atrás a la izquierda); la de adelante a la izquierda mira a la izquierda', 'Two yellows on top in a diagonal (front right and back left); the front-left one faces left', 'Duas amarelas em cima na diagonal (na frente à direita e atrás à esquerda); a da frente à esquerda virada para a esquerda']);
 
 const cmllO = [
   cO('o-adjacent', 'O Adj', ['O Adyacente', 'O Adjacent', 'O Adjacente'], 'O_Adjacent',
@@ -305,23 +305,23 @@ const lse = (slug: string, stage: Stage, code: T, name: T, recognition: T, alg: 
 // EO: a bad edge has its yellow or white sticker off the top and bottom faces (with the centers lined up)
 const eo = [
   lse('eo-flecha', 'lse-eo', ['Flecha', 'Arrow', 'Seta'], ['Flecha', 'Arrow', 'Seta'],
-    ['3 malas arriba (derecha, atrás e izquierda: la flecha) y la de abajo atrás (DB) mala. La de abajo al frente, buena',
-      '3 bad on top (right, back and left: the arrow) and the bottom-back one (DB) bad. The bottom-front one is good', '3 ruins em cima (direita, atrás e esquerda: a seta) e a de baixo atrás (DB) ruim. A de baixo na frente, boa'], "M U M'",
+    ['Tres malas arriba (derecha, atrás e izquierda: la flecha) y la de abajo atrás (DB) mala. La de abajo al frente, buena',
+      'Three bad on top (right, back and left: the arrow) and the bottom-back one (DB) bad. The bottom-front one is good', 'Três ruins em cima (direita, atrás e esquerda: a seta) e a de baixo atrás (DB) ruim. A de baixo na frente, boa'], "M U M'",
     ["`M U` ya las orienta; `M'` vuelve a alinear los centros. Si la mala de abajo está al frente, mira el caso siguiente.",
       "`M U` already orients them; `M'` lines the centers up again. If the bad bottom edge is in front, see the next case.", "`M U` já as orienta; `M'` alinha os centros de novo. Se a ruim de baixo estiver na frente, veja o próximo caso."]),
   lse('eo-flecha-df', 'lse-eo', ['Flecha DF', 'Arrow DF', 'Seta DF'], ['Flecha, mala al frente', 'Arrow, bad one in front', 'Seta, ruim na frente'],
-    ['3 malas arriba (derecha, atrás e izquierda) y la de abajo al frente (DF) mala. La de abajo atrás (DB), buena',
-      '3 bad on top (right, back and left) and the bottom-front one (DF) bad. The bottom-back one (DB) is good', '3 ruins em cima (direita, atrás e esquerda) e a de baixo na frente (DF) ruim. A de baixo atrás (DB), boa'], "M2 U2 M' U M'"),
+    ['Tres malas arriba (derecha, atrás e izquierda) y la de abajo al frente (DF) mala. La de abajo atrás (DB), buena',
+      'Three bad on top (right, back and left) and the bottom-front one (DF) bad. The bottom-back one (DB) is good', 'Três ruins em cima (direita, atrás e esquerda) e a de baixo na frente (DF) ruim. A de baixo atrás (DB), boa'], "M2 U2 M' U M'"),
   lse('eo-cuatro-arriba', 'lse-eo', ['4 arriba', '4 on top', '4 em cima'], ['4 malas arriba', '4 bad on top', '4 ruins em cima'],
     ['Las 4 de arriba malas; las 2 de abajo (DF y DB), buenas', 'All 4 on top bad; the 2 on the bottom (DF and DB) good', 'As 4 de cima ruins; as 2 de baixo (DF e DB), boas'], "M' U2 M' U2 M' U' M'"),
   lse('eo-dos-dos', 'lse-eo', ['2 + 2', '2 + 2', '2 + 2'], ['2 arriba y 2 abajo', '2 on top and 2 on the bottom', '2 em cima e 2 embaixo'],
-    ['2 malas arriba, juntas (atrás e izquierda), y las 2 de abajo (DF y DB) malas', '2 bad on top, side by side (back and left), and both bottom ones (DF and DB) bad', '2 ruins em cima, juntas (atrás e esquerda), e as 2 de baixo (DF e DB) ruins'], "M2 U' M' U M'"),
+    ['Dos malas arriba, juntas (atrás e izquierda), y las 2 de abajo (DF y DB) malas', 'Two bad on top, side by side (back and left), and both bottom ones (DF and DB) bad', 'Duas ruins em cima, juntas (atrás e esquerda), e as 2 de baixo (DF e DB) ruins'], "M2 U' M' U M'"),
   lse('eo-dos-abajo', 'lse-eo', ['2 abajo', '2 on the bottom', '2 embaixo'], ['Solo las 2 de abajo', 'Only the 2 on the bottom', 'Só as 2 de baixo'],
     ['Las 4 de arriba buenas; las 2 de abajo (DF y DB), malas', 'All 4 on top good; the 2 on the bottom (DF and DB) bad', 'As 4 de cima boas; as 2 de baixo (DF e DB), ruins'], "M U M U' M' U M'"),
   lse('eo-uno-uno', 'lse-eo', ['1 + 1', '1 + 1', '1 + 1'], ['1 arriba y 1 abajo atrás', '1 on top and 1 at the bottom back', '1 em cima e 1 embaixo atrás'],
-    ['1 mala arriba, a la izquierda, y la de abajo atrás (DB) mala', '1 bad on top, on the left, and the bottom-back one (DB) bad', '1 ruim em cima, à esquerda, e a de baixo atrás (DB) ruim'], "M' U' M' U2 M U M"),
+    ['Una mala arriba, a la izquierda, y la de abajo atrás (DB) mala', 'One bad on top, on the left, and the bottom-back one (DB) bad', 'Uma ruim em cima, à esquerda, e a de baixo atrás (DB) ruim'], "M' U' M' U2 M U M"),
   lse('eo-uno-uno-df', 'lse-eo', ['1 + 1 DF', '1 + 1 DF', '1 + 1 DF'], ['1 arriba y 1 abajo al frente', '1 on top and 1 at the bottom front', '1 em cima e 1 embaixo na frente'],
-    ['1 mala arriba, a la izquierda, y la de abajo al frente (DF) mala', '1 bad on top, on the left, and the bottom-front one (DF) bad', '1 ruim em cima, à esquerda, e a de baixo na frente (DF) ruim'], "M U M' U2 M' U M"),
+    ['Una mala arriba, a la izquierda, y la de abajo al frente (DF) mala', 'One bad on top, on the left, and the bottom-front one (DF) bad', 'Uma ruim em cima, à esquerda, e a de baixo na frente (DF) ruim'], "M U M' U2 M' U M"),
 ];
 
 // UL/UR: the red-yellow edge between the two red corners, the orange-yellow one between the orange corners
