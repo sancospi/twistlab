@@ -628,7 +628,7 @@ function prefer(v: AlgVariant) {
 
 // "Añadir mi algoritmo" (folded: rarely used): checked against the case on submit; added (and chosen) only if it
 // solves it.
-const customInput = el('input', { id: 'practice-custom', type: 'text', required: true, pattern: '.*\\S.*', autocomplete: 'off', autocapitalize: 'off', spellcheck: false, placeholder: t('custom.placeholder'), ariaLabel: t('custom.add') });
+const customInput = el('input', { id: 'practice-custom', type: 'text', required: true, pattern: '.*\\S.*', autocomplete: 'off', autocapitalize: 'off', spellcheck: false, placeholder: "R U R' U R U2 R'", ariaLabel: t('custom.add') });
 const customStatus = el('p', { className: 'hint', ariaLive: 'polite' });
 const customForm = el('form', { className: 'custom-alg' },
   el('div', { className: 'row' }, customInput, el('button', { type: 'submit', textContent: t('custom.submit') })),
@@ -803,7 +803,7 @@ function renderHand(shown: boolean) {
   show('practice-finish', !practice && hand === 'running');
 }
 
-/** "Tu primera marca", "¡Mejor marca! (−0.25)", "+0.32 vs. tu media" (the quiz's clock card says it too). */
+/** "Tu primera marca", "¡Mejor marca! (−0.25)", "+0.32 frente a tu media" (the quiz's clock card says it too). */
 export function comparisonText(c: Comparison): string {
   if (c.kind === 'first') return t('practice.first');
   if (c.kind === 'best') return t('practice.newBest', { by: formatTime(c.by) });

@@ -6,9 +6,9 @@ import { tokenize } from './notation.ts';
 // Hints as "label" with the markers in front: "+recoloca" (regrip) / "+base" (back to home grip).
 const read = (alg: string) => fingertricks(tokenize(alg)).map((h) => [h.regrip ? '+recoloca ' : '', h.home ? '+base ' : '', h.label].join(''));
 
-const R = 'Muñeca der. arriba', Ri = 'Muñeca der. abajo', R2 = 'Muñeca der. ×2';
-const U = 'Índice der.', Ui = 'Índice izq.', U2 = 'Índice y medio der.';
-const F = 'Índice der.', Fi = 'Pulgar izq.';
+const R = 'Muñeca derecha arriba', Ri = 'Muñeca derecha abajo', R2 = 'Muñeca derecha ×2';
+const U = 'Índice derecho', Ui = 'Índice izquierdo', U2 = 'Índice y medio derechos';
+const F = 'Índice derecho', Fi = 'Pulgar izquierdo';
 
 test('sexy move and Sune: wrist and index flicks, no regrips', () => {
   assert.deepEqual(read("R U R' U'"), [R, U, Ri, Ui]);
@@ -24,18 +24,18 @@ test("T-perm and J-perm: F after R' with the right index, F' with the left thumb
 
 test('F from home is a regrip, and the next R/U move goes back to the home grip', () => {
   assert.deepEqual(read("F R U R' U' F'"), [`+recoloca ${F}`, `+base ${R}`, U, Ri, Ui, Fi]);
-  assert.deepEqual(read("R U B"), [R, U, '+recoloca Anular der.']); // B after R
+  assert.deepEqual(read("R U B"), [R, U, '+recoloca Anular derecho']); // B after R
   assert.deepEqual(read("S R U R' U' R' F R f'"), ['+recoloca Con ambas manos', `+base ${R}`, U, Ri, Ui, Ri, F, R, Fi]);
 });
 
 test('U after R′ is a plain flick; U2 there is the left double flick', () => {
   assert.deepEqual(read("R' U R"), [Ri, U, R]);
-  assert.deepEqual(read("R' U2 R"), [Ri, 'Índice y medio izq.', R]);
+  assert.deepEqual(read("R' U2 R"), [Ri, 'Índice y medio izquierdos', R]);
   assert.deepEqual(read("R2 U'"), [R2, Ui]); // the left index is free
 });
 
 test('D, M, L, wide moves and rotations', () => {
-  assert.deepEqual(read("D D' M' M M2 L L'"), ['Anular izq.', 'Anular der.', 'Anular izq., tira', 'Anular izq., empuja', 'Anular izq. ×2', 'Muñeca izq. abajo', 'Muñeca izq. arriba']);
+  assert.deepEqual(read("D D' M' M M2 L L'"), ['Anular izquierdo', 'Anular derecho', 'Anular izquierdo, tira', 'Anular izquierdo, empuja', 'Anular izquierdo ×2', 'Muñeca izquierda abajo', 'Muñeca izquierda arriba']);
   assert.deepEqual(read("r U r' Rw"), [R, U, Ri, R]);
   assert.deepEqual(read("x y' z2"), ['Gira el cubo', 'Gira el cubo', 'Gira el cubo']);
   assert.deepEqual(read("F y R"), [`+recoloca ${F}`, 'Gira el cubo', R]); // a rotation leaves the hands home: no marker
