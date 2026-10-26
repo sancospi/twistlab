@@ -36,6 +36,8 @@ CI runs the same checks on every pull request, and the Vercel build runs the tes
   can be imported in node.
 - Styles are SCSS in `src/styles/`, one partial per screen, joined by `app.scss` in cascade order (one stylesheet for
   the whole app, so prerendered pages never paint unstyled).
+- `three` stays on the version cubing.js depends on (0.170.x): cubing renders the 3D cube with it, and the app only
+  imports its types (and one test), so a newer `three` would describe objects it doesn't have.
 - `index.html`'s inline script picks the screen before the first paint; it must agree with `router.ts`'s `parseRoute`
   (a test checks it).
 

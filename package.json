@@ -30,10 +30,10 @@
     "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^26.6.5",
     "@types/three": "^0.170.0",
-    "@types/web-bluetooth": "^0.0.21",
+    "@types/web-bluetooth": "^0.0.22",
     "sass-embedded": "^1.106.1",
     "three": "^0.170.0",
     "typescript": "^7.0.2",
-    "vite": "^8.3.4"
+    "vite": "^8.3.5"
   }
 }
