@@ -7,7 +7,7 @@
 //   next stops it, and the user says how it went (Limpio / Fallé) before the scramble comes back for the next one.
 // - Memoria muscular (agilizar): the algorithm alone, no scramble. With a cube it's followed from whatever state the
 //   cube is in (the next turn after a rep starts another); without one, a series: each tap ends a repetition and starts
-//   the next (X for a failed one), until Terminar serie.
+//   the next (X for a failed one), the first a warm-up not recorded, until Terminar serie (its mean on the clock).
 // The algorithm to use is changed under the card. The solution shows while learning and hides by itself after
 // FADE_AFTER clean in a row (Solución toggles it for the sitting; Ver solución shows it once, and that repetition isn't
 // clean). Every repetition (time, moves, clean) counts towards the plan's drill criterion: the streak of STREAK_GOAL,
