@@ -132,6 +132,7 @@ const topCorners = [
 // something goes wrong, folded.
 export const beginner2x2: Method = {
   id: 'principiante-2x2',
+  next: 'ortega',
   puzzle: '2x2x2',
   name: tr('Principiante 2x2', '2x2 beginner', '2x2 para iniciantes'),
   summary: tr('Capa por capa: la primera capa, la cara amarilla y las esquinas de arriba.', 'Layer by layer: the first layer, the yellow face and the top corners.', 'Camada por camada: a primeira camada, a face amarela e as quinas de cima.'),

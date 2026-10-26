@@ -2,7 +2,7 @@
 // A method page starts with its name, what it is and the step before it, then its next lesson (the way in) and the Quiz
 // of the whole method (and how many cases are due today); then its phases and groups, each case as a card that opens
 // its page (caseView.ts: Practicar, Quiz, Memoria muscular), with Quiz buttons per group and phase, plus the plan's own
-// quizzes: the same Quiz, only the scope changes.
+// quizzes: the same Quiz, only the scope changes; it ends with the method to learn next.
 import { prose } from '../rich-text-view.ts';
 import { TERMS } from '../terms.ts';
 import { cube3x3x3 } from 'cubing/puzzles';
@@ -377,7 +377,16 @@ function methodView(m: Method, course: Course | null): Node[] {
     ...(start ? [start] : []), ...(allCases(m).length ? [trainView(m)] : []), about,
     ...(m.notation ? [fold(t('academy.notation'), prose(loc(m.notation)))] : []),
     ...(m.schedule ? [fold(t('academy.schedule'), prose(loc(m.schedule)))] : []),
-    ...m.phases.map(phaseView)];
+    ...m.phases.map(phaseView), ...nextView(m)];
+}
+
+/** The end of a method: the methods that come after it (its `next`, and those whose `before` is this one), so the
+ *  path goes on instead of ending on the last cards. */
+function nextView(m: Method): HTMLElement[] {
+  const path = academyLink({ kind: 'method', id: m.id });
+  const after = METHODS.filter((x) => x.id === m.next || x.before?.path.split('#')[0] === path);
+  return after.length ? [el('p', { className: 'hint' }, `${t('academy.next')} `,
+    ...after.flatMap((x, i) => [...(i ? [' · '] : []), el('a', { href: academyLink({ kind: 'method', id: x.id }), textContent: loc(x.name) })]))] : [];
 }
 
 /** Under the method's title, in the guide and over its lessons: what it is, and the link to the step before it (the

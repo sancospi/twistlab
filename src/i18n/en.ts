@@ -349,6 +349,7 @@ export const en: Record<MessageKey, string> = {
   'academy.homeIntro': 'Start with the white cross, the first step of almost every method. Then pick a method. Every case has three sections, with or without a smart cube: Practice (learn: set up and solve), Quiz (review: random cases, with an explanation if you miss) and Muscle memory (speed up: just the algorithm, with a timer). Notation has its own section.',
   'academy.howtoReadAll': 'Rather read the beginner method all at once?',
   'academy.howtoOnePage': 'The whole method on one page',
+  'academy.next': 'Next step:',
   'academy.crumbs': 'Breadcrumb',
   'academy.notFound': 'Method not found',
   'academy.notFoundHint': 'That method doesn’t exist or has moved; go back to the Academy to pick one.',

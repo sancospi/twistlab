@@ -352,6 +352,7 @@ export const pt: Record<MessageKey, string> = {
   'academy.homeIntro': 'Comece pela cruz branca, o primeiro passo de quase todos os métodos. Depois escolha um método. Cada caso tem três seções, com ou sem cubo inteligente: Praticar (aprenda: prepare e resolva), Quiz (revise: casos aleatórios, com explicação se errar) e Memória muscular (agilize: só o algoritmo, com cronômetro). A notação tem sua própria seção.',
   'academy.howtoReadAll': 'Prefere ler o método para iniciantes de uma vez?',
   'academy.howtoOnePage': 'O método inteiro em uma página',
+  'academy.next': 'Próximo passo:',
   'academy.crumbs': 'Caminho',
   'academy.notFound': 'Método não encontrado',
   'academy.notFoundHint': 'Esse método não existe ou mudou de endereço; volte à Academia para escolher um.',

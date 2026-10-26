@@ -212,6 +212,7 @@ const twistFour = [
 // something goes wrong, folded. Short lines: someone reads them with a cube in their hands.
 export const beginner: Method = {
   id: 'principiante',
+  next: 'cfop-reducido',
   name: tr('Método principiante', 'Beginner method', 'Método para iniciantes'),
   summary: tr('Tu primer cubo resuelto: capa por capa, con 7 secuencias cortas que se repiten.', 'Your first solved cube: layer by layer, with 7 short sequences that repeat.', 'Seu primeiro cubo resolvido: camada por camada, com 7 sequências curtas que se repetem.'),
   description: doc(

@@ -126,5 +126,6 @@ export interface Method {
   notation?: Localized; // how to read the algorithms
   schedule?: Localized; // the plan's calendar and the goals to reach
   before?: { path: string; label: Localized }; // the step that comes before it (default: the white cross / the 2x2's basics)
+  next?: string; // the method to learn after it, when that one's `before` doesn't already say so (view.ts links both)
   phases: Phase[];
 }

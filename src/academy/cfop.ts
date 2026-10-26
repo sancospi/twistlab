@@ -187,6 +187,7 @@ const PLL_QUIZ = es(
 
 export const cfopReduced: Method = {
   id: 'cfop-reducido',
+  next: 'cfop-completo',
   name: es('CFOP reducido'),
   summary: es('Tu primer CFOP: F2L básico (19 casos) y OLL y PLL en 2 pasos (16 casos). 35 algoritmos en 6 semanas.'),
   description: es(

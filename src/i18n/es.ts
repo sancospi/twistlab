@@ -350,6 +350,7 @@ export const es = {
   'academy.homeIntro': 'Empieza por la cruz blanca, el primer paso de casi todos los métodos. Luego elige un método. Cada caso tiene tres secciones, con o sin cubo inteligente: Practicar (aprende: prepara y resuelve), Quiz (repasa: casos al azar, con explicación si fallas) y Memoria muscular (agiliza: solo el algoritmo, con cronómetro). La notación tiene su propio apartado.',
   'academy.howtoReadAll': '¿Prefieres leer el método principiante de una vez?',
   'academy.howtoOnePage': 'Todo el método en una página',
+  'academy.next': 'Siguiente paso:',
   'academy.crumbs': 'Ruta',
   'academy.notFound': 'Método no encontrado',
   'academy.notFoundHint': 'Ese método no existe o cambió de dirección; vuelve a la Academia para elegir uno.',

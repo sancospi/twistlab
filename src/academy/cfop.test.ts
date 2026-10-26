@@ -66,3 +66,10 @@ test("the plan's notation, calendar and stage goals are part of the method", () 
   for (let week = 1; week <= 6; week++) assert.match(m.schedule!.es, new RegExp(`Semana ${week} `));
   assert.match(m.schedule!.es, /cruz en menos de 4 s, F2L en menos de 25 s, OLL en menos de 7 s y PLL en menos de 7 s/);
 });
+
+test("a method's next names another method of the same puzzle", () => {
+  for (const m of METHODS.filter((x) => x.next)) {
+    const next = METHODS.find((x) => x.id === m.next);
+    assert.ok(next && next !== m && next.puzzle === m.puzzle, m.id);
+  }
+});
