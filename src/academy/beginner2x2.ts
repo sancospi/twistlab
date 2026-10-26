@@ -156,10 +156,7 @@ export const beginner2x2: Method = {
   ),
   notation: doc([
     '## Movimientos',
-    '- Cada letra gira una cara: `R` derecha, `L` izquierda, `U` arriba, `D` abajo, `F` frente, `B` atrás.',
-    '- La letra sola es un cuarto de vuelta en sentido horario, mirando esa cara de frente.',
-    "- Con apóstrofo, al revés: `R'`. Con un 2, media vuelta: `U2`.",
-    '- `y` gira el cubo entero, como `U`: no mueve piezas, solo cambia qué cara queda al frente.',
+    'Las mismas letras que en el 3x3: `R`, `U`, `F`, `L`, `D` y `B`; `y` gira el cubo entero, como `U`. Si son nuevas para ti, repásalas en **Notación**.',
     '## Sin centros',
     'El 2x2 no tiene centros que digan el color de cada cara: mandan las esquinas ya resueltas. Cada esquina va junto a las que comparten sus colores.',
     '## Figuras',
