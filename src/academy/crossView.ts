@@ -17,14 +17,14 @@ import { el } from '../el.ts';
 /** The page's sections, each an `.academy-phase` with an id and an h2 (for the side navigation). */
 export function guideSections(kpuzzle: KPuzzle, g: TextGuide = crossGuide, puzzle: Puzzle = '3x3x3'): HTMLElement[] {
   const anchor = (id: string) => `${g.id}-${id}`;
-  const [first, ...rest] = loc(g.intro).split('\n');
+  const [first, ...rest] = richText(loc(g.intro), 'h3'); // one text, so each term is tappable once in the whole intro
   const intro = el('section', { className: 'academy-phase', id: anchor('intro') },
     el('h2', { className: 'page-title', textContent: loc(g.name) }),
     ...(g === crossGuide ? [trainerButton()] : []),
     // what the guide leaves done, drawn first (as a method phase's goal): the solved cube beside the intro's first line
     el('div', { className: 'phase-goal' }, el('div', { className: 'phase-goal-figure', ariaHidden: 'true', innerHTML: stateSVG('', puzzle, kpuzzle) }),
-      prose(first, 'prose', 'h3')),
-    prose(rest.join('\n'), 'prose', 'h3'));
+      el('div', { className: 'prose' }, first)),
+    el('div', { className: 'prose' }, ...rest));
   return [intro, ...g.lessons.map((l) => lessonView(l, anchor(l.id), puzzle, kpuzzle))];
 }
 

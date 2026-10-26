@@ -1,6 +1,6 @@
 // Guide text (see rich-text.ts) as DOM: paragraphs, lists and subheadings; `moves` become tappable notation and cube
-// terms (terms.ts) tappable definitions, except in subheadings: in a block of text, only a term's first appearance
-// (each one a Tab stop and an underline: "cruz" 16 times on its own page was noise).
+// terms (terms.ts) tappable definitions, except in subheadings; in a text, only a term's first appearance (each one a
+// Tab stop and an underline: "cruz" 16 times on its own page was noise).
 import { algView } from './notation-view.ts';
 import { tokenize } from './notation.ts';
 import { parseBlocks, parseInline, type Inline } from './rich-text.ts';
@@ -34,10 +34,10 @@ function termButton(word: string, key: string): HTMLElement {
   return b;
 }
 
-/** Plain text with its cube terms tappable (`seen`: the terms already marked in this block, left plain; marks each one
+/** Plain text with its cube terms tappable (`seen`: the terms already marked in this text, left plain; adds each one
  *  it marks). A term is a button, and a line may break after one: the punctuation right after it ("arista:") goes in
  *  one unbreakable span with it, so it never starts a line alone. */
-export function termNodes(s: string, seen = new Set<string>()): Node[] {
+export function termNodes(s: string, seen: Set<string>): Node[] {
   const out: Node[] = [];
   const pieces = splitTerms(s);
   pieces.forEach((p, i) => {
