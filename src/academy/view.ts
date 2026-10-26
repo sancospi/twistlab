@@ -108,13 +108,16 @@ export async function showAcademy(root: HTMLElement, page: AcademyPage): Promise
     const cross = page.kind === 'cross';
     if (!cross) root.dataset.puzzle = '2x2x2';
     const title = cross ? t('cross.title') : loc(bases2x2.name);
+    const g = cross ? crossGuide : bases2x2;
+    const next = nextView(METHODS.filter((x) => g.next.includes(x.id)));
     if (asLessons) {
-      root.replaceChildren(...head(title), lessonList(course, ...(cross ? [trainerButton()] : [])));
+      const list = lessonList(course, ...(cross ? [trainerButton()] : []));
+      list.append(...next); // its last lesson done, the way on is here too
+      root.replaceChildren(...head(title), list);
       return inAcademy(title);
     }
-    const g = cross ? crossGuide : bases2x2;
     const sections = guideSections(kpuzzle, g, cross ? '3x3x3' : '2x2x2');
-    sections.at(-1)!.append(...nextView(METHODS.filter((x) => g.next.includes(x.id)))); // in its last section: the nav lists sections
+    sections.at(-1)!.append(...next); // in its last section: the nav lists sections
     sectioned(root, head(title), t(cross ? 'cross.nav' : 'bases2x2.nav'), sections);
     return inAcademy(title);
   }
@@ -125,7 +128,9 @@ export async function showAcademy(root: HTMLElement, page: AcademyPage): Promise
   }
   if (m.puzzle) root.dataset.puzzle = m.puzzle;
   if (asLessons) {
-    root.replaceChildren(...head(loc(m.name)), lessonList(course, ...methodTop(m))); // the lessons are the way in: no Quiz on top
+    const list = lessonList(course, ...methodTop(m)); // the lessons are the way in: no Quiz on top
+    list.append(...nextView(nextMethods(m)));
+    root.replaceChildren(...head(loc(m.name)), list);
     return inAcademy(loc(m.name));
   }
   sectioned(root, head(loc(m.name)), t('academy.nav'), methodView(m, course), navView(m));
@@ -396,9 +401,13 @@ function methodView(m: Method, course: Course | null): Node[] {
     ...(start ? [start] : []), ...(allCases(m).length ? [trainView(m)] : []), about,
     ...(m.notation ? [fold(t('academy.notation'), prose(loc(m.notation)))] : []),
     ...(m.schedule ? [fold(t('academy.schedule'), prose(loc(m.schedule)))] : []),
-    ...m.phases.map(phaseView), // then the methods after it: its `next`, and those whose `before` is this one
-    ...nextView(METHODS.filter((x) => x.id === m.next || x.before?.path.split('#')[0] === academyLink({ kind: 'method', id: m.id })))];
+    ...m.phases.map(phaseView),
+    ...nextView(nextMethods(m))];
 }
+
+/** The methods after `m`: its `next`, and those whose `before` is this one. */
+const nextMethods = (m: Method): Method[] =>
+  METHODS.filter((x) => x.id === m.next || x.before?.path.split('#')[0] === academyLink({ kind: 'method', id: m.id }));
 
 /** The end of a guide or a method: the methods to learn next, so the path goes on instead of ending on the last cards. */
 function nextView(after: Method[]): HTMLElement[] {
