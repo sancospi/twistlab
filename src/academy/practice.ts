@@ -744,7 +744,8 @@ function renderHand(shown: boolean) {
   } else if (hand === 'stopped') {
     deltaView(comparison);
     show('practice-grade', true);
-    $('practice-clean').textContent = t(helped ? 'practice.next' : 'practice.cleanBtn');
+    $('practice-clean').replaceChildren(el('span', { textContent: t(helped ? 'practice.next' : 'practice.cleanBtn') }),
+      el('kbd', { className: 'key-hint', ariaHidden: 'true', textContent: t('opts.spaceKey') }));
     show('practice-fail', !helped);
   } else if (!practice && hand === 'running' && series.length) {
     const last = series.at(-1)!;

@@ -31,7 +31,7 @@
 .practice-bar #practice-reveal { border: 1px solid transparent; }
 .practice-bar #practice-reveal.off { background: none; border: 1px dashed var(--muted); }
 .practice-card { display: grid; gap: 8px; justify-items: center; align-content: center; min-height: min(56dvh, 460px); padding: 16px 12px;
-  border-radius: 12px; background: $raised; text-align: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  border-radius: 12px; background: $card; border: 1px solid $raised; text-align: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .practice-card[data-tap] { cursor: pointer; }
 /* Content from the top where the clock or the steps would otherwise move as the lines under them come and go: the
    cube's Practicar (its steps) and Memoria muscular (its laps) */
@@ -46,9 +46,6 @@
 .practice-card[data-tap][data-state="running"]:not([data-tab="drill"]) #practice-solution { pointer-events: none; }
 .practice-card .row:has(> [hidden]:only-child) { display: none; }
 .practice-card .steps { width: 100%; }
-.practice-card .steps li { background: none; } /* on the card's own color: the current step gets the dark pill */
-.practice-card .steps li[aria-current="step"] { background: var(--bg); }
-.practice-card .hint, .practice-card .card-top, .practice-card .card-solution, .practice-card .tokens, .practice-card .steps li { color: #a3a9b8; } /* --muted is under 4.5:1 on the card */
 .card-top { color: var(--muted); font-weight: 600; }
 .card-scramble { display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; } /* the scramble, its note under it */
 .card-diagram svg { width: min(96px, 26vw); height: auto; display: block; }
@@ -62,11 +59,10 @@
 .delta.slower { color: $warn; }
 .practice-card .grade { width: min(100%, 420px); flex-wrap: nowrap; }
 .practice-card .grade button { flex: 1 1 0; min-width: 0; white-space: nowrap; }
-.key-hint { margin-left: .5em; }
+.key-hint { margin-left: .5em; background: none; border: 1px solid currentColor; color: inherit; opacity: .7; } /* drawn as a key, not a patch of the button */
 @media (hover: none) { .key-hint { display: none; } } /* touch: no keyboard to press it on */
 .practice-card .grade button, .practice-card #practice-again { min-height: 52px; font-size: 1.1429rem; }
 .practice-card #practice-again { min-width: 12em; }
-.practice-card button:not(.primary, .practice-clock, .move) { background: var(--bg); } /* the card is a button's color */
 .practice-actions { justify-content: center; }
 .practice-actions button { min-height: 44px; }
 .practice-actions:not(:has(> :not([hidden]))) { display: none; }
