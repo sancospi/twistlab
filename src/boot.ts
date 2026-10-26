@@ -5,6 +5,7 @@ import './styles/app.scss'; // the build links it from <head> (render-blocking, 
 import { inject } from '@vercel/analytics';
 import { applyI18n, lang, loadLang, setLang, type Lang } from './i18n.ts';
 import { localizeLinks } from './router.ts';
+import { idle } from './screen.ts';
 
 // The page's dictionary, a chunk of its own (the inline script preloads it); a page built in Spanish waits hidden for
 // English or Portuguese (html.i18n-wait), so no Spanish shows first. Nothing below runs before it.
@@ -57,8 +58,8 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 }));
 // Vercel Web Analytics (page views, including the router's pushState navigations; no data sent in dev) and the offline
 // service worker (public/sw.js; built files only, so not in dev): not needed for the page to work, so they wait until
-// the page has loaded and gone idle.
+// the page has loaded and gone idle. Loaded often already: the await above can outlast the page's load event.
 const whenIdle = (f: () => void) =>
-  addEventListener('load', () => setTimeout(() => ('requestIdleCallback' in window ? requestIdleCallback(() => f()) : f()), 0));
+  document.readyState === 'complete' ? idle(f) : addEventListener('load', () => idle(f), { once: true });
 whenIdle(() => inject());
 if (import.meta.env.PROD && 'serviceWorker' in navigator) whenIdle(() => void navigator.serviceWorker.register('/sw.js').catch(() => {}));
