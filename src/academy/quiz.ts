@@ -6,8 +6,8 @@
 // - Without one: the clock card, as in Practicar: the figure (no arrows: they'd give the case away) and the random-state
 //   scramble, big; a tap (or Space) hides them and starts the clock, the next stops it, then Limpio (Siguiente) or Fallé
 //   (the answer, graded as failed).
-// Solved: the time, turns and grade with the case's best and average, then Repetir (the same case, another state) or
-// Siguiente. A wrong answer, "Me atasqué", or (with the cube) too many turns or too long: the explanation (figure,
+// Solved: the time, turns and grade with the case's best and average, then Otra mezcla (the same case, another state)
+// or Siguiente. A wrong answer, "Me atasqué", or (with the cube) too many turns or too long: the explanation (figure,
 // algorithm with its triggers, recognition, fingers, animation on demand), then Reintentar or Siguiente. Saltar is
 // always there. Every item grades its case for the spaced repetition (store.ts) and every solve counts as a repetition
 // of it; scoring lives in score.ts, a short history of sessions in this browser; the errors are reviewed at the end.
@@ -55,6 +55,9 @@ helpToggle.onclick = () => {
 const status = $('quiz-status'); // persistent live region: #quiz-body is rebuilt, so one inside it wouldn't be announced reliably
 
 const PER_CASE = [3, 5, 10, 20];
+// ponytail: a fixed cap on a session's items (an official quiz is its list); without a cube each one is 15-19 turns
+// set up by hand, and a method is 119 cases. A setting if longer sessions are ever wanted.
+const SESSION_MAX = 20;
 const SELECTIONS: Selection[] = ['one', 'pick', 'due', 'learning', 'known', 'slow', 'all'];
 const ORDERS: Order[] = ['uniform', 'probability', 'spaced'];
 const HISTORY_KEY = 'academy-quiz-history';
@@ -240,7 +243,7 @@ function llCase(steps: LLStep[]): Case {
 
 function start() {
   mode = executionNext() ? 'execution' : 'recognition';
-  items = makeSpecs().map((spec, i) => makeItem(spec, scope.kind === 'official' ? scope.quiz.items[i].scramble : undefined));
+  items = makeSpecs().slice(0, scope.kind === 'official' ? undefined : SESSION_MAX).map((spec, i) => makeItem(spec, scope.kind === 'official' ? scope.quiz.items[i].scramble : undefined));
   index = 0;
   attempts = [];
   logs = [];
@@ -422,7 +425,7 @@ function skip() {
   next();
 }
 
-/** Repetir: the same case again, from another random state (an item more, right after this one). */
+/** Otra mezcla: the same case again, from another random state (an item more, right after this one). */
 function repeat() {
   const c = items[index].c, seed = crypto.getRandomValues(new Uint32Array(1))[0];
   items.splice(index + 1, 0, makeItem(scope.kind === 'll' ? llSpecs(1, seed, kpuzzle)[0] : specsFor([c], seed, kpuzzle)[0]));
@@ -619,8 +622,7 @@ function renderSetup(): Node[] {
     const noOdds = scopeCases(scope).every((c) => caseProbability(c.id, kpuzzle) === null);
     const orders = ORDERS.map((x) => chip('radio', 'quiz-order', x, x === order, () => save('quiz-order', (order = x)), t(ORDER_LABEL[x][0]), undefined,
       x === 'probability' && noOdds));
-    const cases = selected().length;
-    n = cases * perCase;
+    n = sessionSize(selected().length);
     out.push(
       el('fieldset', { className: 'chips-field' }, el('legend', { textContent: t('quiz.which') }), el('div', { className: 'chip-set' }, ...choices)),
       ...(selection === 'pick' ? [pickView()] : []),
@@ -634,7 +636,7 @@ function renderSetup(): Node[] {
   go.disabled = !n;
   go.dataset.focus = '';
   const last = lastResult(scopeId(scope));
-  const summary = p([...(scope.kind === 'cases' ? [setupSummary(n / perCase)] : []), ...(last ? [t('quiz.last', { result: summaryLine(last) })] : [])].join(' · '), 'hint');
+  const summary = p([...(scope.kind === 'cases' ? [setupSummary(selected().length)] : []), ...(last ? [t('quiz.last', { result: summaryLine(last) })] : [])].join(' · '), 'hint');
   summary.dataset.count = 'total';
   out.push(go, summary);
   return out;
@@ -652,7 +654,9 @@ function perCaseSelect(): HTMLSelectElement {
   return select;
 }
 
-const setupSummary = (cases: number) => `${tp('quiz.cases', cases)} · ${tp('quiz.items', cases * perCase)}`;
+/** A session's items: so many of each case, up to SESSION_MAX (makeQuizItems deals the cases out in rounds). */
+const sessionSize = (cases: number) => Math.min(cases * perCase, SESSION_MAX);
+const setupSummary = (cases: number) => `${tp('quiz.cases', cases)} · ${tp('quiz.items', sessionSize(cases))}`;
 
 /** Ticking cases only changes counts: patched in place, so the grid keeps its scroll (and Safari, which doesn't focus a
  *  clicked checkbox, doesn't move the focus to "Empezar"). */
@@ -804,7 +808,7 @@ function nextButton(primary: boolean): HTMLElement {
   return b;
 }
 
-/** Solved: time, turns and grade, the case's best and average; Repetir (the same case, another state) or Siguiente. */
+/** Solved: time, turns and grade, the case's best and average; Otra mezcla (the same case, another state) or Siguiente. */
 function renderDone(): Node[] {
   const f = feedback!;
   const a = f.attempt;
