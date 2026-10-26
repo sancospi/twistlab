@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
-import { METHODS } from './methods.ts';
-import { caseProbability, formatProbability, stageCounts } from './probability.ts';
+import { METHODS, allCases } from './methods.ts';
+import { caseProbability, counted, formatProbability, stageCounts } from './probability.ts';
 import type { Case, Phase, Stage } from './types.ts';
 
 const kpuzzle = await cube3x3x3.kpuzzle();
@@ -95,4 +95,8 @@ test('2x2 (Ortega): OLL and PBL odds, known values', () => {
   assert.deepEqual(counts(pbl, '2x2-pbl'), { total: 576, skip: 16, adjadj: 256, adjdiag: 128, diagdiag: 16, t: 128, y: 32 });
   // one PBL case short: no honest number
   assert.equal(stageCounts({ ...pbl, id: 'fixture-2x2-pbl-short', groups: [{ ...pbl.groups[0], cases: pbl.groups[0].cases.slice(1) }] }, '2x2-pbl', kpuzzle), null);
+});
+
+test('counted: exactly the cases that get a probability (the card reserves its line before counting)', () => {
+  for (const c of METHODS.flatMap(allCases)) assert.equal(caseProbability(c.id, kpuzzle) !== null, counted(c.stage), c.id);
 });

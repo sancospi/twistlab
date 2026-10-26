@@ -93,6 +93,9 @@ export function stageCounts(phase: Phase, stage: Stage, kpuzzle: KPuzzle): Stage
   return counts;
 }
 
+/** Whether a stage's cases get a probability: the card keeps a line for it before it is counted. */
+export const counted = (stage: Stage): boolean => !!FAMILY[stage];
+
 /** Probability that a solve presents this case at its stage; null for stages where it isn't counted (F2L, beginner's
  *  last layer). */
 export function caseProbability(caseId: string, kpuzzle: KPuzzle): number | null {

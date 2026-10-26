@@ -34,7 +34,8 @@ import { dueCases, todayView } from './todayView.ts';
 import { METHODS, allCases } from './methods.ts';
 import { el } from '../el.ts';
 import { lastResult, openQuiz, scopeId, type QuizScope } from './quiz.ts';
-import { caseProbability, formatProbability } from './probability.ts';
+import { caseProbability, counted, formatProbability } from './probability.ts';
+import { idle } from '../screen.ts';
 import { isDue, learningFor, preferred, save, setting, statsFor } from './store.ts';
 import { caseLabel, puzzleOf, type Case, type Group, type Method, type Phase, type Puzzle } from './types.ts';
 export { stopCase, stopLesson }; // for main.ts, which loads the academy with its first page
@@ -385,6 +386,10 @@ const methodTop = (m: Method): HTMLElement[] => [
 
 function phaseView(phase: Phase): HTMLElement {
   const cases = phase.groups.flatMap((g) => g.cases);
+  // the cards' odds: counting them takes a while the first time (Roux's CMLL: 648 states per case), so each phase
+  // fills them once the page is idle, into a line its cards already hold
+  const odds: (() => void)[] = [];
+  idle(() => odds.forEach((fill) => fill()));
   // Two kinds of quiz, kept apart: generated (random states of every case, as many as you like) and the plan's own
   const set = (label: string, hint: string, ...buttons: HTMLElement[]) =>
     el('div', { className: 'quiz-set', role: 'group', ariaLabel: label }, el('span', { className: 'quiz-set-label', textContent: label, title: hint }), ...buttons);
@@ -402,7 +407,7 @@ function phaseView(phase: Phase): HTMLElement {
     ...(phase.tips ? [el('details', { className: 'academy-tips' }, el('summary', { textContent: t('academy.tips') }), prose(loc(phase.tips)))] : []),
     ...(phase.progression ? [el('details', {}, el('summary', { textContent: t('academy.progression') }), prose(loc(phase.progression)))] : []),
     ...quizzes,
-    el('div', { className: 'academy-groups' }, ...phase.groups.map((g) => groupView(phase, g))));
+    el('div', { className: 'academy-groups' }, ...phase.groups.map((g) => groupView(phase, g, odds))));
 }
 
 /** A phase's goal: what it leaves done, beside the cube as it ends up, masked as its last cases (what the phase ends at:
@@ -426,28 +431,31 @@ function lastLayerButton(phase: Phase): HTMLElement[] {
   return [b];
 }
 
-function groupView(phase: Phase, g: Group): HTMLElement {
+function groupView(phase: Phase, g: Group, odds: (() => void)[]): HTMLElement {
   const head = el('div', { className: 'academy-group-head' },
     el('h3', { textContent: loc(g.name) }),
     quizButton(t('academy.quiz'), { kind: 'cases', id: g.id, cases: g.cases, title: loc(g.name) }, t('academy.quizOf', { name: loc(g.name) })));
   return el('section', { className: 'academy-group', id: anchor(g.id) },
     head,
     ...(g.description ? [prose(loc(g.description), 'prose hint')] : []),
-    el('div', { className: 'cards' }, ...g.cases.map((c) => card(phase, c))));
+    el('div', { className: 'cards' }, ...g.cases.map((c) => card(phase, c, odds))));
 }
 
-/** A case's card: opens its page, where it's practised. */
-function card(phase: Phase, c: Case): HTMLAnchorElement {
+/** A case's card: opens its page, where it's practised. Its odds, when its stage has them, come later (`odds`). */
+function card(phase: Phase, c: Case, odds: (() => void)[]): HTMLAnchorElement {
   const m = METHODS.find((x) => x.phases.includes(phase))!;
   const link = el('a', { className: 'card', href: academyLink({ kind: 'case', method: m.id, id: c.id }) });
-  const p = caseProbability(c.id, kpuzzle);
   const alg = preferred(c).alg;
   link.innerHTML = caseDiagram(phase.diagram, c.stage, patternToFacelets(caseState(kpuzzle, c.algs[0].alg, IDENTITY)), { size: 84, title: t('academy.diagram', { code: c.code }), arrows: true }); // the case, as its recognition reads
   const s = statsFor(c.id);
+  // its odds, when its stage has them: the line now (its height, so nothing moves), the number once the page is idle
+  // (never null for a counted stage: probability.test.ts)
+  const prob = el('span', { className: 'hint', textContent: '\u00a0' });
+  if (counted(c.stage)) odds.push(() => void (prob.textContent = t('prob.card', { p: formatProbability(caseProbability(c.id, kpuzzle)!) })));
   link.append(
     el('strong', { textContent: c.code }),
     el('code', { textContent: formatAlg(tokenize(alg)) }),
-    ...(p === null ? [] : [el('span', { className: 'hint', textContent: t('prob.card', { p: formatProbability(p) }) })]),
+    ...(counted(c.stage) ? [prob] : []),
     // a case never practised says nothing: "Sin practicar" on every card of a new reader is noise
     ...(s ? [el('span', { className: 'hint', textContent: `${tp('academy.reps', s.reps)}${s.best === null ? '' : ` · ${t('academy.best', { time: formatTime(s.best) })}`}` })] : []),
   );
