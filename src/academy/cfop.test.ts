@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { METHODS, allCases, findCase, scdbUrl } from './methods.ts';
 import { cfopReduced } from './cfop.ts';
+import { crossGuide } from './crossGuide.ts';
+import { bases2x2 } from './bases2x2.ts';
 
 const cases = allCases(cfopReduced);
 // Supported notation tokens, ASCII primes only (no ′ or ’); SpeedCubeDB extras also use S, d, u, l, x…
@@ -71,5 +73,12 @@ test("a method's next names another method of the same puzzle", () => {
   for (const m of METHODS.filter((x) => x.next)) {
     const next = METHODS.find((x) => x.id === m.next);
     assert.ok(next && next !== m && next.puzzle === m.puzzle, m.id);
+  }
+});
+
+test("a guide's next names methods of its puzzle", () => {
+  for (const [g, puzzle] of [[crossGuide, undefined], [bases2x2, '2x2x2']] as const) {
+    assert.ok(g.next.length, g.id);
+    for (const id of g.next) assert.ok(METHODS.some((x) => x.id === id && x.puzzle === puzzle), id);
   }
 });

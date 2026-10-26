@@ -111,7 +111,10 @@ export async function showAcademy(root: HTMLElement, page: AcademyPage): Promise
       root.replaceChildren(...head(title), lessonList(course, ...(cross ? [trainerButton()] : [])));
       return inAcademy(title);
     }
-    sectioned(root, head(title), t(cross ? 'cross.nav' : 'bases2x2.nav'), cross ? guideSections(kpuzzle) : guideSections(kpuzzle, bases2x2, '2x2x2'));
+    const g = cross ? crossGuide : bases2x2;
+    const sections = guideSections(kpuzzle, g, cross ? '3x3x3' : '2x2x2');
+    sections.at(-1)!.append(...nextView(METHODS.filter((x) => g.next.includes(x.id)))); // in its last section: the nav lists sections
+    sectioned(root, head(title), t(cross ? 'cross.nav' : 'bases2x2.nav'), sections);
     return inAcademy(title);
   }
   const m = METHODS.find((x) => x.id === page.id);
@@ -375,14 +378,12 @@ function methodView(m: Method, course: Course | null): Node[] {
     ...(start ? [start] : []), ...(allCases(m).length ? [trainView(m)] : []), about,
     ...(m.notation ? [fold(t('academy.notation'), prose(loc(m.notation)))] : []),
     ...(m.schedule ? [fold(t('academy.schedule'), prose(loc(m.schedule)))] : []),
-    ...m.phases.map(phaseView), ...nextView(m)];
+    ...m.phases.map(phaseView), // then the methods after it: its `next`, and those whose `before` is this one
+    ...nextView(METHODS.filter((x) => x.id === m.next || x.before?.path.split('#')[0] === academyLink({ kind: 'method', id: m.id })))];
 }
 
-/** The end of a method: the methods that come after it (its `next`, and those whose `before` is this one), so the
- *  path goes on instead of ending on the last cards. */
-function nextView(m: Method): HTMLElement[] {
-  const path = academyLink({ kind: 'method', id: m.id });
-  const after = METHODS.filter((x) => x.id === m.next || x.before?.path.split('#')[0] === path);
+/** The end of a guide or a method: the methods to learn next, so the path goes on instead of ending on the last cards. */
+function nextView(after: Method[]): HTMLElement[] {
   return after.length ? [el('p', { className: 'hint' }, `${t('academy.next')} `,
     ...after.flatMap((x, i) => [...(i ? [' · '] : []), el('a', { href: academyLink({ kind: 'method', id: x.id }), textContent: loc(x.name) })]))] : [];
 }

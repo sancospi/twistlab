@@ -11,6 +11,7 @@ const ex = (setup: string, solution: string, es: string, en: string, pt: string)
 
 export const bases2x2: TextGuide = {
   id: '2x2',
+  next: ['principiante-2x2', 'ortega'],
   name: tr('Bases del 2x2', '2x2 basics', 'Básico do 2x2'),
   summary: tr('El cubo de 2x2: solo esquinas, sin centros. Cómo se sostiene, cómo se lee y qué método elegir.', 'The 2x2 cube: only corners, no centers. How to hold it, how to read it and which method to pick.', 'O cubo 2x2: só quinas, sem centros. Como segurar, como ler e qual método escolher.'),
   intro: tr(

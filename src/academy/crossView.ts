@@ -1,6 +1,6 @@
 // A guide page (the white cross, the 2x2's basics): intro (the cross: with the button that opens its trainer, a
 // modal; then the solved cube beside its first line), then the lessons, each example with its figure, tappable moves
-// and a 3D replay. view.ts adds the crumbs and the side navigation.
+// and a 3D replay. view.ts adds the crumbs, the side navigation and the methods to learn next.
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { prose, richText } from '../rich-text-view.ts';
 import { algView } from '../notation-view.ts';

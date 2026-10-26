@@ -34,6 +34,7 @@ export interface TextGuide {
   summary: Localized; // its tile on the Academia home
   intro: Localized;
   lessons: CrossLesson[];
+  next: string[]; // the methods to learn after it (ids): view.ts links them at its end
 }
 
 export interface CrossGuide extends TextGuide {
@@ -45,6 +46,7 @@ const ex = (setup: string, solution: string, es: string, en: string, pt: string)
 
 export const crossGuide: CrossGuide = {
   id: 'cruz',
+  next: ['principiante', 'cfop-reducido'],
   name: tr('La cruz blanca', 'The white cross', 'A cruz branca'),
   summary: tr('El primer paso del CFOP y de casi todos los métodos: la cruz blanca abajo, planeada en la inspección y en 8 giros o menos.', 'The first step of CFOP and of almost every method: the white cross on the bottom, planned during inspection and solved in 8 moves or fewer.', 'O primeiro passo do CFOP e de quase todos os métodos: a cruz branca embaixo, planejada na inspeção e em 8 movimentos ou menos.'),
   intro: tr(
