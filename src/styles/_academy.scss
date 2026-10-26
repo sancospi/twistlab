@@ -67,6 +67,7 @@ body[data-module="academy"] .panel { @include full-page; }
 .today h2, .today p { margin: 0; }
 .today .cube-block { background: $card; border: 1px solid $raised; } /* the shared $well is the page's own colour here: the blocks would not show */
 .today .account-status:empty { display: none; }
+.today > div:empty { display: none; } /* no review due: its box would add a second gap */
 .today-steps { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
 .academy-home h2 { margin: 0; }
 .academy-puzzle { display: grid; gap: 8px; }
