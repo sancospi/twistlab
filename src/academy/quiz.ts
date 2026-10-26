@@ -1,6 +1,7 @@
 // The Quiz (retener), the same activity from a case page, a group, a phase, the whole method or the plan's own
 // quizzes: only the scope changes. Setup: which cases (by hand, by learning status, slowest, due today…) and in which
-// order (uniform, as often as they come up in a solve, due first). Each item, timed:
+// order (uniform, as often as they come up in a solve, due first); Hoy's review skips it, each due case once. Each
+// item, timed:
 // - With a synced cube: 1) Mezcla, guided to a random state of the case; 2) Resuelve, on the clock from the first
 //   turn, without being asked its name. Graded by itself (time, turns, efficiency).
 // - Without one: the clock card, as in Practicar: the figure (no arrows: they'd give the case away) and the random-state
@@ -146,7 +147,8 @@ const anim = new Animation($('quiz-player'), (pl) => {
   loadCase(pl, kpuzzle, item.c.stage, item.spec.moves, tokenize(solution(item)), item.hold); // held as its figure
 });
 
-/** Opens a quiz on its setup screen; `onDone` runs when the dialog closes (the history may have changed). */
+/** Opens a quiz on its setup screen (Hoy's review, with nothing to choose, on its first item); `onDone` runs when the
+ *  dialog closes (the history may have changed). */
 export async function openQuiz(s: QuizScope, onDone: () => void = () => {}): Promise<void> {
   kpuzzle ??= await cube3x3x3.kpuzzle();
   scope = s;
@@ -163,7 +165,8 @@ export async function openQuiz(s: QuizScope, onDone: () => void = () => {}): Pro
   helpToggle.ariaExpanded = 'false';
   cube.listener = listener;
   if (!dialog.open) openSheet(dialog); // "repeat the failed ones" reopens from inside
-  render();
+  if (s.kind === 'cases' && s.id === 'today') start(); // Hoy's review: one tap to the first case
+  else render();
 }
 
 dialog.addEventListener('close', () => {
@@ -216,6 +219,9 @@ function makeSpecs(): QuizSpec[] {
   }
   const cases = selected();
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
+  // Hoy's review: each due case once, before any order (probability would skip some), as the spaced repetition grades
+  // only its first good answer (store.ts); the misses come back in the retry round
+  if (scope.id === 'today') return makeQuizItems(cases, 1, seed, kpuzzle);
   if (order === 'spaced') return spacedTiers(cases, learningFor, Date.now()).flatMap((tier, i) => makeQuizItems(tier, perCase, seed + i, kpuzzle));
   if (order === 'probability') {
     // a case whose probability isn't counted (F2L, the beginner's last layer) weighs as the mean; none counted: uniform
