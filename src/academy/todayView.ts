@@ -9,7 +9,7 @@ import { slowQuiz } from '../analysis-view.ts';
 import { slowestCases } from '../solve-analysis.ts';
 import { reminderView, syncReminder } from '../reminder.ts';
 import { parseDone, suggestedLesson } from './lessons.ts';
-import { METHODS, allCases } from './methods.ts';
+import { METHODS, allCases, fromPhase } from './methods.ts';
 import { el } from '../el.ts';
 import { openQuiz } from './quiz.ts';
 import { isDue, learningFor, load, preferred, statsFor } from './store.ts';
@@ -35,7 +35,8 @@ const block = (title: string, ...children: Node[]) => el('section', { className:
 export async function todayView(): Promise<HTMLElement> {
   const recent = recentMethods();
   const lesson = suggestedLesson(recent.map((m) => m.id), parseDone(load(LESSONS_KEY)), (c) => preferred(c).alg);
-  const fresh = recent.flatMap((m) => allCases(m)).find((c) => !learningFor(c.id) && !statsFor(c.id)); // one new case, from the method in hand
+  // one new case, from the method and the phase in hand
+  const fresh = recent.flatMap((m) => fromPhase(m, (c) => statsFor(c.id)?.lastPracticed ?? 0)).find((c) => !learningFor(c.id) && !statsFor(c.id));
   const freshMethod = fresh && recent.find((m) => allCases(m).includes(fresh))!;
   const days = streak((await import('../progress-view.ts')).practiceTimes(), Date.now());
   const date = new Intl.DateTimeFormat(lang, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());

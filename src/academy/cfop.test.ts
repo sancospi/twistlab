@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { METHODS, allCases, findCase, scdbUrl } from './methods.ts';
+import { METHODS, allCases, findCase, fromPhase, scdbUrl } from './methods.ts';
+import { cfopFull } from './cfopFull.ts';
 import { cfopReduced } from './cfop.ts';
+import { f2lAdvanced } from './f2lAdvanced.ts';
 import { crossGuide } from './crossGuide.ts';
 import { bases2x2 } from './bases2x2.ts';
 
@@ -81,4 +83,18 @@ test("a guide's next names methods of its puzzle", () => {
     assert.ok(g.next.length, g.id);
     for (const id of g.next) assert.ok(METHODS.some((x) => x.id === id && x.puzzle === puzzle), id);
   }
+});
+
+test("Hoy's new case starts at the phase of the latest practised case, then wraps", () => {
+  const all = allCases(cfopFull);
+  assert.deepEqual(fromPhase(cfopFull, () => 0), all); // nothing practised: from the first case
+  const pll = cfopFull.phases[cfopFull.phases.length - 1];
+  const lastPll = pll.groups.flatMap((g) => g.cases).at(-1)!;
+  const order = fromPhase(cfopFull, (c) => (c === lastPll ? 2 : c === all[3] ? 1 : 0));
+  assert.equal(order.length, all.length);
+  assert.equal(order[0], pll.groups[0].cases[0]); // not wrapped to F2L 1 past the PLL cases not seen yet
+  assert.equal(order[order.length - 1], all[all.indexOf(order[0]) - 1]);
+  // F2L avanzado's phases all share one stage: the phase, not the stage, is where the search starts
+  const third = f2lAdvanced.phases[2].groups[0].cases[1];
+  assert.equal(fromPhase(f2lAdvanced, (c) => (c === third ? 1 : 0))[0], f2lAdvanced.phases[2].groups[0].cases[0]);
 });

@@ -21,6 +21,15 @@ export function allCases(method: Method): Case[] {
   return method.phases.flatMap((p) => p.groups.flatMap((g) => g.cases));
 }
 
+/** `method`'s cases from the start of the phase of the latest practised one, wrapping around: where Hoy looks for a new
+ * case, so a learner on PLL is not sent back to F2L 1. `last` is a case's last practice time (0 if never). */
+export function fromPhase(method: Method, last: (c: Case) => number): Case[] {
+  const cases = (p: Method['phases'][number]) => p.groups.flatMap((g) => g.cases);
+  const latest = allCases(method).reduce<Case | undefined>((a, c) => (last(c) > (a ? last(a) : 0) ? c : a), undefined);
+  const i = Math.max(0, method.phases.findIndex((p) => latest && cases(p).includes(latest)));
+  return [...method.phases.slice(i), ...method.phases.slice(0, i)].flatMap(cases);
+}
+
 export function findCase(id: string): Case | undefined {
   for (const m of METHODS) {
     const c = allCases(m).find((c) => c.id === id);
