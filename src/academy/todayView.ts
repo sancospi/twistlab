@@ -49,13 +49,22 @@ export async function todayView(): Promise<HTMLElement> {
     sessionBox.replaceChildren(sessionCard(due.length));
     void syncReminder((at) => dueCases(at).length);
   };
+  // the quiz closed: the dialog gave the focus back to its button, which redraw just replaced. To the review's new
+  // button if cases are still due, else to the session's heading, not lost on <body>
+  const reviewed = () => {
+    redraw();
+    if (document.activeElement !== document.body) return; // e.g. Practicar ("Repasar ahora") is open over the page
+    const h = sessionBox.querySelector('h3')!;
+    h.tabIndex = -1;
+    (reviewBox.querySelector('button') ?? h).focus();
+  };
   // one quiz per puzzle (a quiz is of one puzzle): usually just the 3x3
   const reviewButtons = (due: Case[]) => {
     const puzzles = [...new Set(due.map((c) => puzzleOf(c.stage)))];
     return puzzles.map((puzzle) => el('button', {
       type: 'button', className: 'primary',
       textContent: puzzles.length > 1 ? `${t('today.review')} · ${t(`library.puzzle.${puzzle}`)}` : t('today.review'),
-      onclick: () => void openQuiz({ kind: 'cases', id: 'today', cases: due.filter((c) => puzzleOf(c.stage) === puzzle), title: t('today.review') }, redraw),
+      onclick: () => void openQuiz({ kind: 'cases', id: 'today', cases: due.filter((c) => puzzleOf(c.stage) === puzzle), title: t('today.review') }, reviewed),
     }));
   };
   const reviewCard = (due: Case[]) => block(t('today.review'), p(tp('srs.due', due.length)), el('div', { className: 'row' }, ...reviewButtons(due)));

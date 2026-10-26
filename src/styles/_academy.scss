@@ -68,7 +68,7 @@ body[data-module="academy"] .panel { @include full-page; }
   .today-steps { gap: 12px; }
   .today-steps a { padding-block: 6px; }
 }
-#mod-academy :is(h1, h2)[tabindex="-1"] { outline: none; } /* a new page's title, focused for screen readers (main.ts): not a control */
+#mod-academy :is(h1, h2, h3)[tabindex="-1"] { outline: none; } /* a new page's title (main.ts), Hoy's session after its review (todayView.ts): focused for screen readers, not a control */
 /* coming from another screen, the Academia's first page waits for its code (main.ts): a sign of life, not black */
 #mod-academy[aria-busy="true"]:empty::after { content: '…'; color: var(--muted); font-size: 2rem; }
 .academy-home { display: grid; gap: 12px; }
