@@ -3,7 +3,8 @@
 // A method page starts with its name, what it is and the step before it, then its next lesson (the way in) and the Quiz
 // of the whole method (and how many cases are due today); then its phases and groups, each case as a card that opens
 // its page (caseView.ts: Practicar, Quiz, Memoria muscular), with Quiz buttons per group and phase, plus the plan's own
-// quizzes: the same Quiz, only the scope changes; it ends with the method to learn next.
+// quizzes: the same Quiz, only the scope changes; each group also says "Ya me lo sé"; it ends with the method to learn
+// next.
 import { prose } from '../rich-text-view.ts';
 import { TERMS } from '../terms.ts';
 import { cube3x3x3 } from 'cubing/puzzles';
@@ -23,7 +24,7 @@ import { triggerGuide } from './triggers.ts';
 import { triggersView } from './triggerView.ts';
 import { courseFor, MOVE_GROUPS, type Course } from './lessons.ts';
 import { lessonList, lessonsDone, lessonStart, playLesson, stopLesson } from './lessonView.ts';
-import { libraryView, showCase, stopCase } from './caseView.ts';
+import { knownToggle, libraryView, showCase, stopCase } from './caseView.ts';
 import { caseDiagram, netSVG, twoSidesSVG } from './diagram.ts';
 import { pllRecognitionView, stopPllRecognition } from './pllRecognition.ts';
 import { aufTrainerView, stopAufTrainer } from './aufTrainer.ts';
@@ -363,6 +364,11 @@ function notationView(): HTMLElement {
 
 const text = (s: string, className = '') => el('p', { textContent: s, className });
 
+// What on a method page shows the cases' status (the due count, each group's "Ya me lo sé"), refilled when any of its
+// quizzes closes or a group is marked: either one changes cases the others count. Emptied by each method page.
+const methodFills: (() => void)[] = [];
+const refillMethod = () => methodFills.forEach((fill) => fill());
+
 const dueCount = (cases: Case[]) => cases.filter((c) => isDue(learningFor(c.id), Date.now())).length;
 
 /** The Quiz of the whole method (which cases: chosen in its setup), and how many are due today (refreshed when it
@@ -372,12 +378,13 @@ function trainView(m: Method): HTMLElement {
   const due = el('span', { className: 'tile-due' });
   const fill = () => (due.textContent = dueCount(cases) ? tp('srs.due', dueCount(cases)) : '');
   fill();
+  methodFills.push(fill);
   const train = el('button', { type: 'button', className: 'small', textContent: t('srs.train') });
-  train.onclick = () => void openQuiz({ kind: 'cases', id: m.id, cases, title: loc(m.name) }, fill);
+  train.onclick = () => void openQuiz({ kind: 'cases', id: m.id, cases, title: loc(m.name) }, refillMethod);
   return el('div', { className: 'row academy-train' }, train, due);
 }
 
-/** Opens the quiz; shows the scope's last accuracy, refreshed when the quiz closes. */
+/** Opens the quiz; shows the scope's last accuracy, refreshed when the quiz closes (with the rest of the method page). */
 function quizButton(label: string, scope: QuizScope, ariaLabel?: string) {
   const b = el('button', { type: 'button', className: 'small' });
   const fill = () => {
@@ -387,11 +394,12 @@ function quizButton(label: string, scope: QuizScope, ariaLabel?: string) {
     if (ariaLabel) b.setAttribute('aria-label', withLast(ariaLabel));
   };
   fill();
-  b.onclick = () => void openQuiz(scope, fill);
+  b.onclick = () => void openQuiz(scope, () => (fill(), refillMethod()));
   return b;
 }
 
 function methodView(m: Method, course: Course | null): Node[] {
+  methodFills.length = 0; // the last method page's are gone
   // what the method is and how to hold the cube; its notation and its calendar folded apart (each one long enough on
   // its own: together, up to 700 words in one fold)
   const fold = (summary: string, ...body: Node[]) => el('details', { className: 'academy-about' }, el('summary', { textContent: summary }), ...body);
@@ -474,12 +482,15 @@ function lastLayerButton(phase: Phase): HTMLElement[] {
 // its toggle event fires then too, so the card just practised finds its group open even once it is no longer due.
 const openGroups = (): string[] => (history.state as { open?: string[] } | null)?.open ?? [];
 
-/** A group's head (name and Quiz), then its cards: a long group folds them (CFOP completo would be 29 screens on a
+/** A group's head (name, "Ya me lo sé" and Quiz), then its cards: a long group folds them (CFOP completo would be 29 screens on a
  *  phone) unless some are due or it was left open. */
 function groupView(phase: Phase, g: Group, odds: (() => void)[]): HTMLElement {
+  const known = knownToggle(g.cases, refillMethod, loc(g.name));
+  methodFills.push(known.fill);
   const head = el('div', { className: 'academy-group-head' },
     el('h3', { textContent: loc(g.name) }),
-    quizButton(t('academy.quiz'), { kind: 'cases', id: g.id, cases: g.cases, title: loc(g.name) }, t('academy.quizOf', { name: loc(g.name) })));
+    el('div', { className: 'row' }, known,
+      quizButton(t('academy.quiz'), { kind: 'cases', id: g.id, cases: g.cases, title: loc(g.name) }, t('academy.quizOf', { name: loc(g.name) }))));
   const cards = el('div', { className: 'cards' }, ...g.cases.map((c) => card(phase, c, odds)));
   let body: HTMLElement = cards;
   if (g.cases.length > 6) {

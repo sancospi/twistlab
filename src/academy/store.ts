@@ -153,6 +153,18 @@ export function graded(s: Learning | undefined, grade: Grade, now: number): Lear
   return { ...base, interval, due: now + interval * DAY };
 }
 
+/** The case's schedule after "Ya me lo sé" (`known`) or "Volver a aprender": known jumps to KNOWN_DAYS, the `i`-th
+ *  case of a group a day later than the one before (4 apart at most), so a marked group isn't reviewed all on one
+ *  day; one already known keeps its longer interval. Unlearning keeps the entry (a deleted one would come back from
+ *  another device, sync.ts merges per case) at interval 0, due today. */
+export function marked(s: Learning | undefined, known: boolean, now: number, i = 0): Learning {
+  const base: Learning = s ?? { due: now, interval: 0, lapses: 0, recognitionMs: null, solveMs: null };
+  if (!known) return { ...base, interval: 0, due: now };
+  if (learnStatus(s) === 'known') return s!;
+  const interval = KNOWN_DAYS + (i % 4);
+  return { ...base, interval, due: now + interval * DAY };
+}
+
 /** `s` with a new solve time folded into its moving average. */
 export function timed(s: Learning, ms: number): Learning {
   const avg = s.solveMs;
@@ -183,6 +195,13 @@ export function recordGrade(caseId: string, grade: Grade, solveMs?: number): Lea
   learning[caseId] = s;
   save(LEARN_KEY, learning);
   return s;
+}
+
+/** Marks these cases known, or to learn again (marked). */
+export function setKnown(caseIds: string[], known: boolean): void {
+  const now = Date.now();
+  caseIds.forEach((id, i) => (learning[id] = marked(learning[id], known, now, i)));
+  save(LEARN_KEY, learning);
 }
 
 // --- The user's own algorithms, per case (practice.ts checks they solve the case before adding them) ---

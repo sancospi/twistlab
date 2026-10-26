@@ -3,7 +3,7 @@
 // (probability, group, and the inverse and mirror cases found in the simulator, one chip when they're the same case);
 // the three ways to work on it (Practicar, Quiz, Memoria muscular); the algorithms with their triggers marked and their
 // tags; how to recognise it; a folded note on why the Quiz scrambles at random; your data and spaced-repetition status
-// (once there are any); the other cases of its group. Its 3D player lives in index.html's #case, outside #mod-academy
+// (with "Ya me lo sé", shared with view.ts's group heads); the other cases of its group. Its 3D player lives in index.html's #case, outside #mod-academy
 // (rebuilt per page), so it's never re-attached.
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
@@ -21,7 +21,7 @@ import { Animation, fingersView, loadCase, moreAlgs, movesView, openPractice, so
 import { $, el } from '../el.ts';
 import { caseProbability, formatProbability } from './probability.ts';
 import { dueDay, openQuiz } from './quiz.ts';
-import { average, byChoice, isDue, learnStatus, learningFor, preferred, setPreferred, statsFor, variants } from './store.ts';
+import { KNOWN_DAYS, average, byChoice, isDue, learnStatus, learningFor, preferred, setKnown, setPreferred, statsFor, variants } from './store.ts';
 import { caseLabel, type AlgVariant, type Case, type Group, type Method, type Phase } from './types.ts';
 
 const section = $('case');
@@ -50,6 +50,28 @@ const statusOf = (caseId: string): CaseStatus => {
   const l = learningFor(caseId);
   return isDue(l, Date.now()) ? 'due' : learnStatus(l);
 };
+
+/** "Ya me lo sé" for these cases, or "Volver a aprender" once all are known; a click does what the label says (`fill`
+ *  refreshes it when something else, such as a quiz, changed them). Unlearning asks first only when it would throw away
+ *  intervals the Quiz earned, longer than marking gives back; otherwise the same button undoes it. Here on the case page
+ *  and on view.ts's group heads (`name`: which group, for screen readers); `done` refreshes whatever shows their status. */
+export function knownToggle(cases: Case[], done: () => void = () => {}, name?: string): HTMLButtonElement & { fill: () => void } {
+  const b = el('button', { type: 'button', className: 'small' });
+  let known = false;
+  const fill = () => {
+    known = cases.every((c) => learnStatus(learningFor(c.id)) === 'known');
+    b.textContent = t(known ? 'case.unmarkKnown' : 'case.markKnown');
+    if (name) b.setAttribute('aria-label', `${b.textContent}: ${name}`);
+  };
+  fill();
+  b.onclick = () => {
+    if (known && cases.some((c) => learningFor(c.id)!.interval > KNOWN_DAYS + 3) && !confirm(t('case.unmarkConfirm'))) return;
+    setKnown(cases.map((c) => c.id), !known);
+    fill();
+    done();
+  };
+  return Object.assign(b, { fill });
+}
 
 /** A small linked card: diagram, code, name and how you're doing with it; `tagged`: its method's name too. */
 function miniCard(m: Method, phase: Phase, c: Case, tagged = false): HTMLAnchorElement {
@@ -82,7 +104,7 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
   const facts = el('ul', { className: 'chips', ariaLabel: t('case.facts') });
   const algs = el('section', { className: 'case-section' });
   const why = el('section', { className: 'case-section' });
-  const data = el('section', { className: 'case-section' });
+  const data = el('section', { className: 'case-section' }); // always shown: a new case can be marked known from it
 
   const fill = () => {
     if (shown !== c) return;
@@ -115,8 +137,7 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
     why.hidden = !inverse || inverse === c;
     // folded: the same paragraph on every case with an inverse, a side note to its algorithms
     if (inverse) why.replaceChildren(el('details', {}, el('summary', { textContent: t('case.inverseWhy') }), text(t('case.inverseWhyText', { other: caseLabel(inverse) }))));
-    data.hidden = !statsFor(c.id) && !learningFor(c.id); // a new case has no data yet: shown after its first Practicar or Quiz (fill again)
-    data.replaceChildren(el('h3', { textContent: t('case.yourData') }), yourData(c));
+    data.replaceChildren(el('h3', { textContent: t('case.yourData') }), yourData(c, fill));
   };
 
   function algCard(v: AlgVariant, chosen: boolean): HTMLElement {
@@ -170,7 +191,7 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
     text([loc(m.name), loc(phase.name), loc(group.name)].join(' · '), 'hint'));
 }
 
-function yourData(c: Case): HTMLElement {
+function yourData(c: Case, fill: () => void): HTMLElement {
   const s = statsFor(c.id);
   const l = learningFor(c.id);
   const avg = s && average(s);
@@ -179,7 +200,7 @@ function yourData(c: Case): HTMLElement {
     ...row(t('case.reps'), s ? t('case.repsValue', { reps: tp('academy.reps', s.reps), clean: s.clean }) : t('academy.notPracticed')),
     ...(s?.best == null ? [] : row(t('case.best'), formatTime(s.best))),
     ...(avg == null || s!.last.length < 2 ? [] : row(t('case.avg', { n: s!.last.length }), formatTime(avg))), // one rep: that's the best
-    ...row(t('case.status'), t(`library.status.${learnStatus(l)}`)),
+    el('dt', { textContent: t('case.status') }), el('dd', { className: 'row' }, t(`library.status.${learnStatus(l)}`), knownToggle([c], fill)),
     ...row(t('case.due'), !l ? t('case.dueNone') : isDue(l, Date.now()) ? t('case.dueToday') : dueDay.format(l.due)));
 }
 

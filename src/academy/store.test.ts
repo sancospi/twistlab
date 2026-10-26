@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  KNOWN_DAYS, addRep, average, byChoice, graded, isDue, learnStatus, parseLearning, parsePrefs, parseStats, preferred, timed,
+  KNOWN_DAYS, addRep, average, byChoice, graded, isDue, learnStatus, marked, parseLearning, parsePrefs, parseStats, preferred, timed,
   type CaseStats, type Learning,
 } from './store.ts';
 import { findCase } from './methods.ts';
@@ -79,6 +79,20 @@ test('learnStatus and isDue: new, learning, known', () => {
   assert.equal(learnStatus(base), 'learning');
   assert.equal(learnStatus({ ...base, interval: KNOWN_DAYS }), 'known');
   assert.ok(isDue(base, at(3, 0)) && isDue(base, at(9)) && !isDue(base, at(2, 23)));
+});
+
+test('marked: known staggers new and learning cases, keeps longer intervals and lapses; unlearning is due today', () => {
+  const learningCase: Learning = { due: at(1), interval: 1, lapses: 2, recognitionMs: null, solveMs: 1500 };
+  const fresh = marked(undefined, true, at(1));
+  assert.deepEqual([learnStatus(fresh), fresh.interval, fresh.due], ['known', KNOWN_DAYS, at(1) + KNOWN_DAYS * DAY]);
+  const second = marked(learningCase, true, at(1), 1);
+  assert.deepEqual([learnStatus(second), second.interval, second.lapses, second.solveMs], ['known', KNOWN_DAYS + 1, 2, 1500]);
+  assert.equal(marked(undefined, true, at(1), 4).interval, KNOWN_DAYS, 'the stagger wraps after 4 days');
+  const long: Learning = { ...learningCase, interval: 48, due: at(30) };
+  assert.equal(marked(long, true, at(1)), long, 'already known: untouched');
+  const again = marked(long, false, at(1));
+  assert.deepEqual([learnStatus(again), again.lapses, again.solveMs], ['learning', 2, 1500]);
+  assert.ok(isDue(again, at(1)));
 });
 
 test('timed: moving average of the times', () => {
