@@ -149,6 +149,22 @@ export function caseChoices(cases: Case[], answer: number, rand = Math.random): 
   return [...shown.slice(r), ...shown.slice(0, r)];
 }
 
+// Stages whose case names cubers commonly learn: the PLL letters, OCLL's Sune to H, the 2-look OLL's Línea, L and Punto,
+// Ortega's PBL. A code with a digit is a catalogue number (A1, F2L 7, OLL 45, COLL H 1), not a name worth memorising.
+const NAMED: Stage[] = ['oll-cross', 'oll-corners', 'pll-corners', 'pll-edges', 'll-corners-twist', '2x2-oll', '2x2-pbl'];
+export const commonName = (c: Case): boolean => NAMED.includes(c.stage) && !/\d/.test(c.code);
+
+/** "¿Qué caso es?" asked for what a solve needs: by name only when every choice has a common name, otherwise by
+ *  algorithm ("¿Qué algoritmo lo resuelve?"), one choice per algorithm text (the answer's kept: never two right ones).
+ *  `algOf`: the algorithm shown for a case (the user's chosen one, in the app). */
+export function caseQuestion(shown: Case[], answer: Case, algOf: (c: Case) => string): { byAlg: boolean; choices: { c: Case; label: string }[] } {
+  const byAlg = !shown.every(commonName);
+  const label = (c: Case) => (byAlg ? formatAlg(tokenize(algOf(c))) : c.code);
+  const seen = new Set([label(answer)]);
+  const kept = shown.filter((c) => c === answer || (!seen.has(label(c)) && !!seen.add(label(c))));
+  return { byAlg, choices: kept.map((c) => ({ c, label: label(c) })) };
+}
+
 const MAX_CASES = 8; // more in one phase: a lesson per group, so a lesson stays short
 
 /** `algOf`: the algorithm shown for a case (the user's chosen one, in the app). */
@@ -175,13 +191,13 @@ function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
           return { kind: 'cube', title: caseLabel(c), text, setup: caseSetup(alg).join(' '), alg, doSetup: false, stage: c.stage };
         }),
         ...(tips ? [text({ title: t('academy.tips'), text: tips })] : []),
-        ...asked.map((i): LessonStep => {
-          const byAlg = cases[i].stage === 'f2l'; // F2L codes (A3, BR29) are bare labels: ask for what solves it
-          return {
+        ...asked.flatMap((i): LessonStep[] => {
+          const q = caseQuestion(caseChoices(cases, i), cases[i], algOf);
+          return q.choices.length < 2 ? [] : [{
             kind: 'case', caseId: cases[i].id, alg: cases[i].algs[0].alg, stage: cases[i].stage, diagram, // the case's own state: what its recognition reads
-            choices: caseChoices(cases, i).map((c) => ({ id: c.id, label: byAlg ? formatAlg(tokenize(algOf(c))) : c.code })),
-            ...(byAlg ? { title: t('lesson.whichAlg') } : {}),
-          };
+            choices: q.choices.map(({ c, label }) => ({ id: c.id, label })),
+            ...(q.byAlg ? { title: t('lesson.whichAlg') } : {}),
+          }];
         }),
       ],
     };

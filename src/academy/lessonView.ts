@@ -379,7 +379,9 @@ function caseStep(s: Extract<LessonStep, { kind: 'case' }>) {
   const answer = s.choices.find((c) => c.id === s.caseId)!.label;
   // a miss says how to recognise it, as a wrong move says how it turns (the template ends the sentence; a few recognitions already do)
   const wrong = t('lesson.wrongCase', { name: answer, how: loc(findCase(s.caseId)!.recognition).replace(/\.$/, '') });
-  body.replaceChildren(choices(s.choices.map((c) => ({ label: c.label, right: c.id === s.caseId })), wrong));
+  const box = choices(s.choices.map((c) => ({ label: c.label, right: c.id === s.caseId })), wrong);
+  box.classList.toggle('algs', !!s.title); // the labels are algorithms (lessons.ts caseQuestion)
+  body.replaceChildren(box);
 }
 
 // --- The end ---

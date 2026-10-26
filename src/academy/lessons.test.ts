@@ -9,7 +9,8 @@ import { f2lAdvanced } from './f2lAdvanced.ts';
 import { roux } from './roux.ts';
 import { beginner2x2 } from './beginner2x2.ts';
 import { ortega } from './ortega.ts';
-import { caseChoices, courseFor, minutes, moveQuestion, nextLesson, parseDone, splitSteps, suggestedLesson } from './lessons.ts';
+import { caseChoices, commonName, courseFor, minutes, moveQuestion, nextLesson, parseDone, splitSteps, suggestedLesson } from './lessons.ts';
+import { findCase } from './methods.ts';
 import type { Case } from './types.ts';
 
 test('lessons: a guide text splits into one idea per step', () => {
@@ -122,24 +123,32 @@ test('lessons: a lesson with cases ends on their Quiz, under the id of a Quiz bu
   }
 });
 
-test('lessons: F2L case questions offer algorithms (its codes are bare labels), the others keep their names', () => {
-  let f2l = 0;
+test('commonName: the names cubers learn (PLL, OCLL, 2-look OLL, PBL), never a catalogue number', () => {
+  const named = (id: string) => commonName(findCase(id)!);
+  for (const id of ['cfopc-pll-t', 'cfopc-oll-27', 'cfop-oll-punto']) assert.ok(named(id), id);
+  for (const id of ['cfop-f2l-a1', 'cfopc-f2l-01', 'cfopc-oll-45']) assert.ok(!named(id), id);
+});
+
+test('lessons: a case question shows names only when every choice has a common name, else algorithms', () => {
+  let byAlg = 0, byName = 0;
   for (const m of [beginner, cfopReduced, f2lAdvanced, roux, beginner2x2, ortega]) {
     const byId = new Map(m.phases.flatMap((p) => p.groups.flatMap((g) => g.cases)).map((c) => [c.id, c]));
     for (const s of courseFor(m.id)!.lessons.flatMap((l) => l.steps)) {
       if (s.kind !== 'case') continue;
-      if (s.stage === 'f2l') {
-        f2l++;
-        assert.equal(s.title, t('lesson.whichAlg'));
-        s.choices.forEach((c) => assert.equal(c.label, formatAlg(tokenize(byId.get(c.id)!.algs[0].alg))));
-        assert.equal(new Set(s.choices.map((c) => c.label)).size, s.choices.length); // never two right answers
-      } else {
+      assert.ok(s.choices.length >= 2, s.caseId);
+      assert.equal(new Set(s.choices.map((c) => c.label)).size, s.choices.length); // never two right answers
+      if (s.choices.every((c) => commonName(byId.get(c.id)!))) {
+        byName++;
         assert.equal(s.title, undefined);
         s.choices.forEach((c) => assert.equal(c.label, byId.get(c.id)!.code));
+      } else {
+        byAlg++;
+        assert.equal(s.title, t('lesson.whichAlg'));
+        s.choices.forEach((c) => assert.equal(c.label, formatAlg(tokenize(byId.get(c.id)!.algs[0].alg))));
       }
     }
   }
-  assert.ok(f2l > 0);
+  assert.ok(byAlg > 0 && byName > 0);
 });
 
 test('suggestedLesson: the recent course first, then one started, then the cross; finished courses are skipped', () => {
