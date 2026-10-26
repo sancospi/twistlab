@@ -23,7 +23,7 @@ test('a page for every case, every method and the library, each path once and ro
     '/academia', '/academia/cruz', '/academia/notacion', '/cubo', '/cubo/pintar', '/progreso', '/retos', '/acerca', ...METHODS.map((m) => `/academia/${m.id}`)]) assert.ok(paths.includes(p), p);
   for (const p of pages) {
     if (p.path !== '/') assert.notEqual(parseRoute(p.path).mod, 'solve', p.path); // a path the router knows
-    assert.ok(p.title && p.description && p.body.startsWith('<h2'), p.path);
+    assert.ok(p.title && p.description && /^(<section class="[\w-]+">)?<h2/.test(p.body), p.path); // the Academia's home: in its app box
   }
 });
 

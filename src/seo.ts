@@ -178,13 +178,16 @@ function academyHome(): SeoPage {
     title: academyTitle(t('seo.academyTitle')), // what people search for: "Aprende a resolver el cubo de Rubik · Academia"
     description: t('seo.academyDescription'),
     trail: [home(), { name: t('menu.academy'), path: academy({ kind: 'home' }) }],
-    body: `<h2>${esc(t('menu.academy'))}</h2><p>${esc(t('seo.academyDescription'))}</p>` + list([
+    // it starts as the app's home does (academy/view.ts: the same box, title and intro, same size), so the app drawing
+    // over it doesn't paint a new largest element: Lighthouse's LCP stays the first paint
+    body: `<section class="academy-home"><h2>${esc(t('menu.academy'))}</h2><p class="prose hint">${esc(t('academy.homeIntro'))}</p>`
+      + `<p>${esc(t('seo.academyDescription'))}</p>` + list([
       a({ kind: 'howto' }, loc(howToSolve.name)), a({ kind: 'smartcubes' }, loc(smartCubes.name)), link('/', t('solve.seoTitle')), link(routePath({ mod: 'cube', page: 'paint' }), t('paint.seoTitle')),
       a({ kind: 'cross' }, loc(crossGuide.name)),
       ...METHODS.map((m) => a({ kind: 'method', id: m.id }, loc(m.name))),
       a({ kind: 'notation' }, t('glossary.title')), a({ kind: 'triggers' }, loc(triggerGuide.name)), a({ kind: 'bases2x2' }, loc(bases2x2.name)),
       ...TRAINERS.map((id) => a({ kind: 'trainer', id }, t(`trainer.${id}.title`))),
-    ]),
+    ]) + '</section>',
   };
 }
 
