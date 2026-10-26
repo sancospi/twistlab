@@ -370,6 +370,7 @@ export const en: Record<MessageKey, string> = {
   'academy.tips': 'If something goes wrong',
   'academy.quiz': 'Quiz',
   'academy.quizOf': 'Quiz: {name}',
+  'academy.groupKnown': '{n} of {total} known',
   'academy.quizPhase': 'Quiz',
   'academy.quizGenerated': 'Random cases',
   'academy.quizOfficial': 'Plan quizzes',

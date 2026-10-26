@@ -46,7 +46,8 @@ const rich = (s: string, className = '') => el('p', { className }, ...inlineText
 const diagram = (phase: Phase, c: Case, size: number, title = ''): string =>
   caseDiagram(phase.diagram, c.stage, patternToFacelets(caseState(kpuzzle, c.algs[0].alg, IDENTITY)), { size, title, arrows: size >= 84 });
 
-const statusOf = (caseId: string): CaseStatus => {
+/** A case's status: due today first, else new, learning or known (view.ts's cards show it too). */
+export const statusOf = (caseId: string): CaseStatus => {
   const l = learningFor(caseId);
   return isDue(l, Date.now()) ? 'due' : learnStatus(l);
 };

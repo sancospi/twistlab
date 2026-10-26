@@ -102,6 +102,7 @@ h2.page-title { margin: 0; font-size: 1.5rem; } /* a guide's own title (a method
 .academy-about h3 { margin: 8px 0 0; font-size: 1rem; }
 .academy-group { display: grid; gap: 6px; }
 .academy-group h3 { margin: 0; font-size: 1rem; }
+.academy-group h3 .hint { font-weight: 400; } /* "· 3 de 21 sabidos" beside the name */
 .academy-group-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .academy-cases > summary { padding: 6px 0; color: var(--muted); font-size: 0.9286rem; } /* a long group's folded cards */
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }

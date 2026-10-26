@@ -371,6 +371,7 @@ export const es = {
   'academy.tips': 'Si algo sale mal',
   'academy.quiz': 'Quiz',
   'academy.quizOf': 'Quiz: {name}',
+  'academy.groupKnown': '{n} de {total} sabidos',
   'academy.quizPhase': 'Quiz',
   'academy.quizGenerated': 'Casos al azar',
   'academy.quizOfficial': 'Quizzes del plan',

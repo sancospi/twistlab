@@ -3,8 +3,8 @@
 // A method page starts with its name, what it is and the step before it, then its next lesson (the way in) and the Quiz
 // of the whole method (and how many cases are due today); then its phases and groups, each case as a card that opens
 // its page (caseView.ts: Practicar, Quiz, Memoria muscular), with Quiz buttons per group and phase, plus the plan's own
-// quizzes: the same Quiz, only the scope changes; each group also says "Ya me lo sé"; it ends with the method to learn
-// next.
+// quizzes: the same Quiz, only the scope changes; each group also says "Ya me lo sé" and how many it knows, each card
+// whether it's known or due; it ends with the method to learn next.
 import { prose } from '../rich-text-view.ts';
 import { TERMS } from '../terms.ts';
 import { cube3x3x3 } from 'cubing/puzzles';
@@ -24,7 +24,7 @@ import { triggerGuide } from './triggers.ts';
 import { triggersView } from './triggerView.ts';
 import { courseFor, MOVE_GROUPS, type Course } from './lessons.ts';
 import { lessonList, lessonsDone, lessonStart, playLesson, stopLesson } from './lessonView.ts';
-import { knownToggle, libraryView, showCase, stopCase } from './caseView.ts';
+import { knownToggle, libraryView, showCase, statusOf, stopCase } from './caseView.ts';
 import { caseDiagram, netSVG, twoSidesSVG } from './diagram.ts';
 import { pllRecognitionView, stopPllRecognition } from './pllRecognition.ts';
 import { aufTrainerView, stopAufTrainer } from './aufTrainer.ts';
@@ -39,7 +39,7 @@ import { el } from '../el.ts';
 import { lastResult, openQuiz, scopeId, type QuizScope } from './quiz.ts';
 import { caseProbability, counted, formatProbability } from './probability.ts';
 import { idle } from '../screen.ts';
-import { isDue, learningFor, preferred, save, setting, statsFor } from './store.ts';
+import { isDue, learnStatus, learningFor, preferred, save, setting, statsFor } from './store.ts';
 import { caseLabel, puzzleOf, type Case, type Group, type Method, type Phase, type Puzzle } from './types.ts';
 export { stopCase, stopLesson }; // for main.ts, which loads the academy with its first page
 
@@ -364,7 +364,8 @@ function notationView(): HTMLElement {
 
 const text = (s: string, className = '') => el('p', { textContent: s, className });
 
-// What on a method page shows the cases' status (the due count, each group's "Ya me lo sé"), refilled when any of its
+// What on a method page shows the cases' status (the due count, each group's "Ya me lo sé" and how many it knows, each
+// card's "Lo sé" or "Para repasar hoy"), refilled when any of its
 // quizzes closes or a group is marked: either one changes cases the others count. Emptied by each method page.
 const methodFills: (() => void)[] = [];
 const refillMethod = () => methodFills.forEach((fill) => fill());
@@ -482,13 +483,19 @@ function lastLayerButton(phase: Phase): HTMLElement[] {
 // its toggle event fires then too, so the card just practised finds its group open even once it is no longer due.
 const openGroups = (): string[] => (history.state as { open?: string[] } | null)?.open ?? [];
 
-/** A group's head (name, "Ya me lo sé" and Quiz), then its cards: a long group folds them (CFOP completo would be 29 screens on a
+/** A group's head (name, how many of its cases are known once any is, "Ya me lo sé" and Quiz), then its cards: a long group folds them (CFOP completo would be 29 screens on a
  *  phone) unless some are due or it was left open. */
 function groupView(phase: Phase, g: Group, odds: (() => void)[]): HTMLElement {
   const known = knownToggle(g.cases, refillMethod, loc(g.name));
-  methodFills.push(known.fill);
+  const count = el('span', { className: 'hint' });
+  const fillCount = () => {
+    const n = g.cases.filter((c) => learnStatus(learningFor(c.id)) === 'known').length;
+    count.textContent = n ? ` · ${t('academy.groupKnown', { n, total: g.cases.length })}` : '';
+  };
+  fillCount();
+  methodFills.push(known.fill, fillCount);
   const head = el('div', { className: 'academy-group-head' },
-    el('h3', { textContent: loc(g.name) }),
+    el('h3', {}, loc(g.name), count),
     el('div', { className: 'row' }, known,
       quizButton(t('academy.quiz'), { kind: 'cases', id: g.id, cases: g.cases, title: loc(g.name) }, t('academy.quizOf', { name: loc(g.name) }))));
   const cards = el('div', { className: 'cards' }, ...g.cases.map((c) => card(phase, c, odds)));
@@ -507,7 +514,7 @@ function groupView(phase: Phase, g: Group, odds: (() => void)[]): HTMLElement {
     body);
 }
 
-/** A case's card: opens its page, where it's practised. Its odds, when its stage has them, come later (`odds`). */
+/** A case's card: opens its page, where it's practised; says when it's known or due. Its odds, when its stage has them, come later (`odds`). */
 function card(phase: Phase, c: Case, odds: (() => void)[]): HTMLAnchorElement {
   const m = METHODS.find((x) => x.phases.includes(phase))!;
   const link = el('a', { className: 'card', href: academyLink({ kind: 'case', method: m.id, id: c.id }) });
@@ -518,10 +525,21 @@ function card(phase: Phase, c: Case, odds: (() => void)[]): HTMLAnchorElement {
   // (never null for a counted stage: probability.test.ts)
   const prob = el('span', { className: 'hint', textContent: '\u00a0' });
   if (counted(c.stage)) odds.push(() => void (prob.textContent = t('prob.card', { p: formatProbability(caseProbability(c.id, kpuzzle)!) })));
+  // known or due, the two that say what to drill; refilled with the page (methodFills) when a quiz or a mark changes it
+  const status = el('span');
+  const fillStatus = () => {
+    const st = statusOf(c.id);
+    status.className = `case-status ${st}`;
+    status.hidden = st !== 'known' && st !== 'due';
+    status.textContent = status.hidden ? '' : t(`library.status.${st}`);
+  };
+  fillStatus();
+  methodFills.push(fillStatus);
   link.append(
     el('strong', { textContent: c.code }),
     el('code', { textContent: formatAlg(tokenize(alg)) }),
     ...(counted(c.stage) ? [prob] : []),
+    status,
     // a case never practised says nothing: "Sin practicar" on every card of a new reader is noise
     ...(s ? [el('span', { className: 'hint', textContent: `${tp('academy.reps', s.reps)}${s.best === null ? '' : ` · ${t('academy.best', { time: formatTime(s.best) })}`}` })] : []),
   );

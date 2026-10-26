@@ -373,6 +373,7 @@ export const pt: Record<MessageKey, string> = {
   'academy.tips': 'Se algo der errado',
   'academy.quiz': 'Quiz',
   'academy.quizOf': 'Quiz: {name}',
+  'academy.groupKnown': '{n} de {total} dominados',
   'academy.quizPhase': 'Quiz',
   'academy.quizGenerated': 'Casos aleatórios',
   'academy.quizOfficial': 'Quizzes do plano',
