@@ -95,9 +95,8 @@ let follower: StepFollower | null = null;
 let followed: string[] = []; // the tokens being followed on the cube
 let redoUntil = 0;
 // How the smart cube is held: slices and wide turns followed in earlier steps moved its centres, and the user keeps
-// holding it as it is (Notación: r, then u).
+// holding it as it is (Notación: r, then u). Anterior leaves it alone: going back a step doesn't turn the cube back.
 let held: Frame = YELLOW_UP;
-let grips: Frame[] = []; // `held` as each step started: Anterior gives it back
 let onCube = false; // the last way picked: the next cube step starts with it
 /** The synced smart cube, if the course is of its puzzle (it's a 3x3: a 2x2 course shows the moves only). */
 const smart = () => (puzzle() === '3x3x3' ? cube.pattern() : null);
@@ -114,9 +113,8 @@ export function playLesson(c: Course, l: Lesson, k: KPuzzle): void {
   index = Math.min(saved?.step ?? 0, l.steps.length);
   answers = new Map(saved?.answers);
   // ponytail: a resumed lesson holds the smart cube yellow up; its grip after slices and wide turns (Notación) isn't
-  // kept in the entry, save `grips` there too if that bites
+  // kept in the entry, save `held` there too if that bites
   held = YELLOW_UP;
-  grips = [];
   section.hidden = false;
   section.dataset.puzzle = puzzle(); // for the move tooltips
   $('lesson-title').textContent = l.title;
@@ -159,7 +157,6 @@ section.addEventListener('keydown', (e) => {
 function show() {
   release();
   const steps = lesson.steps;
-  held = grips[index] ??= held;
   bar.max = steps.length;
   bar.value = Math.min(index + 1, steps.length); // step 1 of 3 fills a third, as "Paso 1 de 3" says
   $('lesson-count').textContent = index < steps.length ? t('lesson.step', { n: index + 1, total: steps.length }) : ''; // the end says it in its heading
