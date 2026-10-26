@@ -80,7 +80,8 @@ body[data-module="academy"] .panel { @include full-page; }
 .tile-meta { font-size: 0.8571rem; color: var(--muted); }
 .tile-strip { display: flex; gap: 10px; align-items: center; min-height: 72px; }
 .tile-strip svg { flex: 0 1 64px; min-width: 0; height: auto; } /* one per phase: they shrink to fit (6 in the beginner method) */
-.tile-moves { font: 700 2.1429rem var(--mono); letter-spacing: .1em; color: var(--accent); }
+.tile-strip.tile-net svg { flex: 0 1 120px; } /* the cross and Resolver online: one net, not a strip */
+.tile-moves { font: 700 1.7143rem var(--clock); color: var(--accent); } /* a tile with no cube: its moves or numbers in the clock's face */
 .academy-body { display: grid; gap: 18px; }
 .academy-phase { display: grid; gap: 10px; }
 .academy-phase h2 { margin: 6px 0 0; font-size: 1.2143rem; }

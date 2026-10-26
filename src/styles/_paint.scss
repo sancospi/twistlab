@@ -36,5 +36,4 @@ body[data-paint] .panel { @include full-page; }
 .bsolve-stage li p { margin: 0 0 2px; }
 .alg .move.setup { color: var(--muted); font-style: italic; }
 .alg .nowrap { white-space: nowrap; } /* a parenthesis and its move never split, nor a short trigger: lines break between groups */
-.tile-strip.tile-net svg { flex: 0 1 120px; } /* the Academia tile: one net, not a strip */
 @media (max-width: 600px) { #mod-paint { padding: 16px; } }

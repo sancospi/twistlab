@@ -273,7 +273,7 @@ function homeView(): HTMLElement {
   const howto = el('p', { className: 'hint' }, `${t('academy.howtoReadAll')} `, el('a', { href: academyLink({ kind: 'howto' }), textContent: loc(howToSolve.name) }));
   // the cross comes first: it is the first step of CFOP and of most methods
   const cross = el('a', { className: 'tile', href: academyLink({ kind: 'cross' }) },
-    el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: "R′ F R" }),
+    el('div', { className: 'tile-strip tile-net', ariaHidden: 'true', innerHTML: netSVG(patternToFacelets(kpuzzle.defaultPattern()), {}, 'cross') }),
     el('span', { className: 'tile-badge', textContent: t('cross.firstStep') }),
     el('strong', { textContent: loc(crossGuide.name) }),
     text(loc(crossGuide.summary), 'hint'),
