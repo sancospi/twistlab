@@ -44,7 +44,7 @@ a.chip:hover, a.chip:focus-visible { background: $raised-hover; }
 .case-alg:not(.chosen) .fingers-box { order: 1; font-size: 0.8571rem; }
 .case-alg:not(.chosen) .fingers-box[open] { flex-basis: 100%; }
 .case-alg:not(.chosen) .row { order: 2; margin-left: auto; }
-.trigger { display: inline-grid; justify-items: center; vertical-align: top; line-height: 1.5; }
+.trigger { display: inline-grid; justify-items: center; line-height: 1.5; } /* on the baseline: its moves level with the rest, its name hanging under */
 .trigger > .alg { padding: 0 2px; border-bottom: 2px solid var(--accent); }
 .trigger-name { font-size: 0.7857rem; color: var(--accent); white-space: nowrap; }
 .fingers-box { display: grid; gap: 6px; }
