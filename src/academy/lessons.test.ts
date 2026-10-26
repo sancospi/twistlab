@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loc, t } from '../i18n.ts';
-import { tokenize } from '../notation.ts';
+import { formatAlg, tokenize } from '../notation.ts';
 import { beginner } from './beginner.ts';
 import { cfopReduced } from './cfop.ts';
 import { crossGuide } from './crossGuide.ts';
@@ -120,6 +120,26 @@ test('lessons: a lesson with cases ends on their Quiz, under the id of a Quiz bu
       assert.equal(l.quiz.cases.length, shown, l.id);
     }
   }
+});
+
+test('lessons: F2L case questions offer algorithms (its codes are bare labels), the others keep their names', () => {
+  let f2l = 0;
+  for (const m of [beginner, cfopReduced, f2lAdvanced, roux, beginner2x2, ortega]) {
+    const byId = new Map(m.phases.flatMap((p) => p.groups.flatMap((g) => g.cases)).map((c) => [c.id, c]));
+    for (const s of courseFor(m.id)!.lessons.flatMap((l) => l.steps)) {
+      if (s.kind !== 'case') continue;
+      if (s.stage === 'f2l') {
+        f2l++;
+        assert.equal(s.title, t('lesson.whichAlg'));
+        s.choices.forEach((c) => assert.equal(c.label, formatAlg(tokenize(byId.get(c.id)!.algs[0].alg))));
+        assert.equal(new Set(s.choices.map((c) => c.label)).size, s.choices.length); // never two right answers
+      } else {
+        assert.equal(s.title, undefined);
+        s.choices.forEach((c) => assert.equal(c.label, byId.get(c.id)!.code));
+      }
+    }
+  }
+  assert.ok(f2l > 0);
 });
 
 test('suggestedLesson: the recent course first, then one started, then the cross; finished courses are skipped', () => {

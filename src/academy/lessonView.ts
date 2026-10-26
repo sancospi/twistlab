@@ -11,7 +11,7 @@ import { patternToFacelets } from '../facelets.ts';
 import { IDENTITY, YELLOW_UP, expand, explainMove, tokenize, unmapMove, type Frame } from '../notation.ts';
 import { algView } from '../notation-view.ts';
 import { prose } from '../rich-text-view.ts';
-import { t, tp } from '../i18n.ts';
+import { loc, t, tp } from '../i18n.ts';
 import { guidePage, navigate, routePath } from '../router.ts';
 import { FULL_MASK, MASKS, caseState } from './cube.ts';
 import { caseDiagram } from './diagram.ts';
@@ -19,6 +19,7 @@ import { MAX_UNDO, REDO_MS, StepFollower } from './follow.ts';
 import { minutes, nextLesson, parseDone, suggestedLesson, type Course, type Lesson, type LessonStep } from './lessons.ts';
 import type { Stage } from './types.ts';
 import { cube, type CubeListener } from './link.ts';
+import { findCase } from './methods.ts';
 import { aim, setPuzzle } from './practice.ts';
 import { openQuiz } from './quiz.ts';
 import { $, el } from '../el.ts';
@@ -368,10 +369,13 @@ function moveStep(s: Extract<LessonStep, { kind: 'move' }>) {
 
 function caseStep(s: Extract<LessonStep, { kind: 'case' }>) {
   const pic = el('div', { className: 'quiz-diagram' });
-  pic.innerHTML = caseDiagram(s.diagram, s.stage, patternToFacelets(caseState(kpuzzle, s.alg, IDENTITY)), { size: 180, title: t('quiz.question') });
-  textBox.replaceChildren(el('h3', { textContent: t('quiz.question') }), pic);
+  const q = s.title ?? t('quiz.question');
+  pic.innerHTML = caseDiagram(s.diagram, s.stage, patternToFacelets(caseState(kpuzzle, s.alg, IDENTITY)), { size: 180, title: q });
+  textBox.replaceChildren(el('h3', { textContent: q }), pic);
   const answer = s.choices.find((c) => c.id === s.caseId)!.label;
-  body.replaceChildren(choices(s.choices.map((c) => ({ label: c.label, right: c.id === s.caseId })), t('lesson.wrongCase', { name: answer })));
+  // a miss says how to recognise it, as a wrong move says how it turns (the template ends the sentence; a few recognitions already do)
+  const wrong = t('lesson.wrongCase', { name: answer, how: loc(findCase(s.caseId)!.recognition).replace(/\.$/, '') });
+  body.replaceChildren(choices(s.choices.map((c) => ({ label: c.label, right: c.id === s.caseId })), wrong));
 }
 
 // --- The end ---

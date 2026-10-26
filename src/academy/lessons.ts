@@ -2,7 +2,7 @@
 // the texts): Notación from the glossary's moves, La cruz blanca from crossGuide.ts, Método principiante from
 // beginner.ts. Pure (no DOM): lessonView.ts plays them, view.ts lists them.
 import { glossary, loc, t } from '../i18n.ts';
-import { caseSetup, explainMove } from '../notation.ts';
+import { caseSetup, explainMove, formatAlg, tokenize } from '../notation.ts';
 import { beginner } from './beginner.ts';
 import { cfopReduced } from './cfop.ts';
 import { bases2x2 } from './bases2x2.ts';
@@ -19,7 +19,8 @@ export type LessonStep =
   // the cube at `setup` (from solved, yellow up), then `alg`; doSetup: "on my cube" does the setup first
   | { kind: 'cube'; title?: string; text: string; setup: string; alg: string; doSetup: boolean; stage?: Stage }
   | { kind: 'move'; move: string; choices: string[] } // "¿Qué giro hizo el cubo?"
-  | { kind: 'case'; caseId: string; alg: string; stage: Stage; diagram: 'iso' | 'top'; choices: { id: string; label: string }[] }; // "¿Qué caso es?"
+  // "¿Qué caso es?", or the title ("¿Qué algoritmo lo resuelve?") when the labels are algorithms
+  | { kind: 'case'; title?: string; caseId: string; alg: string; stage: Stage; diagram: 'iso' | 'top'; choices: { id: string; label: string }[] };
 
 export interface Lesson {
   id: string;
@@ -174,10 +175,14 @@ function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
           return { kind: 'cube', title: caseLabel(c), text, setup: caseSetup(alg).join(' '), alg, doSetup: false, stage: c.stage };
         }),
         ...(tips ? [text({ title: t('academy.tips'), text: tips })] : []),
-        ...asked.map((i): LessonStep => ({
-          kind: 'case', caseId: cases[i].id, alg: cases[i].algs[0].alg, stage: cases[i].stage, diagram, // the case's own state: what its recognition reads
-          choices: caseChoices(cases, i).map((c) => ({ id: c.id, label: c.code })),
-        })),
+        ...asked.map((i): LessonStep => {
+          const byAlg = cases[i].stage === 'f2l'; // F2L codes (A3, BR29) are bare labels: ask for what solves it
+          return {
+            kind: 'case', caseId: cases[i].id, alg: cases[i].algs[0].alg, stage: cases[i].stage, diagram, // the case's own state: what its recognition reads
+            choices: caseChoices(cases, i).map((c) => ({ id: c.id, label: byAlg ? formatAlg(tokenize(algOf(c))) : c.code })),
+            ...(byAlg ? { title: t('lesson.whichAlg') } : {}),
+          };
+        }),
       ],
     };
   };
