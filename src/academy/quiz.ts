@@ -187,9 +187,12 @@ const smartScope = () => scopeCases(scope).every((c) => puzzleOf(c.stage) === '3
 const executionNext = () => !!cube.pattern() && smartScope(); // with a cube the quiz is solved on it
 const selectContext = () => ({ one: oneCase(), picked, learning: learningFor, now: Date.now() });
 const selected = (sel = selection): Case[] => selectCases(sel, scopeCases(scope), selectContext());
+/** A choice with cases, other than "Por aprender" while nothing is known yet (a new user, an untouched group): it
+ *  would be "Todos" twice. */
+const offered = (x: Selection) => selected(x).length > 0 && !(x === 'learning' && selected(x).length === scopeCases(scope).length);
 
 /** From a case: random cases of its group ("Uno solo" one tap away); a retry, Hoy's review or Progreso's slowest
- *  cases: all of them; otherwise the last choice, if it has cases. */
+ *  cases: all of them; otherwise the last choice, if it has cases, else the due ones, else those not known yet. */
 function initialSelection(): Selection {
   if (scope.kind !== 'cases') return 'all';
   const retry = scope.id.endsWith(':retry');
@@ -197,7 +200,7 @@ function initialSelection(): Selection {
   if (scope.cases.length < scopeCases(scope).length) return 'pick';
   if (retry || scope.id === 'today' || scope.id === 'analysis-slow') return 'all'; // every case is being retried, is due (Hoy's review) or was shown as slow (Progreso)
   const last = setting<Selection>('quiz-select', 'all', (v) => SELECTIONS.includes(v));
-  return last !== 'one' && selected(last).length ? last : selected('due').length ? 'due' : 'all';
+  return last !== 'one' && offered(last) ? last : offered('due') ? 'due' : offered('learning') ? 'learning' : 'all';
 }
 
 function makeSpecs(): QuizSpec[] {
@@ -621,9 +624,9 @@ function renderSetup(): Node[] {
     out.push(p(t('ll.intro'), 'prose'), el('label', { className: 'academy-method' }, t('ll.count'), perCaseSelect()));
   } else {
     const one = oneCase();
-    // a choice with no case isn't shown (a new user's "Repaso de hoy", "Más lentos"…); by hand stays with none ticked:
-    // that's where you tick them
-    const choices = SELECTIONS.filter((x) => (x !== 'one' || one) && (x === 'pick' || x === selection || selected(x).length)).map((x) => {
+    // a choice not offered isn't shown (a new user's "Repaso de hoy", "Más lentos", "Por aprender"…); by hand stays
+    // with none ticked: that's where you tick them
+    const choices = SELECTIONS.filter((x) => (x !== 'one' || one) && (x === 'pick' || x === selection || offered(x))).map((x) => {
       const count = selected(x).length;
       const label = t(SELECTION_LABEL[x], { code: one?.code ?? '' });
       const choice = chip('radio', 'quiz-select', x, x === selection, () => save('quiz-select', (selection = x)), label, count);

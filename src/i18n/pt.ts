@@ -552,7 +552,7 @@ export const pt: Record<MessageKey, string> = {
   'quiz.selOne': 'Só um: {code}',
   'quiz.selPick': 'Escolher na mão',
   'quiz.selDue': 'Revisão de hoje',
-  'quiz.selLearning': 'Aprendendo',
+  'quiz.selLearning': 'Para aprender',
   'quiz.selKnown': 'Os que eu sei',
   'quiz.selSlow': 'Mais lentos',
   'quiz.selAll': 'Todos',

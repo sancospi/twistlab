@@ -168,7 +168,7 @@ test('selectCases: one, by hand, by status, slowest, due, all', () => {
   assert.deepEqual(selectCases('one', pool, ctx()), []);
   assert.deepEqual(ids(selectCases('pick', pool, ctx({ picked: new Set(['g', 'a', 'zz']) }))), ['a', 'g']);
   assert.deepEqual(ids(selectCases('known', pool, ctx())), ['a', 'b']);
-  assert.deepEqual(ids(selectCases('learning', pool, ctx())), ['c', 'd', 'e']);
+  assert.deepEqual(ids(selectCases('learning', pool, ctx())), ['c', 'd', 'e', 'f', 'g'], 'not known: learning and new');
   assert.deepEqual(ids(selectCases('due', pool, ctx())), ['b', 'c']);
   assert.deepEqual(ids(selectCases('slow', pool, ctx())), ['c', 'd'], 'slowest third of the 4 with a time');
   assert.equal(selectCases('all', pool, ctx()), pool);

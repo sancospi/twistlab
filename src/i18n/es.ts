@@ -551,7 +551,7 @@ export const es = {
   'quiz.selOne': 'Uno solo: {code}',
   'quiz.selPick': 'Elegir a mano',
   'quiz.selDue': 'Repaso de hoy',
-  'quiz.selLearning': 'Aprendiendo',
+  'quiz.selLearning': 'Por aprender',
   'quiz.selKnown': 'Los que sé',
   'quiz.selSlow': 'Más lentos',
   'quiz.selAll': 'Todos',

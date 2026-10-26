@@ -548,7 +548,7 @@ export const en: Record<MessageKey, string> = {
   'quiz.selOne': 'Just one: {code}',
   'quiz.selPick': 'Pick by hand',
   'quiz.selDue': 'Today’s review',
-  'quiz.selLearning': 'Learning',
+  'quiz.selLearning': 'To learn',
   'quiz.selKnown': 'The ones I know',
   'quiz.selSlow': 'Slowest',
   'quiz.selAll': 'All',

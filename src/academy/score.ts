@@ -205,14 +205,15 @@ export interface SelectContext {
   now: number;
 }
 
-/** The cases of `pool` a selection asks; "slow" is the slowest third of those with a time, slowest first. */
+/** The cases of `pool` a selection asks; "learning" is every case not known yet (never graded too); "slow" is the
+ *  slowest third of those with a time, slowest first. */
 export function selectCases(sel: Selection, pool: Case[], ctx: SelectContext): Case[] {
   const of = (c: Case) => ctx.learning(c.id);
   switch (sel) {
     case 'one': return ctx.one ? [ctx.one] : [];
     case 'pick': return pool.filter((c) => ctx.picked.has(c.id));
-    case 'known':
-    case 'learning': return pool.filter((c) => learnStatus(of(c)) === sel);
+    case 'known': return pool.filter((c) => learnStatus(of(c)) === 'known');
+    case 'learning': return pool.filter((c) => learnStatus(of(c)) !== 'known'); // "Por aprender": new and learning
     case 'due': return pool.filter((c) => isDue(of(c), ctx.now));
     case 'slow': {
       const ms = (c: Case) => of(c)?.solveMs ?? null;
