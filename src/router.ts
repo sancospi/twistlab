@@ -207,8 +207,14 @@ export function startRouter(onRoute: (r: Route, scroll: number | null) => void, 
     if (e.defaultPrevented || !plainClick(e)) return;
     const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
     if (!a || a.target || a.hasAttribute('download') || a.origin !== location.origin) return;
-    if (a.getAttribute('href')!.startsWith('#')) return; // in-page anchors scroll as usual
     e.preventDefault();
+    // an in-page anchor (a method's phase pills, a guide's side list) scrolls on the entry the page has: no Back step
+    // per pill, and the entry keeps its `from` for "← Volver". ponytail: the hash is replaced, so Back doesn't retrace
+    // the jumps (nor :target follow them: nothing styles it)
+    if (a.getAttribute('href')!.startsWith('#')) {
+      history.replaceState(history.state, '', a.hash);
+      return document.getElementById(decode(a.hash.slice(1)))?.scrollIntoView();
+    }
     navigate(a.pathname + a.search + a.hash);
   });
   go(true); // a reload, or the app reopened where it was left (index.html), keeps its scroll
