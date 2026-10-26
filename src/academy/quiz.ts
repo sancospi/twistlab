@@ -386,10 +386,12 @@ function explain(w: Why) {
   render();
 }
 
-/** Closes the quiz and drills the case: its practice on the Memoria muscular tab. */
+/** Closes the quiz and drills the case: its practice on the Memoria muscular tab. Its reps refresh the page under it
+ *  as the quiz's own close does (a case page's "Tus datos", Hoy's review). */
 function reviewNow(c: Case) {
+  const done = onClose; // the quiz's, before another quiz opened from the page could replace it
   dialog.close(); // releases the cube for the practice; its 'close' saves the items done so far
-  void openPractice(c, () => {}, 'drill');
+  void openPractice(c, () => done(), 'drill');
 }
 
 function solved() {
