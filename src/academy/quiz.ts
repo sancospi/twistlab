@@ -58,8 +58,9 @@ const status = $('quiz-status'); // persistent live region: #quiz-body is rebuil
 
 const PER_CASE = [3, 5, 10, 20];
 // ponytail: a fixed cap on a session's items (an official quiz is its list); without a cube each one is 15-19 turns
-// set up by hand, and a method is 119 cases. A setting if longer sessions are ever wanted.
-const SESSION_MAX = 20;
+// set up by hand, and a method is 119 cases. 21 so one round of a full PLL fits, every case asked once; bigger sets
+// (F2L 41, OLL 57) stay capped. A setting if longer sessions are ever wanted.
+const SESSION_MAX = 21;
 const SELECTIONS: Selection[] = ['one', 'pick', 'due', 'learning', 'known', 'slow', 'all'];
 const ORDERS: Order[] = ['uniform', 'probability', 'spaced'];
 const HISTORY_KEY = 'academy-quiz-history';
