@@ -66,6 +66,7 @@ a.chip:hover, a.chip:focus-visible { background: $raised-hover; }
 .case-status.due { color: $warn; }
 .library { display: grid; gap: 12px; }
 .library h2 { margin: 0; }
+.library > .prose { max-width: 80ch; } /* the intro at a reading width, not the page's */
 .library-filters { z-index: 2; display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 0 -24px; padding: 8px 24px; background: var(--bg); border-bottom: 1px solid $raised; }
 @media (min-width: 860px) { .library-filters { position: sticky; top: 0; } }
 .library-field { display: grid; gap: 2px; }
@@ -75,5 +76,10 @@ a.chip:hover, a.chip:focus-visible { background: $raised-hover; }
 .library-list, .library-method, .library-phase { display: grid; gap: 14px; }
 .library-method h3 { margin: 8px 0 0; font-size: 1.2857rem; }
 .library-phase h4 { margin: 0; font-size: 1.0714rem; }
+/* wide screens: a phase's groups side by side (most hold 2 or 3 cases, alone they'd be a strip with the rest empty) */
+@media (min-width: 860px) {
+  .library-phase { grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); align-items: start; }
+  .library-phase h4 { grid-column: 1 / -1; }
+}
 .library-group { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: $card; }
 .library-group h5 { margin: 0; font-size: 0.9286rem; color: var(--muted); }
