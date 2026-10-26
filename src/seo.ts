@@ -344,7 +344,7 @@ export function prerender(html: string, page: SeoPage): string {
   ].reduce((s, f) => f(s), html);
   // the page's menu entry, as main.ts marks it once it runs, from the first paint: index.html's inline script runs before
   // the menus exist, so it can't. ponytail: app.html (a lesson, Hoy) keeps index.html's Resolver until main.ts runs
-  out = out.replace(/ aria-current="page"/g, '').replace(new RegExp(`data-mod="${menuEntry(route)}"`, 'g'), '$& aria-current="page"');
+  out = out.replace(/(data-mod="\w+") aria-current="page"/g, '$1').replace(new RegExp(`data-mod="${menuEntry(route)}"`, 'g'), '$& aria-current="page"');
   // data-prerendered lang: index.html's CSS hides it from other languages (offline, the cached '/') until the app renders
   out = out.replace(new RegExp(`(<(\\w+) id="mod-${route.mod}"[^>]*?)(?: hidden)?>(</\\2>)`), (_, open, _tag, close) => `${open}><div data-prerendered lang="${lang}">${page.body}</div>${close}`);
   return localizeHtml(out, lang);

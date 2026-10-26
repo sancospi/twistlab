@@ -40,12 +40,14 @@ test('a method page and a guide page start in the app\'s boxes, their texts as r
 
 test('prerender: the page\'s menu entry is the current one, not the Resolver\'s', () => {
   const menu = '<body><nav><a href="/" data-mod="solve" aria-current="page"></a><a href="/academia" data-mod="academy"></a><a href="/algoritmos" data-mod="library"></a></nav>'
-    + '<nav class="tabbar"><a href="/" data-mod="solve" aria-current="page"></a><a href="/academia" data-mod="academy"></a></nav>';
+    + '<nav class="tabbar"><a href="/" data-mod="solve" aria-current="page"></a><a href="/academia" data-mod="academy"></a></nav>'
+    + '<nav class="crumbs"><span aria-current="page" data-i18n="paint.title"></span></nav>'; // not a menu entry: kept
   const current = (path: string) => [...prerender(html.replace('<body>', menu), pages.find((x) => x.path === path)!)
     .matchAll(/data-mod="(\w+)" aria-current="page"/g)].map((x) => x[1]);
   assert.deepEqual(current('/academia/cruz'), ['academy', 'academy']);
   assert.deepEqual(current('/algoritmos'), ['library']);
   assert.deepEqual(current('/'), ['solve', 'solve']);
+  assert.match(prerender(html.replace('<body>', menu), pages.find((x) => x.path === '/')!), /<span aria-current="page" data-i18n="paint.title">/);
 });
 
 test('a case page: its algorithm, recognition, probability and sibling links', () => {
