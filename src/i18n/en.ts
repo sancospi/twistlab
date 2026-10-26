@@ -842,7 +842,7 @@ export const en: Record<MessageKey, string> = {
   'lesson.back': 'Back',
   'academy.back': 'Back',
   'lesson.notFound': 'Lesson not found',
-  'lesson.notFoundHint': 'That lesson doesn’t exist or has moved; go back to the Academy to pick another.',
+  'lesson.notFoundHint': 'That lesson doesn’t exist or has moved; pick another one.',
 
   // Progress, backup and the phones' bottom navigation
   'nav.label': 'Sections',

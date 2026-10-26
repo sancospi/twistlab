@@ -158,7 +158,10 @@ function lessonPage(root: HTMLElement, courseId: string, id: string): string {
   const lesson = course?.lessons.find((l) => l.id === id);
   if (!course || !lesson) {
     stopLesson();
-    root.replaceChildren(crumbs(t('lesson.notFound')), text(t('lesson.notFoundHint'), 'hint'));
+    const hint = text(t('lesson.notFoundHint'), 'hint');
+    // a guide that exists (a lesson renamed or gone): its lessons, to pick another
+    root.replaceChildren(crumbs(t('lesson.notFound'), course ? guidePage(courseId) : undefined, course?.title),
+      course ? lessonList(course, hint) : hint);
     return inAcademy(t('lesson.notFound'));
   }
   root.replaceChildren(crumbs(lesson.title, guidePage(courseId), course.title));

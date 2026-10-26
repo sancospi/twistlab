@@ -846,7 +846,7 @@ export const pt: Record<MessageKey, string> = {
   'lesson.back': 'Voltar',
   'academy.back': 'Voltar',
   'lesson.notFound': 'Lição não encontrada',
-  'lesson.notFoundHint': 'Essa lição não existe ou mudou de endereço; volte à Academia para escolher outra.',
+  'lesson.notFoundHint': 'Essa lição não existe ou mudou de endereço; escolha outra.',
 
   // Progreso (progress-view.ts), the backup of this browser's data, and the phones' bottom navigation
   'nav.label': 'Seções',

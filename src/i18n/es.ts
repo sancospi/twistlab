@@ -845,7 +845,7 @@ export const es = {
   'lesson.back': 'Volver',
   'academy.back': 'Volver',
   'lesson.notFound': 'Lección no encontrada',
-  'lesson.notFoundHint': 'Esa lección no existe o cambió de dirección; vuelve a la Academia para elegir otra.',
+  'lesson.notFoundHint': 'Esa lección no existe o cambió de dirección; elige otra.',
 
   // Progreso (progress-view.ts), the backup of this browser's data, and the phones' bottom navigation
   'nav.label': 'Secciones',
