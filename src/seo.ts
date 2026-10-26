@@ -6,7 +6,7 @@
 // (scripts/prerender.ts) in i18n.ts's `lang`; each points at the others (hreflang). Pure: no DOM, no fs.
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { LANGS, fillI18n, inAcademy, lang, langPath, loc, pageTitle, t, tp, type Lang, type MessageKey } from './i18n.ts';
-import { TRAINERS, localHref, parseRoute, routePath, type AcademyPage, type Route, type Trainer } from './router.ts';
+import { TRAINERS, localHref, menuEntry, parseRoute, routePath, type AcademyPage, type Route, type Trainer } from './router.ts';
 import { METHODS, allCases } from './academy/methods.ts';
 import { bases2x2 } from './academy/bases2x2.ts';
 import { period, triggerGuide } from './academy/triggers.ts';
@@ -342,6 +342,9 @@ export function prerender(html: string, page: SeoPage): string {
     (s: string) => s.replace(/(<meta name="description"[^>]*>)/, (m) => `${m}\n  ${langLinks(page.path, lang)}\n  <meta property="og:url" content="${esc(pageUrl(page.path, lang))}" />`),
     (s: string) => s.replace('</head>', () => `${ld}</head>`),
   ].reduce((s, f) => f(s), html);
+  // the page's menu entry, as main.ts marks it once it runs, from the first paint: index.html's inline script runs before
+  // the menus exist, so it can't. ponytail: app.html (a lesson, Hoy) keeps index.html's Resolver until main.ts runs
+  out = out.replace(/ aria-current="page"/g, '').replace(new RegExp(`data-mod="${menuEntry(route)}"`, 'g'), '$& aria-current="page"');
   // data-prerendered lang: index.html's CSS hides it from other languages (offline, the cached '/') until the app renders
   out = out.replace(new RegExp(`(<(\\w+) id="mod-${route.mod}"[^>]*?)(?: hidden)?>(</\\2>)`), (_, open, _tag, close) => `${open}><div data-prerendered lang="${lang}">${page.body}</div>${close}`);
   return localizeHtml(out, lang);

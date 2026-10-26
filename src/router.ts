@@ -17,6 +17,11 @@ export type AcademyPage =
   | { kind: 'smartcubes' }; // which smart cube to buy, an article for search too: /cubos-inteligentes (smartCubes.ts)
 export type Route = { mod: 'solve' } | { mod: 'cube'; page?: 'paint' } | { mod: 'academy'; page: AcademyPage } | { mod: 'progress' } | { mod: 'challenges' } | { mod: 'about' }; // paint: /cubo/pintar; challenges: /retos; about: /acerca
 
+/** The menu entry a route marks (its links' data-mod): the algorithm library and Hoy are drawn by the academy but have
+ *  entries of their own. main.ts marks it on every route, seo.ts in each prerendered page. */
+export const menuEntry = (r: Route): Route['mod'] | 'library' | 'today' =>
+  r.mod === 'academy' && (r.page.kind === 'library' || r.page.kind === 'today') ? r.page.kind : r.mod;
+
 /** The Academia's trainers, by their URL segment. */
 export const TRAINERS = ['reconocer-pll', 'auf', 'anticipacion'] as const;
 export type Trainer = (typeof TRAINERS)[number];

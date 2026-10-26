@@ -6,7 +6,7 @@
 import { lang, langPath, pageTitle, t, type MessageKey } from './i18n.ts';
 import { $, btn } from './el.ts';
 import { save } from './academy/store.ts';
-import { routePath, startRouter, type Route } from './router.ts';
+import { menuEntry, routePath, startRouter, type Route } from './router.ts';
 import { startSync, sync } from './sync.ts';
 import { setHome } from './cube-3d.ts';
 import * as challenges from './challenges-view.ts';
@@ -65,8 +65,7 @@ async function onRoute(r: Route, scroll: number | null = null) {
   const menu = $('header-menu');
   if (menu.matches(':popover-open')) menu.hidePopover(); // phones: following a link closes the menu
   setModule(r.mod);
-  // the menu entry: the algorithm library and Hoy are drawn by the academy but have their own entries (Hoy has no tab: Academia's there)
-  const entry = r.mod === 'academy' && (r.page.kind === 'library' || r.page.kind === 'today') ? r.page.kind : r.mod;
+  const entry = menuEntry(r); // Hoy has no tab: Academia's there
   document.querySelectorAll<HTMLElement>('[data-mod]').forEach((a) => (a.dataset.mod === entry || (entry === 'today' && a.dataset.mod === 'academy' && a.closest('.tabbar'))
     ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
   $('header-module').textContent = t(MENU[entry]); // shown next to ☰ on phones
