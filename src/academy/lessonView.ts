@@ -4,7 +4,8 @@
 // steps let you watch it ("Cubo virtual") or do it ("Lo hago en mi cubo": followed move by move on a synced smart cube,
 // else just the moves); questions answer on the spot. A finished lesson is remembered in this browser; a course's last
 // one leads on to the lesson Hoy would suggest (suggestedLesson), usually the next course. A lesson with cases ends on
-// their Quiz too ("Practicar estos casos"): only the Quiz makes a case known and brings it back in Hoy's review.
+// their Quiz too ("Practicar estos casos"): only the Quiz makes a case known and brings it back in Hoy's review. The
+// cross guide's lessons, which ask nothing, end on its trainer instead: checked practice with no smart cube needed.
 import type { TwistyPlayer } from 'cubing/twisty';
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
@@ -15,6 +16,8 @@ import { loc, t, tp } from '../i18n.ts';
 import { guidePage, navigate, routePath } from '../router.ts';
 import { FULL_MASK, MASKS, caseState } from './cube.ts';
 import { caseDiagram } from './diagram.ts';
+import { crossGuide } from './crossGuide.ts';
+import { openCrossTrainer } from './crossTrainer.ts';
 import { MAX_UNDO, REDO_MS, StepFollower } from './follow.ts';
 import { minutes, nextLesson, parseDone, suggestedLesson, type Course, type Lesson, type LessonStep } from './lessons.ts';
 import type { Stage } from './types.ts';
@@ -399,6 +402,8 @@ function finish() {
     ...(quiz ? [el('button', { type: 'button', className: practiceFirst ? 'primary' : '', textContent: t('lesson.practice'),
       onclick: () => void openQuiz({ kind: 'cases', id: quiz.id, cases: quiz.cases, title: lesson.title }) })] : []),
     ...(way ? [el('button', { type: 'button', className: practiceFirst ? '' : 'primary', textContent: t('lesson.nextLesson', { title: title! }), onclick: () => navigate(lessonPath(way.course.id, way.lesson.id), true) })] : []), // Volver: still one Back to the guide
+    // the cross lessons have no questions: their checked practice is the trainer (a secondary door, the next lesson leads)
+    ...(course.id === crossGuide.id ? [el('button', { type: 'button', textContent: t('cross.open'), onclick: () => void openCrossTrainer() })] : []),
     back));
   if (!way && !practiceFirst) back.classList.add('primary');
 }
