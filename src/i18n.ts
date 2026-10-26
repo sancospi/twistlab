@@ -75,10 +75,14 @@ export function t(key: MessageKey, params?: Record<string, string | number>): st
 type PluralStem<K> = K extends `${infer P}.one` ? (`${P}.other` extends MessageKey ? P : never) : never; // generic: runs per key
 type PluralKey = PluralStem<MessageKey>;
 
-/** Plural-aware: picks `${key}.one` / `${key}.other` with Intl.PluralRules; `{n}` is the count. */
+/** The plural form for n: Intl.PluralRules', except that zero is plural everywhere (pt's rules make 0 singular,
+ *  "0 praticado", where a written text says "0 praticados"). */
+export const pluralForm = (l: Lang, n: number): 'one' | 'other' =>
+  n !== 0 && new Intl.PluralRules(l).select(n) === 'one' ? 'one' : 'other';
+
+/** Plural-aware: picks `${key}.one` / `${key}.other` by pluralForm; `{n}` is the count. */
 export function tp(key: PluralKey, n: number, params?: Record<string, string | number>): string {
-  const form = new Intl.PluralRules(lang).select(n) === 'one' ? 'one' : 'other';
-  return t(`${key}.${form}` as MessageKey, { n, ...params });
+  return t(`${key}.${pluralForm(lang, n)}` as MessageKey, { n, ...params });
 }
 
 /** A glossary text by its id ('see', 'term.<id>', 'def.<id>', a move group…): the ids come from data (terms.ts,

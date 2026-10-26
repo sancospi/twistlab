@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { es } from './i18n/es.ts';
 import { en } from './i18n/en.ts';
 import { pt } from './i18n/pt.ts';
-import { fromSpanish, langPath, splitLang } from './i18n.ts';
+import { fromSpanish, langPath, pluralForm, splitLang } from './i18n.ts';
 
 const holes = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
@@ -15,6 +15,14 @@ test('en: every es key, with the same placeholders', () => {
 test('pt: every es key, with the same placeholders', () => {
   assert.deepEqual(Object.keys(pt).sort(), Object.keys(es).sort());
   for (const [k, s] of Object.entries(es)) assert.deepEqual(holes(pt[k as keyof typeof es]), holes(s), k);
+});
+
+test('zero is plural in every language, Portuguese too ("0 praticados")', () => {
+  for (const l of ['es', 'en', 'pt'] as const) {
+    assert.equal(pluralForm(l, 0), 'other', l);
+    assert.equal(pluralForm(l, 1), 'one', l);
+    assert.equal(pluralForm(l, 2), 'other', l);
+  }
 });
 
 test('plural keys come in .one/.other pairs (custom.other is just a word)', () => {
