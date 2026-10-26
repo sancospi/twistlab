@@ -74,6 +74,7 @@ a.chip:hover, a.chip:focus-visible { background: $raised-hover; }
 .library-field:first-child { flex: 1 1 240px; }
 .library-filters select { font-size: 1.1429rem; }
 .library-filters input { width: 100%; padding: 8px; border: 0; border-radius: 8px; background: $raised; color: var(--fg); font: 1.1429rem system-ui, sans-serif; } /* 16px: no zoom on focus in iOS */
+.library-count { align-items: center; } /* the count and its "Quiz: N casos" */
 .library-list, .library-method, .library-phase { display: grid; gap: 14px; }
 .library-method h3 { margin: 8px 0 0; font-size: 1.2857rem; }
 .library-phase h4 { margin: 0; font-size: 1.0714rem; }

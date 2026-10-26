@@ -22,7 +22,7 @@ import { $, el } from '../el.ts';
 import { caseProbability, formatProbability } from './probability.ts';
 import { dueDay, openQuiz } from './quiz.ts';
 import { KNOWN_DAYS, average, byChoice, isDue, learnStatus, learningFor, preferred, setKnown, setPreferred, statsFor, variants } from './store.ts';
-import { caseLabel, type AlgVariant, type Case, type Group, type Method, type Phase } from './types.ts';
+import { caseLabel, puzzleOf, type AlgVariant, type Case, type Group, type Method, type Phase } from './types.ts';
 
 const section = $('case');
 const figure = $('case-diagram');
@@ -229,6 +229,7 @@ export function libraryView(kp: KPuzzle): HTMLElement {
     field(t('library.search'), search), field(t('library.puzzle'), puzzle), field(t('library.method'), method), field(t('library.set'), set), field(t('library.status'), status),
     field(t('library.groupBy'), groupBy));
   const count = el('p', { className: 'hint', ariaLive: 'polite' });
+  const quiz = el('button', { type: 'button', className: 'small' }); // a quiz of what's listed: the only way to quiz across methods or a search
   const list = el('div', { className: 'library-list' });
 
   let cards: { a: HTMLElement; c: Case; algs: string[] }[] = [];
@@ -264,6 +265,11 @@ export function libraryView(kp: KPuzzle): HTMLElement {
     }
     list.querySelectorAll<HTMLElement>('.library-group, .library-phase, .library-method').forEach((s) => (s.hidden = !s.querySelector('.mini-case:not([hidden])')));
     count.textContent = n ? tp('library.count', n) : t('library.none');
+    const visible = cards.filter((x) => !x.a.hidden).map((x) => x.c);
+    quiz.textContent = t('academy.quizOf', { name: tp('library.count', visible.length) });
+    // a quiz is one puzzle: a list mixing 2x2 and 3x3 is narrowed with the Puzzle or Method filter first
+    quiz.hidden = !visible.length || new Set(visible.map((c) => puzzleOf(c.stage))).size > 1;
+    quiz.onclick = () => void openQuiz({ kind: 'cases', id: 'library', cases: visible, title: t('library.title') }, () => (build(), apply())); // grading moves the cards' statuses and the Estado filter
     const q = new URLSearchParams(Object.entries({ q: filter.query.trim(), cubo: filter.puzzle, metodo: method.value, set: filter.set, estado: filter.status, agrupar: groupBy.value })
       .filter(([, v]) => v));
     history.replaceState(history.state, '', location.pathname + (q.size ? `?${q}` : ''));
@@ -275,5 +281,5 @@ export function libraryView(kp: KPuzzle): HTMLElement {
   return el('section', { className: 'library' },
     el('h2', { textContent: t('library.title') }),
     text(t('library.intro'), 'prose hint'),
-    form, count, list);
+    form, el('div', { className: 'row library-count' }, count, quiz), list);
 }

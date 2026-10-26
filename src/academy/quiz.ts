@@ -198,14 +198,14 @@ const selected = (sel = selection): Case[] => selectCases(sel, scopeCases(scope)
  *  would be "Todos" twice. */
 const offered = (x: Selection) => selected(x).length > 0 && !(x === 'learning' && selected(x).length === scopeCases(scope).length);
 
-/** From a case: random cases of its group ("Uno solo" one tap away); a retry, Hoy's review or Progreso's slowest
- *  cases: all of them; otherwise the last choice, if it has cases, else the due ones, else those not known yet. */
+/** From a case: random cases of its group ("Uno solo" one tap away); a retry, Hoy's review, Progreso's slowest
+ *  cases or the library's filtered list: all of them; otherwise the last choice, if it has cases, else the due ones, else those not known yet. */
 function initialSelection(): Selection {
   if (scope.kind !== 'cases') return 'all';
   const retry = scope.id.endsWith(':retry');
   if (oneCase()) return retry ? 'one' : 'all';
   if (scope.cases.length < scopeCases(scope).length) return 'pick';
-  if (retry || scope.id === 'today' || scope.id === 'analysis-slow') return 'all'; // every case is being retried, is due (Hoy's review) or was shown as slow (Progreso)
+  if (retry || scope.id === 'today' || scope.id === 'analysis-slow' || scope.id === 'library') return 'all'; // every case is being retried, is due (Hoy's review), was shown as slow (Progreso) or was just filtered (the library)
   const last = setting<Selection>('quiz-select', 'all', (v) => SELECTIONS.includes(v));
   return last !== 'one' && offered(last) ? last : offered('due') ? 'due' : offered('learning') ? 'learning' : 'all';
 }
