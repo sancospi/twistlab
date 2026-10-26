@@ -16,7 +16,7 @@ body[data-module="academy"] .panel { @include full-page; }
 .academy-nav a[aria-current="location"] { background: var(--fg); color: var(--bg); font-weight: 600; } /* selected, like a switch; green is for actions */
 .academy-nav ul { display: none; }
 .academy-phase, .academy-group { scroll-margin-top: 64px; } /* clear of the sticky pills */
-.academy-body .prose, .academy-body .hint { max-width: 80ch; }
+.academy-body .prose, .academy-body .hint, .academy-home > .prose { max-width: 80ch; }
 .academy-groups { display: grid; gap: 22px; align-items: start; } /* a short block keeps its own height beside a tall one */
 /* wide screens: blocks side by side, so a 4-case block doesn't leave the rest of the row empty */
 .academy-group { align-content: start; padding: 12px; border-radius: 10px; background: $card; }

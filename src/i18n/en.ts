@@ -346,7 +346,8 @@ export const en: Record<MessageKey, string> = {
   'dialog.close': 'Close',
 
   // Academy: methods, phases and case cards
-  'academy.homeIntro': 'Start with the white cross, the first step of almost every method. Then pick a method. Every case has three sections, with or without a smart cube: Practice (learn: set up and solve), Quiz (review: random cases, with an explanation if you miss) and Muscle memory (speed up: just the algorithm, with a timer). Notation has its own section.',
+  'academy.homeIntro': 'Start with the white cross, the first step of almost every method. Then pick a method.',
+  'academy.tools': 'Tools',
   'academy.howtoReadAll': 'Rather read the beginner method all at once?',
   'academy.howtoOnePage': 'The whole method on one page',
   'academy.next': 'Next step:',

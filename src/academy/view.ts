@@ -289,13 +289,8 @@ function homeView(): HTMLElement {
   const trainer = (id: Trainer, strip: HTMLElement) => el('a', { className: 'tile', href: academyLink({ kind: 'trainer', id }) },
     strip, el('strong', { textContent: t(`trainer.${id}.title`) }), text(t(`trainer.${id}.summary`), 'hint'));
   const tperm = patternToFacelets(caseState(kpuzzle, "R U R' U' R' F R2 U' R' U' R U R' F'", IDENTITY));
-  const trainers = el('section', { className: 'academy-puzzle', ariaLabel: t('trainers.title') },
-    el('h3', { textContent: t('trainers.title') }), el('div', { className: 'tiles' },
-      trainer('reconocer-pll', el('div', { className: 'tile-strip', ariaHidden: 'true', innerHTML: twoSidesSVG(tperm, { size: 64 }) })),
-      trainer('auf', el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: "U · U′ · U2" })),
-      trainer('anticipacion', el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: '♩ ♩ ♩ ♩' }))));
-  const group = (puzzle: Puzzle, ...items: HTMLElement[]) => el('section', { className: 'academy-puzzle', ariaLabel: t(`library.puzzle.${puzzle}`) },
-    el('h3', { textContent: t(`library.puzzle.${puzzle}`) }), el('div', { className: 'tiles' }, ...items));
+  const group = (title: string, ...items: HTMLElement[]) => el('section', { className: 'academy-puzzle', ariaLabel: title },
+    el('h3', { textContent: title }), el('div', { className: 'tiles' }, ...items));
   // Hoy on top: the day's review and session (/hoy)
   const due = dueCases().length;
   const today = el('a', { className: 'tile tile-today', href: academyLink({ kind: 'today' }) },
@@ -304,10 +299,16 @@ function homeView(): HTMLElement {
     el('h2', { textContent: t('menu.academy') }),
     text(t('academy.homeIntro'), 'prose hint'),
     today,
-    group('3x3x3', cross, ...tiles('3x3x3'), notation, triggers, paint, timer, smart),
+    // the guides in the order they're read: the cross, then the notation every method's page writes in
+    group(t('library.puzzle.3x3x3'), cross, notation, ...tiles('3x3x3'), triggers),
     howto,
-    group('2x2x2', basics, ...tiles('2x2x2')),
-    trainers,
+    group(t('library.puzzle.2x2x2'), basics, ...tiles('2x2x2')),
+    group(t('trainers.title'),
+      trainer('reconocer-pll', el('div', { className: 'tile-strip', ariaHidden: 'true', innerHTML: twoSidesSVG(tperm, { size: 64 }) })),
+      trainer('auf', el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: "U · U′ · U2" })),
+      trainer('anticipacion', el('div', { className: 'tile-strip tile-moves', ariaHidden: 'true', textContent: '♩ ♩ ♩ ♩' }))),
+    // the app's other screens, apart from the guides
+    group(t('academy.tools'), paint, timer, smart),
     el('p', { className: 'foot-link' }, el('a', { href: routePath({ mod: 'about' }), textContent: t('about.link') })));
 }
 
