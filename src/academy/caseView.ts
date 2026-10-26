@@ -1,9 +1,10 @@
-// A case's own page (/academia/<method>/caso/<case>) and the algorithm library (/academia/algoritmos).
-// The page: the case's diagram, and a 3D player of the chosen algorithm on demand ("Ver animación"); facts (probability, moves, group, and the inverse
-// and mirror cases found in the simulator); the algorithms with their triggers marked and their tags; how to recognise
-// it; your data and spaced-repetition status (once there are any); the three ways to work on it (Practicar, Quiz, Memoria muscular); the
-// other cases of its group. Its 3D player lives in index.html's #case, outside #mod-academy (rebuilt per page), so
-// it's never re-attached.
+// A case's own page (/academia/<method>/caso/<case>) and the algorithm library (/algoritmos).
+// The page: the case's diagram, and a 3D player of the chosen algorithm on demand ("Ver animación"); facts
+// (probability, group, and the inverse and mirror cases found in the simulator, one chip when they're the same case);
+// the three ways to work on it (Practicar, Quiz, Memoria muscular); the algorithms with their triggers marked and their
+// tags; how to recognise it; a folded note on why the Quiz scrambles at random; your data and spaced-repetition status
+// (once there are any); the other cases of its group. Its 3D player lives in index.html's #case, outside #mod-academy
+// (rebuilt per page), so it's never re-attached.
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
 import { IDENTITY, algTags, caseSetup, centerMoves, htm, tokenize, triggerSegments } from '../notation.ts';
