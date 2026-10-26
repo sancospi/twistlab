@@ -2,7 +2,7 @@
 @use 'tokens' as *;
 
 /* Notation: every move is tappable and opens a tooltip with the move animated and explained */
-.alg { font-family: ui-monospace, monospace; }
+.alg { font-family: var(--mono); }
 .alg .move { font: inherit; color: inherit; background: none; padding: 0 .15em; border-radius: 4px; cursor: help; text-decoration: underline dotted #ffffff40; text-underline-offset: .2em; }
 .alg .move:hover, .alg .move:focus-visible, .alg .move[aria-expanded="true"] { background: $raised; text-decoration-color: currentColor; }
 .alg .move.done { opacity: .5; }
@@ -11,7 +11,7 @@
 .tip { position: fixed; inset: auto; margin: 0; width: 220px; overflow: hidden; padding: 10px; border: 1px solid $raised; border-radius: 10px; background: #151924; color: var(--fg); box-shadow: 0 8px 24px #0008; }
 .tip twisty-player { width: 100%; height: 150px; } /* keep cubing.js's own display: overriding it collapses the canvas */
 .tip-text { display: grid; gap: 2px; font-size: 0.9286rem; }
-.tip-text strong { font: 700 1.2857rem ui-monospace, monospace; }
+.tip-text strong { font: 700 1.2857rem var(--mono); }
 .tip-text span:last-child { color: var(--muted); }
 .term { font: inherit; color: inherit; background: none; border: 0; margin: 0; padding: 0; border-radius: 3px; cursor: help; text-decoration: underline dotted #ffffff40; text-underline-offset: .2em; }
 .term:hover, .term:focus-visible, .term[aria-expanded="true"] { background: $raised; text-decoration-color: currentColor; }
@@ -51,7 +51,7 @@
 .tile { grid-template-columns: minmax(0, 1fr); } /* content never widens the card past its column */
 .tile-strip { display: flex; gap: 10px; align-items: center; min-height: 72px; }
 .tile-strip svg { flex: 0 1 64px; min-width: 0; height: auto; } /* one per phase: they shrink to fit (6 in the beginner method) */
-.tile-moves { font: 700 2.1429rem ui-monospace, monospace; letter-spacing: .1em; color: var(--accent); }
+.tile-moves { font: 700 2.1429rem var(--mono); letter-spacing: .1em; color: var(--accent); }
 .academy-body, .academy-phase { display: grid; gap: 10px; }
 .academy-body { gap: 18px; }
 .academy-phase h2 { margin: 6px 0 0; font-size: 1.2143rem; }

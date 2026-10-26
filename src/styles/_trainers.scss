@@ -27,7 +27,7 @@
 .cross-clock .next { font-variant-numeric: tabular-nums; outline: none; }
 .cross-solutions { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
 .cross-pad { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
-.cross-pad button { padding: 10px 0; font: 700 1.1429rem ui-monospace, monospace; touch-action: manipulation; }
+.cross-pad button { padding: 10px 0; font: 700 1.1429rem var(--mono); touch-action: manipulation; }
 #cross-body { display: grid; gap: 10px; }
 #cross-player twisty-player, #cross-viewer-player twisty-player { width: 100%; height: min(280px, 40dvh); }
 @media (max-width: 600px) { #cross-player twisty-player { height: 30dvh; } } /* the pad fits below the cube at 360x640 */
@@ -50,7 +50,7 @@
 .trainer-answers { display: grid; gap: 8px; }
 .trainer-group { display: grid; gap: 4px; }
 .trainer-buttons { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; }
-.trainer-buttons button { min-height: 44px; padding: 8px 4px; font: 700 1.0714rem ui-monospace, monospace; touch-action: manipulation; }
+.trainer-buttons button { min-height: 44px; padding: 8px 4px; font: 700 1.0714rem var(--mono); touch-action: manipulation; }
 .trainer-aufs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .trainer-aufs button { min-height: 52px; }
 .trainer-buttons button.right { background: var(--accent); color: $on-accent; }
@@ -60,7 +60,7 @@
 .lookahead-stage { display: grid; gap: 10px; }
 .lookahead-stage p { overflow-wrap: anywhere; }
 .lookahead-next { font-weight: 700; }
-.lookahead-run { display: flex; gap: 12px; align-items: center; font: 700 2rem ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.lookahead-run { display: flex; gap: 12px; align-items: center; font: 700 2rem var(--mono); font-variant-numeric: tabular-nums; }
 .beat { width: 24px; height: 24px; border-radius: 50%; background: #2a2f3a; flex: none; }
 .beat.on { background: var(--accent); }
 .lookahead-result { font-weight: 700; }

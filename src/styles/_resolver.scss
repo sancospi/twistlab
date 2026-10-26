@@ -21,7 +21,7 @@ body.other-puzzle #cube, body.other-puzzle .view, body.other-puzzle #moves { dis
 .stage-hint { margin: 0; color: var(--muted); text-align: center; }
 #penalties button { min-width: 64px; }
 #penalties button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
-.results { margin: 0; padding-left: 2.5em; max-height: 8.5em; overflow-y: auto; font-family: ui-monospace, monospace; color: var(--muted); }
+.results { margin: 0; padding-left: 2.5em; max-height: 8.5em; overflow-y: auto; font-family: var(--mono); color: var(--muted); }
 .results li:first-child { color: var(--fg); }
 .results button.time { padding: 2px 6px; margin: 0 -6px; background: none; color: inherit; font: inherit; } /* opens the time's sheet */
 .results button.time:hover, .results button.time:focus-visible { color: var(--fg); text-decoration: underline; }
@@ -29,7 +29,7 @@ body.other-puzzle #cube, body.other-puzzle .view, body.other-puzzle #moves { dis
 .detail-time { font-variant-numeric: tabular-nums; }
 #solve-detail-body h3 { margin: 6px 0 0; }
 #solve-detail-body [aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
-.detail-scramble { margin: 0; font: 600 1.1429rem/1.6 ui-monospace, monospace; word-spacing: .2ch; overflow-wrap: anywhere; }
+.detail-scramble { margin: 0; font: 600 1.1429rem/1.6 var(--mono); word-spacing: .2ch; overflow-wrap: anywhere; }
 .detail-comment { display: grid; gap: 4px; }
 .detail-comment textarea { font: inherit; font-size: 1.1429rem; padding: 8px; border: 0; border-radius: 8px; background: $raised; color: var(--fg); resize: vertical; }
 button.danger { color: $bad; }
@@ -40,7 +40,7 @@ button.danger { color: $bad; }
 .clock-opts label { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); }
 .clock-opts select { font-size: 1rem; }
 .keys-help dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 8px 0; }
-.keys-help dt { font-family: ui-monospace, monospace; white-space: nowrap; }
+.keys-help dt { font-family: var(--mono); white-space: nowrap; }
 .keys-help dd { margin: 0; color: var(--muted); }
 .results li { padding-left: .5ch; }
 .results li::marker { color: var(--muted); }
@@ -60,7 +60,7 @@ button.small { padding: 4px 8px; font-size: 0.8571rem; }
 .chart { margin: 0; display: grid; gap: 4px; }
 .chart figcaption { font-weight: 600; }
 .chart svg { width: 100%; max-width: 360px; height: auto; overflow: visible; } /* the viewBox scales the labels: capped so they stay ~11-12px (ponytail: no re-layout per width) */
-.chart text { fill: var(--muted); font: 0.7857rem ui-monospace, monospace; }
+.chart text { fill: var(--muted); font: 0.7857rem var(--mono); }
 .chart .axis { stroke: $raised; }
 .chart .bar { fill: color-mix(in srgb, var(--accent) 55%, transparent); }
 .chart .bar:hover { fill: var(--accent); }
@@ -72,8 +72,8 @@ button.small { padding: 4px 8px; font-size: 0.8571rem; }
 .chart-legend .pt::before { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); }
 .chart-legend .ao5::before { background: var(--accent); } .chart-legend .ao12::before { background: $warn; }
 .guide-head button { padding: 4px 10px; }
-#guide-next { font: 700 3.1429rem/1 ui-monospace, monospace; color: var(--accent); }
-#guide-steps { font-family: ui-monospace, monospace; color: var(--muted); word-break: break-word; }
+#guide-next { font: 700 3.1429rem/1 var(--mono); color: var(--accent); }
+#guide-steps { font-family: var(--mono); color: var(--muted); word-break: break-word; }
 #guide-steps span { margin-right: .5ch; }
 #guide-steps .current { color: var(--fg); font-weight: 700; }
 .hint { margin: 0; font-size: 0.8571rem; color: var(--muted); }

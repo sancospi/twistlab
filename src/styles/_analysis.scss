@@ -22,6 +22,6 @@
 .account-form { align-items: end; }
 .account-form .library-field { flex: 1 1 200px; }
 .account-form input, .account-code { width: 100%; min-width: 0; padding: 6px 8px; border: 0; border-radius: 8px; background: $raised; color: var(--fg); font: 1.1429rem system-ui, sans-serif; } /* 16px: no zoom on focus in iOS */
-.account-code { width: 7em; letter-spacing: 0.2em; font-family: ui-monospace, monospace; }
+.account-code { width: 7em; letter-spacing: 0.2em; font-family: var(--mono); }
 .account-trap { position: absolute; left: -9999px; }
 .account-status { margin: 0; min-height: 1.4em; }

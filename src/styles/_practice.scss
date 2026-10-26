@@ -23,12 +23,12 @@
 .practice-tiles { display: grid; grid-template-columns: 1fr 1fr 1.6fr; gap: 6px; }
 .practice-tiles > div { display: grid; gap: 2px; align-content: start; padding: 6px 10px; border-radius: 8px; background: $well; }
 .practice-tiles small { color: var(--muted); font-size: 0.7857rem; }
-.practice-tiles strong { font: 700 1.1429rem ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.practice-tiles strong { font: 700 1.1429rem var(--mono); font-variant-numeric: tabular-nums; }
 .streak { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; }
 .streak .dots { display: flex; gap: 2px; }
 .streak i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--muted); }
 .streak i.on { border-color: var(--accent); background: var(--accent); }
-.streak > span:last-child { font: 600 0.8571rem ui-monospace, monospace; color: var(--muted); }
+.streak > span:last-child { font: 600 0.8571rem var(--mono); color: var(--muted); }
 .streak.done > span:last-child { color: var(--accent); }
 @media (prefers-reduced-motion: no-preference) {
   .streak.celebrate i { animation: streak-pop .5s ease-out both; }
@@ -57,9 +57,9 @@
 .card-top { color: var(--muted); font-weight: 600; }
 .card-scramble { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; } /* the figure on top: the scramble gets the card's width */
 .card-diagram svg { width: min(96px, 26vw); height: auto; display: block; }
-.card-moves { display: block; font: 700 clamp(1.5rem, 6.5vw, 2rem)/1.35 ui-monospace, monospace; word-spacing: .15ch; text-wrap: balance; }
+.card-moves { display: block; font: 700 clamp(1.5rem, 6.5vw, 2rem)/1.35 var(--mono); word-spacing: .15ch; text-wrap: balance; }
 .card-solution { color: var(--muted); }
-.card-solution code { font: 700 1.1429rem ui-monospace, monospace; color: var(--fg); }
+.card-solution code { font: 700 1.1429rem var(--mono); color: var(--fg); }
 .practice-card .practice-clock { background: none; font-size: clamp(4rem, 19vw, 6.4286rem); line-height: 1.05; padding: 0 8px; }
 .practice-card .practice-clock.small { font-size: 2.2857rem; }
 .practice-card .practice-clock.running { color: var(--accent); }
@@ -78,18 +78,18 @@
 .practice-actions:not(:has(> :not([hidden]))) { display: none; }
 .practice-session { display: grid; gap: 4px; }
 .session-reps { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.session-reps li { padding: 2px 8px; border-radius: 999px; background: $well; font: 0.8571rem ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.session-reps li { padding: 2px 8px; border-radius: 999px; background: $well; font: 0.8571rem var(--mono); font-variant-numeric: tabular-nums; }
 .session-reps li.bad { color: $bad; text-decoration: line-through; }
 .practice-clock { font: 700 4rem/1.2 var(--clock); padding: 16px; touch-action: manipulation; }
 .practice-clock.running { color: var(--accent); }
-code { font-family: ui-monospace, monospace; }
+code { font-family: var(--mono); }
 .steps { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
 .steps li { flex: 1; padding: 6px; border-radius: 8px; background: $well; color: var(--muted); text-align: center; counter-increment: step; }
 .steps li::before { content: counter(step) ". "; }
 .steps li[aria-current="step"] { background: $raised; color: var(--fg); font-weight: 700; }
 .rotate { color: $warn; font-size: 1.2857rem; font-weight: 700; }
-.next { font: 700 3.1429rem/1 ui-monospace, monospace; color: var(--accent); }
-.tokens { font-family: ui-monospace, monospace; color: var(--muted); word-break: break-word; }
+.next { font: 700 3.1429rem/1 var(--mono); color: var(--accent); }
+.tokens { font-family: var(--mono); color: var(--muted); word-break: break-word; }
 .tokens span { margin-right: .6ch; }
 .tokens .done { opacity: .5; }
 .tokens .current { color: var(--fg); font-weight: 700; text-decoration: underline; }

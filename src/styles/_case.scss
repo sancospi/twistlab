@@ -34,7 +34,7 @@ a.chip:hover, a.chip:focus-visible { background: #3a4358; }
 .case-alg { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: $card; }
 .case-alg.chosen { outline: 2px solid var(--accent); }
 .case-alg:focus-visible { outline: 2px solid var(--fg); }
-.case-setup { display: flex; gap: 10px; align-items: baseline; margin: 0 0 8px; } .case-setup dt { color: var(--muted); } .case-setup dd { margin: 0; font-family: ui-monospace, monospace; }
+.case-setup { display: flex; gap: 10px; align-items: baseline; margin: 0 0 8px; } .case-setup dt { color: var(--muted); } .case-setup dd { margin: 0; font-family: var(--mono); }
 .case-moves { font-size: 1.4286rem; line-height: 2.2; }
 /* alternatives stay quiet next to the chosen algorithm; "Usar este" makes one the chosen (big) one */
 /* compact: the moves on one line, then source · chips · Ver dedos · Usar este on another */
@@ -93,7 +93,7 @@ a.card { color: var(--fg); text-decoration: none; border-radius: 8px; }
 .lesson-ways button { flex: 1; }
 .lesson-ways button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
 .lesson-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.lesson-choices button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 8px; font: 700 1.1429rem ui-monospace, monospace; }
+.lesson-choices button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 8px; font: 700 1.1429rem var(--mono); }
 .lesson-choices button:disabled { opacity: 1; }
 .lesson-choices button.right { background: var(--accent); color: $on-accent; }
 .lesson-choices button.wrong { background: $bad; color: #2b0606; }

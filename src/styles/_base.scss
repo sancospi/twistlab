@@ -1,9 +1,11 @@
 // The base: the clocks' face, colours and sizes (:root), the type scale and plain elements.
 @use 'tokens' as *;
 
-/* the clocks' face: Chivo Mono (OFL, public/fonts), every character as wide (0.6em), so a time's width is its length */
+/* --mono, for moves and numbers: Chromium has no ui-monospace (on a Mac it fell back to Courier), so Menlo and Consolas
+   name the Mac's and Windows' own. The clocks' face: Chivo Mono (OFL, public/fonts), every character as wide (0.6em),
+   so a time's width is its length */
 @font-face { font-family: 'Chivo Mono'; font-weight: 700; font-display: swap; src: url('/fonts/chivo-mono-700.woff2') format('woff2'); }
-:root { --clock: 'Chivo Mono', ui-monospace, monospace; color-scheme: dark; --bg: #0b0d12; --fg: #e6e8ee; --muted: #8a90a0; --accent: #4ade80; --panel: #151924cc; --header-h: 54px; /* updated live by boot.ts; these defaults match it, so the first paint is already right */ }
+:root { --mono: ui-monospace, Menlo, Consolas, monospace; --clock: 'Chivo Mono', var(--mono); color-scheme: dark; --bg: #0b0d12; --fg: #e6e8ee; --muted: #8a90a0; --accent: #4ade80; --panel: #151924cc; --header-h: 54px; /* updated live by boot.ts; these defaults match it, so the first paint is already right */ }
 @media (min-width: 601px) { :root { --header-h: 61px; } }
 @media (min-width: 1200px) { :root { --header-h: 70px; } } /* the menu in the bar (☰ below) */
 * { box-sizing: border-box; }
@@ -21,7 +23,7 @@ button.primary { background: var(--accent); color: $on-accent; font-weight: 600;
 button:disabled { opacity: .4; cursor: default; }
 dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; color: var(--muted); }
 dd { margin: 0; color: var(--fg); }
-#moves { font-family: ui-monospace, monospace; min-height: 1.4em; word-break: break-word; }
+#moves { font-family: var(--mono); min-height: 1.4em; word-break: break-word; }
 #status.solved { color: var(--accent); font-weight: 600; }
 #guide { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: $well; }
 #guide[hidden] { display: none; }
@@ -40,7 +42,7 @@ body:not([data-module="challenges"]) #mod-challenges, body:not([data-module="abo
 .scramble-box { display: grid; gap: 8px; }
 .scramble-box[hidden], .scramble[hidden] { display: none; }
 .scramble-note { margin: 2px 0 0; font-family: system-ui, sans-serif; } /* under a scramble, also inside monospace boxes */
-.scramble { font: 600 1.3571rem/1.6 ui-monospace, monospace; word-spacing: .2ch; overflow-wrap: anywhere; }
+.scramble { font: 600 1.3571rem/1.6 var(--mono); word-spacing: .2ch; overflow-wrap: anywhere; }
 .scramble .move { text-decoration-color: #ffffff26; } /* a hint of the tooltips, not a second line of text */
 .net { height: 190px; } /* reserved: the 2D player arrives after the first scramble */
 .net twisty-player { width: 100%; height: 100%; }

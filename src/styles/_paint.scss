@@ -25,7 +25,7 @@ body[data-paint] .panel { @include full-page; }
 .paint-sticker:focus-visible { outline: 3px solid #fff; box-shadow: 0 0 0 5px #000; position: relative; z-index: 1; } /* same in any theme */
 #paint-status ul { margin: 4px 0 0; padding-left: 1.2em; }
 #paint-player twisty-player { width: 100%; height: min(280px, 40dvh); }
-#paint-move { font: 700 2.2857rem/1 ui-monospace, monospace; color: var(--accent); margin-right: 8px; }
+#paint-move { font: 700 2.2857rem/1 var(--mono); color: var(--accent); margin-right: 8px; }
 #paint-steps { word-break: break-word; }
 .paint-modes button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
 .bsolve-stage h4 { margin: 8px 0 4px; font-size: 1rem; }
