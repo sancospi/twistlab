@@ -1,22 +1,12 @@
 // The practice dialog (practice.ts) and the hand clock.
 @use 'tokens' as *;
 
-/* Practice dialog (practice.ts): Preparar (the case, the algorithm, Empezar) and Practicar (the clock card, big) */
+/* Practice dialog (practice.ts): the clock card, big, the sitting under it and the algorithm to use */
 .practice-view { display: grid; gap: 10px; }
 @media (min-width: 601px) { #practice[open] { margin-top: 16px; margin-bottom: auto; } } /* top-anchored: it doesn't jump as the card's state changes its height */
 .sheet-head .help-toggle { margin-left: auto; min-width: 44px; min-height: 44px; font-weight: 700; }
 .sheet-head .help-toggle[aria-expanded="true"] { background: var(--fg); color: var(--bg); }
 .practice-help { padding: 10px 12px; border-radius: 8px; background: $well; color: var(--muted); font-size: 0.9286rem; line-height: 1.5; }
-.practice-head { display: flex; gap: 12px; align-items: flex-start; }
-.practice-head .practice-facts { display: grid; gap: 4px; min-width: 0; }
-.practice-head details { color: var(--muted); }
-.practice-head details > :not(summary) { margin-top: 4px; }
-.practice-head summary { font-size: 0.8571rem; }
-.practice-diagram { flex: none; }
-.practice-diagram svg { width: min(120px, 30vw); height: auto; display: block; }
-.practice-tabs button { flex: 1; }
-.practice-tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
-.practice-chosen { display: grid; gap: 2px; padding: 10px 12px; border-radius: 8px; background: $well; outline: 2px solid var(--accent); }
 .practice-change > summary { color: var(--muted); }
 .practice-change[open] > summary { margin-bottom: 8px; }
 .practice-start { min-height: 56px; font-size: 1.2857rem; }
@@ -37,7 +27,7 @@
 @keyframes streak-pop { 50% { transform: scale(1.7); } }
 .practice-bar { align-items: center; justify-content: space-between; flex-wrap: nowrap; }
 .practice-bar button { flex: none; min-height: 44px; }
-.practice-bar #practice-mode { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.practice-bar #practice-mode { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .practice-bar #practice-reveal { border: 1px solid transparent; }
 .practice-bar #practice-reveal.off { background: none; border: 1px dashed var(--muted); }
 .practice-card { display: grid; gap: 8px; justify-items: center; align-content: center; min-height: min(56dvh, 460px); padding: 16px 12px;

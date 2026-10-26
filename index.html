@@ -462,38 +462,12 @@
       <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
     </form>
     <p id="practice-help" class="practice-help" hidden></p>
-    <div id="practice-prep" class="practice-view">
-      <div class="practice-head">
-        <div id="practice-diagram" class="practice-diagram"></div>
-        <div class="practice-facts">
-          <p><strong data-i18n="practice.recognition"></strong> · <span id="practice-recognition"></span></p>
-          <p id="practice-prob" class="hint" hidden></p>
-          <details id="practice-more">
-            <summary data-i18n="practice.more"></summary>
-            <p id="practice-note" class="hint"></p>
-            <a id="practice-scdb" target="_blank" rel="noopener" data-i18n="practice.scdb"></a>
-          </details>
-        </div>
-      </div>
-      <div id="practice-tabs" class="row practice-tabs" role="group" data-i18n-aria-label="practice.tabs">
-        <button type="button" data-tab="practice" data-i18n="practice.tab.practice"></button>
-        <button type="button" data-tab="quiz" data-i18n="practice.tab.quiz"></button>
-        <button type="button" data-tab="drill" data-i18n="practice.tab.drill"></button>
-      </div>
-      <p id="practice-lead" class="hint"></p>
-      <div id="practice-chosen" class="practice-chosen"></div>
-      <details id="practice-change" class="practice-change">
-        <summary id="practice-change-label"></summary>
-        <fieldset id="practice-algs" class="algs"></fieldset>
-      </details>
-      <button id="practice-start" type="button" class="primary practice-start"></button>
-    </div>
-    <div id="practice-focus" class="practice-view" hidden>
+    <div class="practice-view">
       <div class="row practice-bar">
-        <button id="practice-back" type="button" class="small" data-i18n="practice.back"></button>
         <span id="practice-mode" class="hint"></span>
         <button id="practice-reveal" type="button" class="small"></button>
       </div>
+      <div id="practice-tiles" class="practice-tiles"></div>
       <div id="practice-card" class="practice-card" tabindex="-1">
         <ol id="practice-steps" class="steps" data-i18n-aria-label="practice.steps">
           <li id="practice-step-scramble" data-i18n="practice.stepScramble"></li>
@@ -528,8 +502,11 @@
       <div id="practice-fingers"></div>
       <div id="practice-anim" class="row"></div>
       <div id="practice-player" class="anim-player" role="group" data-i18n-aria-label="anim.label" hidden></div>
+      <details id="practice-change" class="practice-change">
+        <summary id="practice-change-label"></summary>
+        <fieldset id="practice-algs" class="algs"></fieldset>
+      </details>
     </div>
-    <div id="practice-tiles" class="practice-tiles"></div>
     <p id="practice-status" class="sr-only" role="status"></p>
   </dialog>
   <dialog id="quiz" class="sheet" aria-labelledby="quiz-title">

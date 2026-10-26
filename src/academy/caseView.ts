@@ -143,9 +143,9 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
     el('button', { type: 'button', className: primary ? 'primary' : '', onclick },
       el('span', { textContent: t(label) }), el('small', { textContent: t(hint) }));
   const actions = el('div', { className: 'case-actions', role: 'group', ariaLabel: t('practice.tabs') },
-    action('practice.tab.practice', 'case.practiceHint', () => void openPractice(c, fill, quiz, 'practice'), true),
+    action('practice.tab.practice', 'case.practiceHint', () => void openPractice(c, fill, 'practice'), true),
     action('practice.tab.quiz', 'case.quizHint', quiz),
-    action('practice.tab.drill', 'case.drillHint', () => void openPractice(c, fill, quiz, 'drill')));
+    action('practice.tab.drill', 'case.drillHint', () => void openPractice(c, fill, 'drill')));
 
   const recognition = el('section', { className: 'case-section' },
     el('h3', { textContent: t('case.recognition') }),

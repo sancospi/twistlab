@@ -1,16 +1,16 @@
-// Practice one case, in three ways (tabs), the same three as on its page and in this order:
+// Practice one case, in two of the three ways its page offers (the third, the Quiz, is quiz.ts's), the dialog opening
+// straight on the clock card, big, with the screen kept awake:
 // - Practicar (aprender): the case set up from solved by the chosen algorithm backwards, and solved with the algorithm
 //   (a random state is the Quiz's). With a synced cube: 1) Mezcla walks the cube there, 2) Resuelve follows the
 //   solution token by token, with corrections, timed from the first turn. Without one: the scramble big on the clock
 //   card; a tap (or Space) hides it and starts the clock, the next stops it, and the user says how it went (Limpio /
 //   Fallé) before the scramble comes back for the next repetition.
-// - Quiz (retener): explains and opens the quiz of the case's group (quiz.ts).
 // - Memoria muscular (agilizar): the algorithm alone, no scramble. With a cube it's followed from whatever state the
 //   cube is in (the next turn after a rep starts another); without one, a series: each tap ends a repetition and starts
 //   the next (X for a failed one), until Terminar serie.
-// Two views: Preparar (the case, its recognition, the algorithm to use, Empezar) and Practicar (the clock card, big,
-// with the screen kept awake). The solution shows while learning and hides by itself after FADE_AFTER clean in a row
-// (Solución toggles it for the sitting; Ver solución shows it once, and that repetition isn't clean). Every repetition
+// The algorithm to use is changed under the card. The solution shows while learning and hides by itself after
+// FADE_AFTER clean in a row (Solución toggles it for the sitting; Ver solución shows it once, and that repetition isn't
+// clean). Every repetition
 // (time, moves, clean) counts towards the plan's drill criterion: the streak of STREAK_GOAL, drawn as dots; only the
 // clean ones' times make the best and the average.
 import { TwistyPlayer, type TwistyPlayerConfig } from 'cubing/twisty';
@@ -27,12 +27,12 @@ import { MASKS, goalReached, heldMask, holdRotation, practiceSpec, quizPattern, 
 import { caseDiagram, isoTurns, type DiagramOpts } from './diagram.ts';
 import { MAX_UNDO, REDO_MS, StepFollower } from './follow.ts';
 import { cube, type CubeListener } from './link.ts';
-import { addCustom, average, byChoice, preferred, recordRep, removeCustom, save, setPreferred, setting, statsFor, STREAK_GOAL, variants, type Rep } from './store.ts';
+import { addCustom, average, byChoice, preferred, recordRep, removeCustom, setPreferred, statsFor, STREAK_GOAL, variants, type Rep } from './store.ts';
 import { FADE_AFTER, compare, solutionView, summary, type Comparison, type SessionRep, type SolutionView } from './practiceSession.ts';
 import { caseLabel, puzzleOf, type AlgSource, type AlgVariant, type Case, type Puzzle, type Stage } from './types.ts';
 import { checkCustomAlg } from './customAlg.ts';
 import { fingertricks, type FingerHint } from '../fingertricks.ts';
-import { caseProbability, formatProbability, phaseOf } from './probability.ts';
+import { phaseOf } from './probability.ts';
 import { $, el } from '../el.ts';
 import { openSheet } from '../router.ts';
 
@@ -138,16 +138,13 @@ export function movesView(tokens: string[]): HTMLElement {
 
 type Mode = 'static' | 'scramble' | 'solve' | 'result'; // the smart cube's flow
 type Hand = 'ready' | 'running' | 'stopped'; // the hand clock's, without a cube (stopped: Practicar waits for Limpio / Fallé)
-type View = 'prep' | 'focus'; // Preparar / Practicar
-export type Tab = 'practice' | 'quiz' | 'drill';
-const TABS: Tab[] = ['practice', 'quiz', 'drill'];
-let tab = setting<Tab>('practice-tab', 'practice', (v) => TABS.includes(v));
+export type Tab = 'practice' | 'drill'; // Practicar / Memoria muscular
+let tab: Tab = 'practice';
 let kpuzzle: KPuzzle;
 let kase: Case;
 let variant: AlgVariant;
 let tokens: string[] = []; // the algorithm
 let rep: { spec: QuizSpec; user: KPattern; tokens: string[] }; // Practicar: this repetition's state and its solution
-let view: View = 'prep';
 let mode: Mode = 'static';
 let hand: Hand = 'ready';
 let follower: StepFollower | null = null;
@@ -158,7 +155,6 @@ let lastRep: Rep | null = null;
 let comparison: Comparison | null = null; // the last time against the case's stats before it
 let redoUntil = 0;
 let onUpdate: (c: Case) => void = () => {};
-let onQuiz: () => void = () => {};
 let timerAt = 0; // > 0 while the no-cube clock runs (Memoria muscular: since the current lap started)
 let timerRaf = 0;
 let stoppedMs = 0; // Practicar without a cube: the time waiting for Limpio / Fallé
@@ -185,18 +181,16 @@ const guide = new PathGuide(() => cube.pattern(), () => {
   render();
 });
 
-/** Opens the practice dialog for a case, on Preparar; `onChange` runs when its preferred algorithm or stats change,
- *  `quiz` opens a quiz of this case (the caller knows its group, for the answers). `startTab`: open on that tab
- *  (remembered, as if the user had picked it); else on the last one used. */
-export async function openPractice(c: Case, onChange: (c: Case) => void, quiz: () => void, startTab?: Tab): Promise<void> {
+/** Opens the practice dialog for a case on Practicar or Memoria muscular, its clock card ready; `onChange` runs when
+ *  its preferred algorithm or stats change. Escape, ×, or Back close it. */
+export async function openPractice(c: Case, onChange: (c: Case) => void, startTab: Tab): Promise<void> {
   kpuzzle ??= await cube3x3x3.kpuzzle();
-  if (startTab) save('practice-tab', (tab = startTab));
+  tab = startTab;
   kase = c;
   dialog.dataset.puzzle = puzzleOf(c.stage); // for the move tooltips
   onUpdate = onChange;
-  onQuiz = quiz;
-  view = 'prep';
   choice = null;
+  notice = '';
   customInput.value = customStatus.textContent = '';
   helpBox.hidden = true;
   helpToggle.ariaExpanded = 'false';
@@ -204,8 +198,8 @@ export async function openPractice(c: Case, onChange: (c: Case) => void, quiz: (
   renderInfo();
   cube.listener = listener; // a 2x2 case too: its note on the 3x3 cube follows the connection
   openSheet(dialog);
+  void keepAwake(true);
   choose(preferred(c));
-  focus('practice-start'); // Space/Enter: Empezar
   dialog.scrollTop = 0;
 }
 
@@ -213,24 +207,9 @@ dialog.addEventListener('close', () => {
   if (dialog.open) return; // 'close' is queued: the dialog was reopened meanwhile
   if (cube.listener === listener) cube.listener = null; // the quiz may have taken the cube already
   stopAll();
-  view = 'prep';
   void keepAwake(false);
   anim.set(false);
 });
-
-// Escape in Practicar goes back to Preparar; in Preparar it closes
-dialog.addEventListener('cancel', (e) => {
-  if (view !== 'focus') return;
-  e.preventDefault();
-  showPrep();
-});
-
-const tabButtons = [...$('practice-tabs').querySelectorAll<HTMLButtonElement>('button')];
-for (const b of tabButtons) b.onclick = () => {
-  save('practice-tab', (tab = b.dataset.tab as Tab));
-  showContent();
-  render();
-};
 
 /** The algorithm to practise: a new one starts the sitting over (its times aren't the other's). */
 function choose(v: AlgVariant) {
@@ -240,9 +219,7 @@ function choose(v: AlgVariant) {
   lastRep = null;
   session = [];
   seriesDone = [];
-  if (view === 'focus') return start();
-  showContent();
-  render();
+  start();
 }
 
 /** What's being done: Practicar's solution for this repetition, or the algorithm alone. */
@@ -265,33 +242,6 @@ function stopAll() {
   series = [];
 }
 
-/** Preparar: the case, the algorithm, Empezar. Nothing runs. */
-function showPrep() {
-  view = 'prep';
-  stopAll();
-  void keepAwake(false);
-  anim.set(false);
-  notice = '';
-  showContent();
-  render();
-  focus('practice-start');
-  dialog.scrollTop = 0;
-}
-
-/** Empezar: the quiz (it takes the dialog's place), or Practicar on the clock card. */
-function enterFocus() {
-  if (tab === 'quiz') {
-    dialog.close(); // releases the cube for the quiz
-    return onQuiz();
-  }
-  view = 'focus';
-  notice = '';
-  seriesDone = [];
-  void keepAwake(true);
-  start();
-  dialog.scrollTop = 0;
-}
-
 /** Starts the current tab on the card: with a cube, set the case up (Practicar) or follow the algorithm from anywhere
  *  (Memoria muscular); otherwise the hand clock waits for its first tap. */
 function start() {
@@ -305,7 +255,7 @@ function start() {
       beginSolve();
       render();
     }
-    return focus('practice-card'); // inside the view (Empezar is gone); the cube drives it
+    return focus('practice-card'); // inside the dialog (not ×, where Space would close it); the cube drives it
   }
   render();
   focus('practice-clock'); // Space then starts the clock natively
@@ -314,11 +264,8 @@ function start() {
 /** The figures (the chosen algorithm's case), the scramble, the algorithm and its fingers. */
 function showContent() {
   const figure = (size: number) => caseSVG(kase, rep.user, { size, title: t('academy.diagram', { code: kase.code }), arrows: true });
-  // the chosen algorithm backwards on every tab: the same case seen the same way as its scramble and animation
-  $('practice-diagram').innerHTML = figure(120);
+  // the chosen algorithm backwards on both tabs: the same case seen the same way as its scramble and animation
   $('practice-card-diagram').innerHTML = figure(96);
-  $('practice-chosen').replaceChildren(movesView(tokens),
-    el('span', { className: 'hint', textContent: `${sourceLabel(variant)} · ${t('practice.htm', { n: htm(centerMoves(tokens, IDENTITY)) })}` }));
   $('practice-setup').replaceChildren(algView(rep.spec.moves));
   $('practice-setup-note').replaceWith(Object.assign(scrambleNote(), { id: 'practice-setup-note' }));
   $('practice-alg-label').textContent = t(tab === 'practice' ? 'practice.solution' : 'practice.alg');
@@ -378,7 +325,7 @@ function record(r: Rep) {
 
 const listener: CubeListener = {
   move(move) {
-    if (view !== 'focus' || !linked()) return; // Preparar: the cube is free; a 2x2 case isn't done on it
+    if (!linked()) return; // a 2x2 case isn't done on it
     if (mode === 'result' && tab === 'drill') beginSolve(); // the next turn starts the next repetition
     if (mode === 'scramble') {
       guide.onMove(move);
@@ -404,14 +351,12 @@ const listener: CubeListener = {
     render();
   },
   sync() {
-    if (view === 'focus') {
-      if (!cube.pattern()) {
-        if (mode !== 'static') start(); // disconnected: the hand clock
-      } else if ((mode === 'static' && linked()) || mode === 'solve') {
-        start(); // a cube just synced, or the state drifted mid-algorithm: start the repetition again
-      } else if (mode === 'scramble') {
-        void guide.replan();
-      }
+    if (!cube.pattern()) {
+      if (mode !== 'static') start(); // disconnected: the hand clock
+    } else if ((mode === 'static' && linked()) || mode === 'solve') {
+      start(); // a cube just synced, or the state drifted mid-algorithm: start the repetition again
+    } else if (mode === 'scramble') {
+      void guide.replan();
     }
     render();
   },
@@ -434,14 +379,11 @@ export function fingersView(tokens: string[]): HTMLDetailsElement {
     el('ol', { className: 'fingers', ariaLabel: t('fingers.list') }, ...fingertricks(tokens).map(item)));
 }
 
-$('practice-start').onclick = enterFocus;
-$('practice-back').onclick = showPrep;
 /** Focus without scrolling: on a phone the sheet would jump to the element, past the title and the bar. */
 const focus = (id: string) => $(id).focus({ preventScroll: true });
 /** After a button: the clock keeps the focus, so Space is the clock again (not that button once more); stopped, Limpio;
  *  with the cube, after a rep, Otra vez. */
 const refocus = () => {
-  if (view !== 'focus') return;
   if (!linked()) focus(hand === 'stopped' ? 'practice-clean' : 'practice-clock');
   else if (tab === 'practice' && mode === 'result') focus('practice-again');
 };
@@ -505,7 +447,7 @@ $('practice-card').addEventListener('click', (e) => {
 });
 dialog.addEventListener('keydown', (e) => {
   const target = e.target as Element;
-  if (e.code === 'KeyX' && !e.repeat && view === 'focus' && !linked() && !target.closest?.('input')) {
+  if (e.code === 'KeyX' && !e.repeat && !linked() && !target.closest?.('input')) {
     if (tab === 'practice' && hand === 'stopped' && !helped) grade(false);
     else if (tab === 'drill' && hand === 'running') lap(false);
     else return;
@@ -513,11 +455,6 @@ dialog.addEventListener('keydown', (e) => {
   }
   // a focused control presses itself (inside the 3D player's shadow DOM too, hence the composed path)
   if (e.code !== 'Space' || e.composedPath().some((n) => n instanceof Element && n.matches('button, input, select, summary, a, twisty-player'))) return;
-  if (view === 'prep') {
-    e.preventDefault();
-    if (!e.repeat) enterFocus();
-    return;
-  }
   if (linked()) { // with the cube Space is only Otra vez, after a rep (wherever the focus went)
     if (tab !== 'practice' || mode !== 'result') return;
     e.preventDefault();
@@ -532,7 +469,7 @@ dialog.addEventListener('keydown', (e) => {
 
 /** A tap on the card: start, stop (Practicar: then Limpio / Fallé), or end a lap (Memoria muscular). */
 function act() {
-  if (view !== 'focus' || linked() || hand === 'stopped') return;
+  if (linked() || hand === 'stopped') return;
   const now = performance.now();
   if (hand === 'ready') {
     timerAt = now;
@@ -627,14 +564,14 @@ async function keepAwake(on: boolean) {
   if (wake || !('wakeLock' in navigator)) return;
   try {
     const lock = await navigator.wakeLock.request('screen');
-    if (wake || !dialog.open || view !== 'focus') return void lock.release(); // another request won, or left meanwhile
+    if (wake || !dialog.open) return void lock.release(); // another request won, or left meanwhile
     wake = lock;
     lock.addEventListener('release', () => void (wake === lock && (wake = null)));
   } catch {} // not allowed (battery saver, a hidden page): the screen just behaves as usual
 }
 // the browser releases it when the page is hidden: back on screen, take it again
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && dialog.open && view === 'focus') void keepAwake(true);
+  if (document.visibilityState === 'visible' && dialog.open) void keepAwake(true);
 });
 
 const SOURCES: Record<Exclude<AlgSource, 'speedcubedb'>, MessageKey> = { 'plan-b': 'practice.planB', community: 'practice.community', custom: 'custom.source' };
@@ -699,27 +636,17 @@ function removeButton(v: AlgVariant) {
   return b;
 }
 
-// Case facts and the algorithm choice: they only change when another case opens (or the algorithms do).
+// The case's name and the algorithm choice: they only change when another case opens (or the algorithms do).
 function renderInfo() {
   $('practice-title').textContent = caseLabel(kase);
-  $('practice-recognition').replaceChildren(...inlineText(loc(kase.recognition)));
-  $('practice-note').replaceChildren(...(kase.note ? inlineText(loc(kase.note)) : []));
-  $('practice-note').hidden = !kase.note;
-  const link = $('practice-scdb') as HTMLAnchorElement;
-  link.hidden = !kase.scdb;
-  link.href = kase.scdb?.url ?? '';
-  $('practice-more').hidden = !kase.note && !kase.scdb;
-  const p = caseProbability(kase.id, kpuzzle);
-  $('practice-prob').textContent = p === null ? '' : t('prob.practice', { p: formatProbability(p) });
-  $('practice-prob').hidden = p === null;
   const all = variants(kase);
   $('practice-change-label').textContent = all.length > 1 ? `${t('practice.change')} (${all.length})` : t('practice.change');
   const current = preferred(kase);
   const option = (v: AlgVariant, folded: boolean) => {
     const input = el('input', { type: 'radio', name: 'practice-alg', value: v.id, checked: v.id === current.id });
     input.onchange = () => {
-      prefer(v);
-      if (!folded) return; // ponytail: only a folded pick re-orders: arrow keys between the two shown would swap them back and forth
+      prefer(v); // starts over, the clock taking the focus: give it back, for the arrow keys
+      if (!folded) return input.focus(); // ponytail: only a folded pick re-orders: arrow keys between the two shown would swap them back and forth
       renderInfo();
       algOptions.querySelector<HTMLInputElement>('input:checked')!.focus();
     };
@@ -740,11 +667,10 @@ export const moreAlgs = (n: number, items: Node[]): HTMLDetailsElement =>
 
 /** The "?": how the tab works, with a cube or without. */
 const helpKey = (): MessageKey =>
-  tab === 'quiz' ? 'practice.testHint'
-  : tab === 'drill' ? (linked() ? 'practice.drillHint' : 'practice.helpDrill')
+  tab === 'drill' ? (linked() ? 'practice.drillHint' : 'practice.helpDrill')
   : linked() ? 'practice.helpPracticeCube' : 'practice.helpPractice';
 
-// renderFocus hides everything and shows what the state needs; applied at the end, only what changes (hiding a focused
+// renderCard hides everything and shows what the state needs; applied at the end, only what changes (hiding a focused
 // button, even for an instant, drops its focus)
 let batch: Map<string, boolean> | null = null;
 const show = (id: string, on: boolean) => void (batch ? batch.set(id, on) : ($(id).hidden = !on));
@@ -755,25 +681,14 @@ const text = (id: string, s: string) => {
 
 function render() {
   if (!dialog.open) return;
-  const twoByTwo = cube.pattern() && !linked() && tab !== 'quiz' ? ` ${t('practice.no2x2Cube')}` : '';
+  const twoByTwo = cube.pattern() && !linked() ? ` ${t('practice.no2x2Cube')}` : '';
   helpBox.textContent = t(helpKey(), { n: FADE_AFTER }) + twoByTwo;
-  show('practice-prep', view === 'prep');
-  show('practice-focus', view === 'focus');
-  // the stats: under Empezar, or over the card
-  if (view === 'prep') $('practice-start').after(tiles);
-  else $('practice-card').before(tiles);
   renderTiles();
-  if (view === 'prep') {
-    for (const b of tabButtons) b.setAttribute('aria-pressed', String(b.dataset.tab === tab));
-    $('practice-lead').textContent = t(`practice.lead.${tab}`) + twoByTwo;
-    $('practice-start').textContent = t(tab === 'quiz' ? 'practice.testStart' : 'practice.start');
-    return;
-  }
-  renderFocus();
+  renderCard();
 }
 
-/** Practicar: the bar, the card in its state, the buttons under it, the sitting. */
-function renderFocus() {
+/** The bar, the card in its state, the buttons under it, the sitting. */
+function renderCard() {
   const shown = solutionShown();
   const on = solutionView(streakNow(), choice) === 'shown'; // Solución (a peek aside)
   $('practice-mode').textContent = t(`practice.tab.${tab}`);

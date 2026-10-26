@@ -111,5 +111,5 @@ test('every id the code looks up is in index.html (a renamed or moved element fa
       assert.ok(ids.has(id) || made.has(id), `${f}: #${id} is not in index.html`);
     }
   }
-  assert.ok(looked > 300, `${looked} lookups: the pattern missed them`); // 323 when this was written
+  assert.ok(looked > 250, `${looked} lookups: the pattern missed them`); // 290 when Practicar lost Preparar
 });

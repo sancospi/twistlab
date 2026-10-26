@@ -50,7 +50,7 @@ export const LWW = [
   'cube-calls-voice', 'cube-welcome', 'cube-ranking-verified', 'progress-goal', 'paint-facelets', 'academy-view',
   'academy-pll-recog', 'academy-pll-recog-set', 'academy-auf-pre', 'academy-auf-post', 'academy-auf-set', 'academy-auf-mode',
   'academy-auf-view', 'academy-lookahead-tps', 'quiz-per-case', 'quiz-net', 'quiz-neutral', 'quiz-select', 'quiz-order',
-  'cross-count', 'cross-optimal', 'cross-level', 'practice-tab',
+  'cross-count', 'cross-optimal', 'cross-level',
 ];
 
 const atOf = (x: unknown) => (isRecord(x) && typeof x.at === 'number' ? x.at : undefined);

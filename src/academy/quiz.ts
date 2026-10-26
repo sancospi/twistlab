@@ -25,7 +25,7 @@ import {
 } from './cube.ts';
 import { heldColors, netSVG } from './diagram.ts';
 import { cube, type CubeListener } from './link.ts';
-import { METHODS, findCase } from './methods.ts';
+import { findCase } from './methods.ts';
 import { inlineText } from '../rich-text-view.ts';
 import { Animation, caseSVG, comparisonText, deltaClass, fingersView, loadCase, movesView, openPractice } from './practice.ts';
 import { $, el } from '../el.ts';
@@ -72,13 +72,6 @@ function scopeCases(s: QuizScope): Case[] {
 const history = (): SessionRecord[] => parseHistory(load(HISTORY_KEY));
 /** Last finished session of a scope, for the academy's quiz buttons. */
 export const lastResult = (id: string): SessionRecord | undefined => lastSession(history(), id);
-
-/** The quiz of one case, answered among its group's cases. */
-const caseScope = (c: Case): QuizScope => {
-  const group = METHODS.flatMap((m) => m.phases).flatMap((p) => p.groups).find((g) => g.cases.includes(c));
-  // titled by the group: its cases come up too (Uno solo narrows it to this one)
-  return { kind: 'cases', id: c.id, cases: [c], title: group ? t('academy.quizOf', { name: loc(group.name) }) : caseLabel(c), answers: group?.cases };
-};
 
 interface Item {
   spec: QuizSpec;
@@ -381,7 +374,7 @@ function explain(w: Why) {
 function reviewNow(c: Case) {
   saveSession(); // the items done so far count
   dialog.close(); // releases the cube for the practice
-  void openPractice(c, () => {}, () => void openQuiz(caseScope(c)), 'drill');
+  void openPractice(c, () => {}, 'drill');
 }
 
 function solved() {
