@@ -4,7 +4,7 @@
 /* Practice dialog (practice.ts): Preparar (the case, the algorithm, Empezar) and Practicar (the clock card, big) */
 .practice-view { display: grid; gap: 10px; }
 @media (min-width: 601px) { #practice[open] { margin-top: 16px; margin-bottom: auto; } } /* top-anchored: it doesn't jump as the card's state changes its height */
-.sheet-head .help-toggle { margin-left: auto; min-width: 44px; min-height: 44px; border-radius: 50%; font-weight: 700; }
+.sheet-head .help-toggle { margin-left: auto; min-width: 44px; min-height: 44px; font-weight: 700; }
 .sheet-head .help-toggle[aria-expanded="true"] { background: var(--fg); color: var(--bg); }
 .practice-help { padding: 10px 12px; border-radius: 8px; background: $well; color: var(--muted); font-size: 0.9286rem; line-height: 1.5; }
 .practice-head { display: flex; gap: 12px; align-items: flex-start; }
