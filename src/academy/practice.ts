@@ -20,7 +20,7 @@ import { describe, nextStep, PathGuide } from '../guide.ts';
 import { CAMERA, IDENTITY, YELLOW_UP, caseSetup, centerMoves, expand, formatAlg, htm, invertMove, mapMove, tokenize, triggerSegments, turnCount, unmapMove, type Frame } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView, scrambleNote } from '../notation-view.ts';
-import { inlineText } from '../rich-text-view.ts';
+import { inlineText, richText } from '../rich-text-view.ts';
 import { loc, t, tp, type MessageKey } from '../i18n.ts';
 import { MASKS, goalReached, heldMask, holdRotation, practiceSpec, quizPattern, type QuizSpec } from './cube.ts';
 import { caseDiagram, isoTurns, type DiagramOpts } from './diagram.ts';
@@ -685,8 +685,8 @@ const text = (id: string, s: string) => {
 
 function render() {
   if (!dialog.open) return;
-  const twoByTwo = cube.pattern() && !linked() ? ` ${t('practice.no2x2Cube')}` : '';
-  helpBox.textContent = t(helpKey(), { n: FADE_AFTER }) + twoByTwo;
+  const twoByTwo = cube.pattern() && !linked() ? `\n${t('practice.no2x2Cube')}` : '';
+  helpBox.replaceChildren(...richText(t(helpKey(), { n: FADE_AFTER }) + twoByTwo)); // a line per idea
   renderTiles();
   renderCard();
 }

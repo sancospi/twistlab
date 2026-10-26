@@ -7,6 +7,8 @@
 .sheet-head .help-toggle { margin-left: auto; min-width: 44px; min-height: 44px; font-weight: 700; }
 .sheet-head .help-toggle[aria-expanded="true"] { background: var(--fg); color: var(--bg); }
 .practice-help { padding: 10px 12px; border-radius: 8px; background: $well; color: var(--muted); font-size: 0.9286rem; line-height: 1.5; }
+.practice-help ul { margin: 0; padding-left: 1.1em; } /* a line per idea (practice.ts) */
+.practice-help p { margin: 6px 0 0; } /* the 2x2's note under them */
 .practice-change > summary { color: var(--muted); }
 .practice-change[open] > summary { margin-bottom: 8px; }
 .practice-start { min-height: 56px; font-size: 1.2857rem; }
