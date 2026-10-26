@@ -23,6 +23,7 @@ import { cube, type CubeListener } from './link.ts';
 import { aim, setPuzzle } from './practice.ts';
 import { FULL_MASK } from './cube.ts';
 import { $, el } from '../el.ts';
+import { openSheet } from '../router.ts';
 import { load, save, setting } from './store.ts';
 
 const dialog = $('cross') as HTMLDialogElement;
@@ -81,7 +82,7 @@ export async function openCrossTrainer(): Promise<void> {
   if (!picked) level = crossGuide.levels.find((l) => l.id === stored) ?? crossGuide.levels.find((l) => !levelProgress(crossHistory(), l.id)?.passed) ?? crossGuide.levels[0];
   picked = true;
   cube.listener = listener;
-  dialog.showModal();
+  openSheet(dialog);
   toSetup();
 }
 
@@ -337,7 +338,7 @@ export function show3D(title: string, setup: string, alg: string, puzzle: Puzzle
   $('cross-viewer-title').textContent = title;
   viewer.dataset.puzzle = puzzle; // for the move tooltips
   $('cross-viewer-alg').replaceChildren(algView(alg));
-  viewer.showModal(); // before the player: a 3D view set up at zero size stays blank
+  openSheet(viewer); // before the player: a 3D view set up at zero size stays blank
   viewerPlayer ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start' });
   if (!viewerPlayer.isConnected) $('cross-viewer-player').append(viewerPlayer);
   setPuzzle(viewerPlayer, puzzle);

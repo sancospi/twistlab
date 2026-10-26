@@ -29,6 +29,7 @@ import { METHODS, findCase } from './methods.ts';
 import { inlineText } from '../rich-text-view.ts';
 import { Animation, caseSVG, comparisonText, deltaClass, fingersView, loadCase, movesView, openPractice } from './practice.ts';
 import { $, el } from '../el.ts';
+import { openSheet } from '../router.ts';
 import { compare } from './practiceSession.ts';
 import { caseProbability } from './probability.ts';
 import { average, learningFor, load, preferred, recordGrade, recordRep, save, setting, statsFor, type Grade } from './store.ts';
@@ -159,7 +160,7 @@ export async function openQuiz(s: QuizScope, onDone: () => void = () => {}): Pro
   helpBox.hidden = true;
   helpToggle.ariaExpanded = 'false';
   cube.listener = listener;
-  if (!dialog.open) dialog.showModal(); // "repeat the failed ones" reopens from inside
+  if (!dialog.open) openSheet(dialog); // "repeat the failed ones" reopens from inside
   render();
 }
 

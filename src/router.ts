@@ -2,6 +2,7 @@
 // index.html without '/''s canonical; Vite does it in dev). Links are real <a href>: same-origin clicks are handled here, the rest behave as usual.
 // Languages: the Spanish paths, under /en or /pt for the others (i18n.ts splitLang/langPath). The app writes Spanish
 // paths; links (localizeLinks) and navigate() add the current language's prefix, so every page stays in it.
+// Full-screen sheets (openSheet) get history entries of their own too, so Back closes them before leaving the page.
 import { lang, langPath, splitLang, type Lang } from './i18n.ts';
 import { DUEL_PARAM } from './duel.ts';
 
@@ -149,12 +150,44 @@ export function goBack(fallback: string): void {
   else navigate(fallback);
 }
 
+// Sheets: Practicar, the Quiz, the cross trainer and its 3D viewer cover the page like a page of their own, so the
+// phone's Back closes them instead of leaving it (a deep link or the installed app would leave the app). Each open
+// sheet stands on a history entry of the same URL, state.sheet saying how many sheets deep; one sheet handing over to
+// another (Practicar <-> Quiz) reuses the entry the first one left, and closing one (X, Esc) takes its entry back off.
+let sheets: HTMLDialogElement[] = []; // in the order they opened: Back closes the last
+let settling: ReturnType<typeof setTimeout> | undefined;
+const sheetDepth = () => (history.state as { sheet?: number } | null)?.sheet ?? 0;
+const openSheets = () => sheets.filter((d) => d.open);
+
+/** Opens a full-screen dialog as a sheet (instead of its showModal). */
+export function openSheet(d: HTMLDialogElement): void {
+  if (d.open) return; // e.g. another example in the open 3D viewer
+  sheets = [...sheets.filter((x) => x !== d), d];
+  const depth = openSheets().length + 1;
+  if (sheetDepth() < depth) history.pushState({ ...(history.state ?? {}), sheet: depth }, '');
+  d.showModal();
+  d.addEventListener('close', () => {
+    clearTimeout(settling);
+    // a task later: a handover opens the next sheet first, and Back has already moved the history itself
+    settling = setTimeout(() => { if (sheetDepth() > openSheets().length) history.back(); });
+  }, { once: true });
+}
+
+/** Back/forward: the sheets above the entry's depth close; an entry whose sheet is gone (Forward to it) is skipped. */
+function syncSheets() {
+  const depth = sheetDepth();
+  openSheets().slice(depth).forEach((d) => d.close());
+  if (depth > openSheets().length) history.back();
+}
+
 /** Applies the current URL now, then on every link click and back/forward. `scroll` reads the page's scroll position. */
 export function startRouter(onRoute: (r: Route, scroll: number | null) => void, scroll: () => number = () => 0): void {
   apply = onRoute;
   readScroll = scroll;
   history.scrollRestoration = 'manual'; // the app's own scroller (.panel) is restored here, not the window
-  addEventListener('popstate', () => go(true));
+  // a reload on a sheet's entry: its sheet is gone. ponytail: the entry stays, so one Back after it changes nothing
+  if (sheetDepth()) history.replaceState({ ...history.state, sheet: 0 }, '');
+  addEventListener('popstate', () => { syncSheets(); go(true); });
   // closing or killing the app (the installed one on iOS too) goes through hidden first: remember the scroll then
   addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveLast(readScroll()); });
   document.addEventListener('click', (e) => {

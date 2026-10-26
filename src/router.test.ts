@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { guidePage, guideSegment, localHref, parseRoute, routePath, type Route } from './router.ts';
+import { guidePage, guideSegment, localHref, openSheet, parseRoute, routePath, startRouter, type Route } from './router.ts';
 import { langPath } from './i18n.ts';
 
 test('routes: each screen has its path, and paths round-trip', () => {
@@ -110,4 +110,78 @@ test('links: Spanish paths get the current language\'s prefix; the rest stay', (
   assert.equal(localHref('/en/academia', 'en'), '/en/academia'); // already in a language: idempotent
   assert.equal(localHref('/academia', 'pt'), '/pt/academia');
   for (const href of ['#academy-x', 'https://speedcubedb.com/a/3x3/OLL27', '//cdn.example.com/x', 'blob:https://twistlab.app/1', '']) assert.equal(localHref(href, 'en'), href);
+});
+
+test('sheets: Back closes the open sheet and stays on the page; X leaves no history entry behind', async () => {
+  // a browser's history, its traversals a task later (as the real ones), and dialogs whose 'close' is queued
+  const entries: unknown[] = [null]; // a deep link: the only entry
+  let at = 0;
+  const pop: (() => void)[] = [];
+  const later = (f: () => void) => setTimeout(f);
+  const traverse = (by: number) => later(() => { if (entries[at + by] !== undefined) { at += by; pop.forEach((f) => f()); } });
+  Object.assign(globalThis, {
+    history: {
+      get state() { return entries[at]; },
+      get length() { return entries.length; },
+      pushState(s: unknown) { entries.splice(++at, Infinity, s); },
+      replaceState(s: unknown) { entries[at] = s; },
+      back: () => traverse(-1),
+      forward: () => traverse(1),
+    },
+    location: { pathname: '/academia/cfop-completo/caso/cfopc-oll-27', search: '', hash: '' },
+    addEventListener: (type: string, f: () => void) => type === 'popstate' && pop.push(f),
+    document: { addEventListener() {} },
+  });
+  class Dialog extends EventTarget {
+    open = false;
+    showModal() { this.open = true; }
+    close() { if (this.open) { this.open = false; later(() => this.dispatchEvent(new Event('close'))); } }
+  }
+  const settle = () => new Promise((r) => setTimeout(r, 20));
+  const sheet = () => new Dialog() as unknown as HTMLDialogElement;
+  let routes = 0;
+  startRouter(() => routes++);
+  const practice = sheet(), quiz = sheet(), trainer = sheet(), viewer = sheet();
+
+  openSheet(practice);
+  assert.equal(history.length, 2);
+  history.back(); // the phone's Back
+  await settle();
+  assert.equal(practice.open, false);
+  assert.equal(at, 0);
+  assert.equal(routes, 1); // the case page stays: only the first apply
+
+  openSheet(practice); // X or Esc: its entry goes too
+  practice.close();
+  await settle();
+  assert.equal(at, 0);
+
+  openSheet(practice); // Practicar hands over to the Quiz (and the Quiz back): one entry all along
+  practice.close();
+  await Promise.resolve();
+  openSheet(quiz);
+  await settle();
+  assert.deepEqual([quiz.open, at], [true, 1]);
+  quiz.close();
+  openSheet(practice);
+  await settle();
+  assert.deepEqual([practice.open, at], [true, 1]);
+  history.back();
+  await settle();
+  assert.deepEqual([practice.open, at], [false, 0]);
+
+  openSheet(trainer); // the 3D viewer over the trainer: Back closes the viewer first
+  openSheet(viewer);
+  assert.equal(at, 2);
+  history.back();
+  await settle();
+  assert.deepEqual([trainer.open, viewer.open, at], [true, false, 1]);
+  history.back();
+  await settle();
+  assert.deepEqual([trainer.open, at], [false, 0]);
+
+  history.forward(); // Forward to a closed sheet's entry: skipped
+  await settle();
+  assert.equal(at, 0);
+  assert.equal(routes, 1);
 });

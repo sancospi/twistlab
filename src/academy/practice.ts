@@ -34,6 +34,7 @@ import { checkCustomAlg } from './customAlg.ts';
 import { fingertricks, type FingerHint } from '../fingertricks.ts';
 import { caseProbability, formatProbability, phaseOf } from './probability.ts';
 import { $, el } from '../el.ts';
+import { openSheet } from '../router.ts';
 
 const dialog = $('practice') as HTMLDialogElement;
 
@@ -202,7 +203,7 @@ export async function openPractice(c: Case, onChange: (c: Case) => void, quiz: (
   anim.set(false); // the figure is the default; the animation is asked for
   renderInfo();
   cube.listener = listener; // a 2x2 case too: its note on the 3x3 cube follows the connection
-  dialog.showModal();
+  openSheet(dialog);
   choose(preferred(c));
   focus('practice-start'); // Space/Enter: Empezar
   dialog.scrollTop = 0;
