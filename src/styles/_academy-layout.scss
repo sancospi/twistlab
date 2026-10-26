@@ -11,6 +11,6 @@ summary { cursor: pointer; font-weight: 600; }
 .prose p { margin: 0 0 .6em; }
 .prose p:last-child, .prose ul:last-child, .prose ol:last-child { margin-bottom: 0; }
 .prose ul, .prose ol { margin: 0 0 .7em; padding-left: 1.3em; display: grid; gap: .3em; }
-.prose h3, .prose h4 { margin: .9em 0 .35em; font-size: 0.9286rem; color: var(--fg); letter-spacing: .02em; }
+.prose h3, .prose h4 { margin: .9em 0 .35em; font-size: 1rem; color: var(--fg); letter-spacing: .02em; }
 .prose strong { color: var(--fg); }
 .prose .alg { white-space: nowrap; }

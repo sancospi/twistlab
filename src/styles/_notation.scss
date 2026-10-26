@@ -55,6 +55,7 @@
 .academy-body, .academy-phase { display: grid; gap: 10px; }
 .academy-body { gap: 18px; }
 .academy-phase h2 { margin: 6px 0 0; font-size: 1.2143rem; }
+.academy-phase h2.page-title { margin: 0; font-size: 1.5rem; } /* a guide's own title (its first section), as big as the home's */
 .academy-about h3 { margin: 8px 0 0; font-size: 1rem; }
 .academy-group { display: grid; gap: 6px; }
 .academy-group h3 { margin: 0; font-size: 1rem; }

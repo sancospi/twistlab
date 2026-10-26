@@ -23,7 +23,7 @@ const number = (x: number) => x.toFixed(1); // a dot, like formatTime's seconds 
 
 export function triggersView(kpuzzle: KPuzzle): HTMLElement {
   return el('section', { className: 'academy-phase' },
-    el('h2', { textContent: loc(triggerGuide.name) }),
+    el('h2', { className: 'page-title', textContent: loc(triggerGuide.name) }),
     prose(loc(triggerGuide.intro), 'prose', 'h3'),
     el('div', { className: 'trigger-cards' }, ...triggerGuide.triggers.map((x) => card(x, kpuzzle))));
 }

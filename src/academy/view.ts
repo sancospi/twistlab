@@ -327,7 +327,7 @@ function notationView(): HTMLElement {
       el('dd', {}, glossary(`def.${key}`), ...(example ? [' ', algView(example)] : [])),
     ])));
   return el('section', { className: 'academy-phase', id: anchor('notation') },
-    el('h2', { textContent: glossary('title') }),
+    el('h2', { className: 'page-title', textContent: glossary('title') }),
     text(glossary('intro'), 'prose hint'),
     el('div', { className: 'academy-groups' }, ...moves, terms));
 }

@@ -18,7 +18,7 @@ import { el } from '../el.ts';
 export function guideSections(kpuzzle: KPuzzle, g: TextGuide = crossGuide, puzzle: Puzzle = '3x3x3'): HTMLElement[] {
   const anchor = (id: string) => `${g.id}-${id}`;
   const intro = el('section', { className: 'academy-phase', id: anchor('intro') },
-    el('h2', { textContent: loc(g.name) }),
+    el('h2', { className: 'page-title', textContent: loc(g.name) }),
     ...(g === crossGuide ? [trainerButton()] : []),
     prose(loc(g.intro), 'prose', 'h3'));
   return [intro, ...g.lessons.map((l) => lessonView(l, anchor(l.id), puzzle, kpuzzle))];
