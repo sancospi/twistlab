@@ -30,7 +30,7 @@ a.chip:hover, a.chip:focus-visible { background: $raised-hover; }
 .case-actions small { font-size: 0.8571rem; font-weight: 400; color: #b4bacb; }
 .case-actions .primary small { color: $on-accent; }
 .case-alg { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: $card; }
-.case-alg.chosen { outline: 2px solid var(--accent); }
+.case-alg.chosen:not(:focus-visible) { outline: 2px solid var(--accent); } /* focused (after "Usar este" by keyboard): the focus ring instead */
 .case-setup { display: flex; gap: 10px; align-items: baseline; margin: 0 0 8px; } .case-setup dt { color: var(--muted); } .case-setup dd { margin: 0; font-family: var(--mono); }
 .case-moves { font-size: 1.4286rem; line-height: 2.2; }
 /* alternatives stay quiet next to the chosen algorithm; "Usar este" makes one the chosen (big) one */
