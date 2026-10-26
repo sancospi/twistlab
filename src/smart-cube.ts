@@ -6,7 +6,7 @@ import type { GanCubeCommand, MacAddressProvider } from 'gan-web-bluetooth';
 import type { BluetoothPuzzle } from 'cubing/bluetooth';
 import type { SmartCube as BtCube } from 'btcube-web';
 import { patternToFacelets, SOLVED_FACELETS } from './facelets.ts';
-import { trustFirstMove } from './gan-fix.ts';
+import { closeGaps } from './gan-fix.ts';
 
 type Quat = { x: number; y: number; z: number; w: number };
 /** The part of GanCubeEvent the app reads; GAN's events are passed as they are. */
@@ -99,7 +99,7 @@ export async function connectCube(device: BluetoothDevice, macProvider: MacAddre
   if (brand === 'GAN') {
     const { connectGanCube } = await import('gan-web-bluetooth'); // usually prefetched by the Cubo screen
     const c = await withDevice(device, () => connectGanCube(macProvider));
-    trustFirstMove((c as unknown as { driver: unknown }).driver);
+    closeGaps((c as unknown as { driver: unknown }).driver);
     return Object.assign(c, { brand, gyro: true, facelets: true });
   }
   if (brand === 'MoYu' || brand === 'QiYi') {
