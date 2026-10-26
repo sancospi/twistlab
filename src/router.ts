@@ -164,10 +164,11 @@ export function goBack(fallback: string): void {
   else navigate(fallback);
 }
 
-// Sheets: Practicar, the Quiz, the cross trainer and its 3D viewer cover the page like a page of their own, so the
-// phone's Back closes them instead of leaving it (a deep link or the installed app would leave the app). Each open
-// sheet stands on a history entry of the same URL, state.sheet saying how many sheets deep; one sheet handing over to
-// another (Practicar <-> Quiz) reuses the entry the first one left, and closing one (X, Esc) takes its entry back off.
+// Sheets: Practicar, the Quiz, the cross trainer and its 3D viewer, the cube's connection cover the page like a page of
+// their own, so the phone's Back closes them instead of leaving it (a deep link or the installed app would leave the
+// app). Each open sheet stands on a history entry of the same URL, state.sheet saying how many sheets deep; one sheet
+// handing over to another (Practicar <-> Quiz) reuses the entry the first one left, and closing one (X, Esc) takes its
+// entry back off.
 let sheets: HTMLDialogElement[] = []; // in the order they opened: Back closes the last
 let settling: ReturnType<typeof setTimeout> | undefined;
 const sheetDepth = () => (history.state as { sheet?: number } | null)?.sheet ?? 0;

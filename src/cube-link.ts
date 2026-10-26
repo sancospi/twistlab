@@ -15,7 +15,7 @@ import { algView } from './notation-view.ts';
 import { cube as academyCube } from './academy/link.ts';
 import { $, btn } from './el.ts';
 import { addMove, inView, loadTwisty, onGyro, resetGyro, setAlg, setModel, turnView, type Model } from './cube-3d.ts';
-import { plainClick } from './router.ts';
+import { openSheet, plainClick } from './router.ts';
 import { mod } from './screen.ts';
 import { event } from './times-view.ts';
 
@@ -331,13 +331,14 @@ $('reset-gyro').onclick = resetGyro;
 
 // The connection from any screen: the header's status opens it in a dialog (a lesson, a quiz, the Resolver stay put).
 // One block, moved: into the dialog while it's open, back to the Cubo screen when it closes; on that screen the link
-// just goes there. Its status line repeats the header's (renderStatus), which the dialog covers on a phone.
+// just goes there. Its status line repeats the header's (renderStatus), which the dialog covers on a phone. A sheet:
+// full screen on a phone, so Back closes it rather than leaving the page under it (or the installed app).
 const cubeDialog = $('cube-dialog') as HTMLDialogElement;
 document.querySelector<HTMLAnchorElement>('.header-status-link')!.addEventListener('click', (e) => {
   if (mod === 'cube' || !plainClick(e)) return; // the router takes it
   e.preventDefault();
   cubeDialog.append($('conn'));
-  cubeDialog.showModal();
+  openSheet(cubeDialog);
 });
 cubeDialog.addEventListener('close', () => $('conn-home').append($('conn')));
 cubeDialog.addEventListener('click', (e) => { if ((e.target as Element).closest('a[href^="/"]')) cubeDialog.close(); }); // a page link: the page, not the dialog
