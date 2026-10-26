@@ -150,7 +150,9 @@ export async function openQuiz(s: QuizScope, onDone: () => void = () => {}): Pro
   onClose = onDone;
   guide.stop();
   screen = 'setup';
-  picked = new Set(s.kind === 'cases' ? s.cases.map((c) => c.id) : []);
+  // ticked beforehand only when the quiz comes with some of its cases (a retry, a case among its group): a group or a
+  // method starts by hand from none
+  picked = new Set(s.kind === 'cases' && s.cases.length < scopeCases(s).length ? s.cases.map((c) => c.id) : []);
   pickGrid = null;
   selection = initialSelection();
   $('quiz-title').textContent = scopeTitle(s);
@@ -610,11 +612,12 @@ function renderSetup(): Node[] {
     out.push(p(t('ll.intro'), 'prose'), el('label', { className: 'academy-method' }, t('ll.count'), perCaseSelect()));
   } else {
     const one = oneCase();
-    const choices = SELECTIONS.filter((x) => x !== 'one' || one).map((x) => {
+    // a choice with no case isn't shown (a new user's "Repaso de hoy", "Más lentos"…); by hand stays with none ticked:
+    // that's where you tick them
+    const choices = SELECTIONS.filter((x) => (x !== 'one' || one) && (x === 'pick' || x === selection || selected(x).length)).map((x) => {
       const count = selected(x).length;
       const label = t(SELECTION_LABEL[x], { code: one?.code ?? '' });
-      // by hand stays choosable with none ticked: that's where you tick them
-      const choice = chip('radio', 'quiz-select', x, x === selection, () => save('quiz-select', (selection = x)), label, count, !count && x !== 'pick');
+      const choice = chip('radio', 'quiz-select', x, x === selection, () => save('quiz-select', (selection = x)), label, count);
       choice.querySelector('small')!.dataset.count = x;
       return choice;
     });
