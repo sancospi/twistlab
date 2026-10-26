@@ -435,7 +435,7 @@ export const es = {
   'practice.warmup': 'Calentamiento: no cuenta',
   'practice.lap': 'Repetición {n}',
   'practice.lastLap': 'Última: {time}',
-  'practice.series': 'Serie: {reps} · media {mean} · {tps} giros por segundo',
+  'practice.series': 'Media de {reps} · {tps} TPS',
   'practice.seriesNone': 'Serie: {reps}, ninguna limpia',
   'practice.first': 'Tu primera marca',
   'practice.newBest': '¡Mejor marca! (−{by})',

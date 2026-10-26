@@ -436,7 +436,7 @@ export const pt: Record<MessageKey, string> = {
   'practice.warmup': 'Aquecimento: não conta',
   'practice.lap': 'Repetição {n}',
   'practice.lastLap': 'Última: {time}',
-  'practice.series': 'Série: {reps} · média {mean} · {tps} movimentos por segundo',
+  'practice.series': 'Média de {reps} · {tps} TPS',
   'practice.seriesNone': 'Série: {reps}, nenhuma limpa',
   'practice.first': 'Sua primeira marca',
   'practice.newBest': 'Melhor marca! (−{by})',

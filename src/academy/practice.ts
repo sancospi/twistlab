@@ -555,10 +555,11 @@ function lap(ok: boolean, now = performance.now()) {
 /** Terminar serie: the lap under way is dropped; the series is summed up. */
 function finishSeries() {
   seriesDone = series;
+  const mean = summary(series).mean;
   stopAll();
   peek = helped = false;
   render();
-  announce($('practice-delta').textContent ?? '');
+  announce(`${mean === null ? '' : `${formatTime(mean)}. `}${$('practice-delta').textContent}`);
   refocus();
 }
 
@@ -777,12 +778,14 @@ function renderHand(shown: boolean) {
   } else if (!practice && hand === 'running' && series.length) {
     const last = series.at(-1)!;
     text('practice-delta', t('practice.lastLap', { time: formatTime(last.ms) }) + (last.clean ? '' : ' ✗'));
-  } else if (!practice && ready && seriesDone.length) {
+    if (last.clean) $('practice-delta').className = ['delta', deltaClass(comparison)].filter(Boolean).join(' '); // against the case's record
+  } else if (!practice && ready && seriesDone.length) { // the series' mean is the clock's, big; how many and how fast under it
     const s = summary(seriesDone);
     const n = htm(centerMoves(active(), IDENTITY));
     const reps = tp('academy.reps', s.reps);
+    clock.textContent = s.mean === null ? '–' : formatTime(s.mean);
     text('practice-delta', s.mean === null ? t('practice.seriesNone', { reps })
-      : t('practice.series', { reps, mean: formatTime(s.mean), tps: ((n * 1000) / s.mean).toFixed(1) }));
+      : t('practice.series', { reps, tps: ((n * 1000) / s.mean).toFixed(1) }));
   } else if (!practice) {
     text('practice-delta', '\u00a0'); // ponytail: as the lap's line, a blank keeps the place, so the algorithm doesn't move
   }
