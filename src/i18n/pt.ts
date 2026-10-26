@@ -593,6 +593,8 @@ export const pt: Record<MessageKey, string> = {
   'case.inverseSelf': 'É o seu próprio inverso',
   'case.mirror': 'Espelho: {name}',
   'case.mirrorSelf': 'É o seu próprio espelho',
+  'case.inverseMirror': 'Inverso e espelho: {name}',
+  'case.inverseMirrorSelf': 'É o seu próprio inverso e espelho',
   'case.practiceHint': 'Aprenda: embaralhe e resolva, de novo e de novo',
   'case.quizHint': 'Fixe: casos aleatórios, com explicação se errar',
   'case.drillHint': 'Agilize: só o algoritmo, com cronômetro',

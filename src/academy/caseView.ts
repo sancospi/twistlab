@@ -1,7 +1,7 @@
 // A case's own page (/academia/<method>/caso/<case>) and the algorithm library (/academia/algoritmos).
 // The page: the case's diagram, and a 3D player of the chosen algorithm on demand ("Ver animación"); facts (probability, moves, group, and the inverse
 // and mirror cases found in the simulator); the algorithms with their triggers marked and their tags; how to recognise
-// it; your data and spaced-repetition status; the three ways to work on it (Practicar, Quiz, Memoria muscular); the
+// it; your data and spaced-repetition status (once there are any); the three ways to work on it (Practicar, Quiz, Memoria muscular); the
 // other cases of its group. Its 3D player lives in index.html's #case, outside #mod-academy (rebuilt per page), so
 // it's never re-attached.
 import type { KPuzzle } from 'cubing/kpuzzle';
@@ -91,13 +91,14 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
     const inverse = inverseCase(kpuzzle, c, v.alg, phaseCases);
     const mirror = mirrorCase(kpuzzle, c, v.alg, phaseCases);
     const p = caseProbability(c.id, kpuzzle);
-    const related = (x: Case | undefined, key: 'case.inverse' | 'case.mirror') => !x ? []
+    const both = !!inverse && inverse === mirror; // Sune's inverse is its mirror too: one chip, not two to the same page
+    const related = (x: Case | undefined, key: 'case.inverse' | 'case.mirror' | 'case.inverseMirror') => !x ? []
       : [el('li', {}, x === c ? el('span', { className: 'chip', textContent: t(`${key}Self`) })
         : el('a', { className: 'chip', href: casePath(m, x), textContent: t(key, { name: caseLabel(x) }) }))];
     facts.replaceChildren(
       ...(p === null ? [] : [el('li', { className: 'chip', textContent: t('prob.card', { p: formatProbability(p) }) })]),
       el('li', {}, el('a', { className: 'chip', href: groupPath(m, group), textContent: t('case.group', { name: loc(group.name) }) })),
-      ...related(inverse, 'case.inverse'), ...related(mirror, 'case.mirror'));
+      ...related(inverse, both ? 'case.inverseMirror' : 'case.inverse'), ...(both ? [] : related(mirror, 'case.mirror')));
     // the chosen algorithm first, then one secondary, the rest folded: any can become the chosen one
     const all = variants(c);
     const [, second, ...more] = byChoice(all, v);
@@ -111,7 +112,9 @@ export function showCase(m: Method, c: Case, kp: KPuzzle): HTMLElement {
       ...(more.length ? [moreAlgs(more.length, more.map((x) => algCard(x, false)))] : []),
       ...(withTriggers ? [text(t('case.triggersHint'), 'hint')] : []));
     why.hidden = !inverse || inverse === c;
-    if (inverse) why.replaceChildren(el('h3', { textContent: t('case.inverseWhy') }), text(t('case.inverseWhyText', { other: caseLabel(inverse) })));
+    // folded: the same paragraph on every case with an inverse, a side note to its algorithms
+    if (inverse) why.replaceChildren(el('details', {}, el('summary', { textContent: t('case.inverseWhy') }), text(t('case.inverseWhyText', { other: caseLabel(inverse) }))));
+    data.hidden = !statsFor(c.id) && !learningFor(c.id); // a new case has no data yet: shown after its first Practicar or Quiz (fill again)
     data.replaceChildren(el('h3', { textContent: t('case.yourData') }), yourData(c));
   };
 

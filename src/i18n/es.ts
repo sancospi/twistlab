@@ -592,6 +592,8 @@ export const es = {
   'case.inverseSelf': 'Es su propio inverso',
   'case.mirror': 'Espejo: {name}',
   'case.mirrorSelf': 'Es su propio espejo',
+  'case.inverseMirror': 'Inverso y espejo: {name}',
+  'case.inverseMirrorSelf': 'Es su propio inverso y espejo',
   'case.practiceHint': 'Aprende: mezcla y resuelve, una y otra vez',
   'case.quizHint': 'Retén: casos al azar, con explicación si fallas',
   'case.drillHint': 'Agiliza: solo el algoritmo, con cronómetro',

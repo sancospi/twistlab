@@ -589,6 +589,8 @@ export const en: Record<MessageKey, string> = {
   'case.inverseSelf': 'It’s its own inverse',
   'case.mirror': 'Mirror: {name}',
   'case.mirrorSelf': 'It’s its own mirror',
+  'case.inverseMirror': 'Inverse and mirror: {name}',
+  'case.inverseMirrorSelf': 'It’s its own inverse and mirror',
   'case.practiceHint': 'Learn: scramble and solve, again and again',
   'case.quizHint': 'Retain: random cases, with an explanation if you miss',
   'case.drillHint': 'Speed up: just the algorithm, with a timer',
