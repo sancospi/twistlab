@@ -483,6 +483,12 @@ dialog.addEventListener('keydown', (e) => {
   if (tab === 'practice' && hand === 'stopped') grade(true);
   else act();
 });
+// A click on a fold (Ver dedos) or a move doesn't take the focus: Space stays the clock's instead of folding it again or
+// reopening the move's tooltip, with nothing on screen saying why. The keyboard still reaches them with Tab.
+// ponytail: the 3D player's own buttons still take it (shadow DOM); Space there is the player's
+dialog.addEventListener('mousedown', (e) => {
+  if ((e.target as Element).closest('summary, .move')) e.preventDefault();
+});
 
 /** A tap on the card: start, stop (Practicar: then Limpio / Fallé), or end a lap (Memoria muscular). */
 function act() {
