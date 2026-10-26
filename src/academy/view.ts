@@ -364,14 +364,14 @@ function quizButton(label: string, scope: QuizScope, ariaLabel?: string) {
 }
 
 function methodView(m: Method): Node[] {
-  const about = el('details', { className: 'academy-about' },
-    el('summary', { textContent: t('academy.about') }),
-    prose(loc(m.description)),
-    el('h3', { textContent: t('academy.orientation') }),
-    prose(loc(m.orientation)),
-    ...(m.notation ? [el('h3', { textContent: t('academy.notation') }), prose(loc(m.notation))] : []),
-    ...(m.schedule ? [el('h3', { textContent: t('academy.schedule') }), prose(loc(m.schedule))] : []));
-  return [...methodTop(m), about, ...m.phases.map(phaseView)];
+  // what the method is and how to hold the cube; its notation and its calendar folded apart (each one long enough on
+  // its own: together, up to 700 words in one fold)
+  const fold = (summary: string, ...body: Node[]) => el('details', { className: 'academy-about' }, el('summary', { textContent: summary }), ...body);
+  const about = fold(t('academy.about'), prose(loc(m.description)), el('h3', { textContent: t('academy.orientation') }), prose(loc(m.orientation)));
+  return [...methodTop(m), about,
+    ...(m.notation ? [fold(t('academy.notation'), prose(loc(m.notation)))] : []),
+    ...(m.schedule ? [fold(t('academy.schedule'), prose(loc(m.schedule)))] : []),
+    ...m.phases.map(phaseView)];
 }
 
 /** The method's trainer and the link to the cross that comes before it (the beginner's: also its article, the whole
