@@ -291,9 +291,13 @@ $('practice-anim').append(anim.button());
 function startScramble(undo?: string) {
   mode = 'scramble';
   follower = null;
-  // cube frame (yellow is the cube's D). From solved (or one turn past it), the repetition's own scramble; from
-  // anywhere else the solver's.
-  void guide.start(quizPattern(kpuzzle, rep.spec, YELLOW_UP), [...(undo ? [invertMove(undo)] : []), ...rep.spec.moves.map((m) => mapMove(m, YELLOW_UP))]);
+  // cube frame (yellow is the cube's D). From a state with the case already solved (solved, or a last layer a Quiz
+  // left), the algorithm backwards from there: the same case, its other pieces as they are; one turn past solved,
+  // undo it first; from anywhere else the solver's way to the case (as long as a scramble).
+  const back = rep.spec.moves.map((m) => mapMove(m, YELLOW_UP));
+  const p = cube.pattern();
+  if (p && goalReached(kase.stage, p, YELLOW_UP)) void guide.start(p.applyAlg(back.join(' ')), back);
+  else void guide.start(quizPattern(kpuzzle, rep.spec, YELLOW_UP), [...(undo ? [invertMove(undo)] : []), ...back]);
   render();
 }
 
@@ -368,7 +372,7 @@ const listener: CubeListener = {
     } else if ((mode === 'static' && linked()) || mode === 'solve') {
       start(); // a cube just synced, or the state drifted mid-algorithm: start the repetition again
     } else if (mode === 'scramble') {
-      void guide.replan();
+      startScramble(); // the corrected state may take the short way again (a replan would only have the solver)
     }
     render();
   },
