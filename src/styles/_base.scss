@@ -19,6 +19,11 @@ body { margin: 0; height: 100dvh; background: radial-gradient(circle at 50% 40%,
 h1 { margin: 0; font-size: 1.2857rem; }
 a { color: var(--accent); } /* not the browser's violet on the dark scheme; a link with a class of its own sets its colour */
 :focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; } /* the keyboard's ring in the palette; not green, which means chosen */
+/* a <progress> drawn like the quiz's bar; each engine's pseudo-element in a rule of its own (one it doesn't know drops the rule) */
+progress { appearance: none; width: 100%; height: 6px; border: 0; border-radius: 3px; background: $raised; overflow: hidden; }
+progress::-webkit-progress-bar { background: $raised; }
+progress::-webkit-progress-value { background: var(--accent); }
+progress::-moz-progress-bar { background: var(--accent); }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 button { font: inherit; padding: 8px 12px; border: 0; border-radius: 8px; background: $raised; color: var(--fg); cursor: pointer; }
 button.primary { background: var(--accent); color: $on-accent; font-weight: 600; }

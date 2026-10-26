@@ -131,7 +131,7 @@ function show() {
   release();
   const steps = lesson.steps;
   bar.max = steps.length;
-  bar.value = Math.min(index, steps.length);
+  bar.value = Math.min(index + 1, steps.length); // step 1 of 3 fills a third, as "Paso 1 de 3" says
   $('lesson-count').textContent = index < steps.length ? t('lesson.step', { n: index + 1, total: steps.length }) : ''; // the end says it in its heading
   feedback.textContent = '';
   feedback.className = 'lesson-feedback';
