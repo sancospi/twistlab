@@ -3,7 +3,7 @@
 // With a synced cube: guided to that state, up to 15 s to plan (Space or the first turn starts), then the cross on
 // the cube. Without one: the state in 3D and a move pad. After each item, the user's turns next to up to 3
 // optimal crosses; at the end, the session against the level's goal (crossScore.ts), kept in a short history.
-import { TwistyPlayer } from 'cubing/twisty';
+import type { TwistyPlayer } from 'cubing/twisty';
 import { randomScrambleForEvent } from 'cubing/scramble';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
@@ -154,6 +154,8 @@ async function startItem() {
   guide.stop();
   render();
   const next = await (upcoming ?? makeItem());
+  // cubing/twisty with the first virtual item (the guide page opens without it)
+  if (mode === 'virtual') player ??= new (await import('cubing/twisty')).TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'none' }); // floating hint stickers show the cross underneath
   if (id !== session) return;
   upcoming = index + 1 < count ? makeItem() : null;
   item = next;
@@ -263,10 +265,10 @@ const listener: CubeListener = {
 
 let player: TwistyPlayer | null = null;
 function loadPlayer(it: Item) {
-  player ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'none' }); // floating hint stickers show the cross underneath
-  if (!player.isConnected) stage.append(player);
-  player.experimentalSetupAlg = `z2 ${it.scramble}`;
-  player.alg = '';
+  const p = player!; // startItem loaded it
+  if (!p.isConnected) stage.append(p);
+  p.experimentalSetupAlg = `z2 ${it.scramble}`;
+  p.alg = '';
 }
 
 function play(move: string) {
@@ -339,7 +341,10 @@ export function show3D(title: string, setup: string, alg: string, puzzle: Puzzle
   viewer.dataset.puzzle = puzzle; // for the move tooltips
   $('cross-viewer-alg').replaceChildren(algView(alg));
   openSheet(viewer); // before the player: a 3D view set up at zero size stays blank
-  viewerPlayer ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start' });
+  if (!viewerPlayer) return void import('cubing/twisty').then(({ TwistyPlayer }) => { // on the first example asked for
+    viewerPlayer ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start' });
+    if (viewer.open) show3D(title, setup, alg, puzzle, mask);
+  });
   if (!viewerPlayer.isConnected) $('cross-viewer-player').append(viewerPlayer);
   setPuzzle(viewerPlayer, puzzle);
   viewerPlayer.experimentalSetupAlg = `z2 ${setup}`;

@@ -3,7 +3,7 @@
 // Anterior and Continuar, the step kept in the page's history entry (Back finds the lesson where it was left); cube
 // steps let you watch it ("Cubo virtual") or do it ("Lo hago en mi cubo": followed move by move on a synced smart cube,
 // else just the moves); questions answer on the spot. A finished lesson is remembered in this browser.
-import { TwistyPlayer } from 'cubing/twisty';
+import type { TwistyPlayer } from 'cubing/twisty';
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
 import { IDENTITY, YELLOW_UP, expand, explainMove, tokenize, unmapMove, type Frame } from '../notation.ts';
@@ -106,6 +106,16 @@ type Saved = { step?: number; answers?: [number, boolean | null][] } | null;
 /** Shows the lesson in the static card, from the step its history entry was left at (else the first); view.ts has put
  *  the crumbs above it. */
 export function playLesson(c: Course, l: Lesson, k: KPuzzle): void {
+  // cubing/twisty when the first lesson with a 3D cube opens (one of text and questions never loads it): the card
+  // shows once it's in, if the route is still this lesson's
+  if (!player && l.steps.some((s) => s.kind === 'cube' || s.kind === 'move')) {
+    stopLesson(); // not the last lesson's card meanwhile
+    const at = location.href;
+    return void import('cubing/twisty').then(({ TwistyPlayer }) => {
+      player ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start', hintFacelets: 'none' });
+      if (location.href === at) playLesson(c, l, k);
+    });
+  }
   kpuzzle = k;
   course = c;
   lesson = l;
@@ -186,15 +196,15 @@ const heading = (title?: string) => (title ? [el('h3', { textContent: title })] 
 /** The 3D cube at `setup` (yellow up), ready to play `alg`; a case's stage: seen from its figure's corner. */
 function cubeAt(setup: string, alg: string, mask = FULL_MASK[puzzle()], caseStage?: Stage) {
   stage.hidden = false; // before the player: a 3D view set up at zero size stays blank
-  player ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start', hintFacelets: 'none' });
-  if (!player.isConnected) stage.append(player);
-  setPuzzle(player, puzzle());
-  aim(player, kpuzzle, caseStage, tokenize(setup));
-  player.experimentalSetupAlg = `z2 ${setup}`;
-  player.alg = alg;
-  player.experimentalStickeringMaskOrbits = mask;
-  player.jumpToStart();
-  return player;
+  const p = player!; // playLesson loaded it
+  if (!p.isConnected) stage.append(p);
+  setPuzzle(p, puzzle());
+  aim(p, kpuzzle, caseStage, tokenize(setup));
+  p.experimentalSetupAlg = `z2 ${setup}`;
+  p.alg = alg;
+  p.experimentalStickeringMaskOrbits = mask;
+  p.jumpToStart();
+  return p;
 }
 
 function playOnce(delay = 0) {

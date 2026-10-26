@@ -12,7 +12,7 @@
 // FADE_AFTER clean in a row (Solución toggles it for the sitting; Ver solución shows it once, and that repetition isn't
 // clean). Every repetition (time, moves, clean) counts towards the plan's drill criterion: the streak of STREAK_GOAL,
 // drawn as dots; only the clean ones' times make the best and the average.
-import { TwistyPlayer, type TwistyPlayerConfig } from 'cubing/twisty';
+import type { TwistyPlayer, TwistyPlayerConfig } from 'cubing/twisty';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
@@ -89,8 +89,14 @@ export class Animation {
     this.slot.hidden = !open; // before loading: a 3D view set up at zero size stays blank
     this.#label?.();
     if (!open) return void this.#player?.pause();
-    // drag stays on so the case can be inspected from any angle; hint facelets only add clutter here
-    this.#player ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start', hintFacelets: 'none' });
+    // cubing/twisty on the first "Ver animación": no Academia page needs it to open
+    // ponytail: on a first visit, before sw.js has precached it, the slot stays empty while it and three.js download
+    // (~130 KB gz, about 1 s on slow 4G), the flat figure still above; show that figure in the slot if it bothers
+    if (!this.#player) return void import('cubing/twisty').then(({ TwistyPlayer }) => {
+      // drag stays on so the case can be inspected from any angle; hint facelets only add clutter here
+      this.#player ??= new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start', hintFacelets: 'none' });
+      if (this.open) this.set(true);
+    });
     if (!this.#player.isConnected) this.slot.append(this.#player);
     this.load(this.#player);
   }
