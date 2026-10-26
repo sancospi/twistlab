@@ -45,7 +45,7 @@ export async function todayView(): Promise<HTMLElement> {
   const sessionBox = el('div');
   const redraw = () => {
     const due = dueCases();
-    reviewBox.replaceChildren(reviewCard(due));
+    reviewBox.replaceChildren(...(due.length ? [reviewCard(due)] : [])); // nothing due: the session's first step says so
     sessionBox.replaceChildren(sessionCard(due.length));
     void syncReminder((at) => dueCases(at).length);
   };
@@ -58,9 +58,7 @@ export async function todayView(): Promise<HTMLElement> {
       onclick: () => void openQuiz({ kind: 'cases', id: 'today', cases: due.filter((c) => puzzleOf(c.stage) === puzzle), title: t('today.review') }, redraw),
     }));
   };
-  const reviewCard = (due: Case[]) => block(t('today.review'),
-    p(due.length ? tp('srs.due', due.length) : t('today.nothingDue'), due.length ? '' : 'hint'),
-    ...(due.length ? [el('div', { className: 'row' }, ...reviewButtons(due))] : []));
+  const reviewCard = (due: Case[]) => block(t('today.review'), p(tp('srs.due', due.length)), el('div', { className: 'row' }, ...reviewButtons(due)));
   const lessonLink = (l: NonNullable<typeof lesson>) => routePath({ mod: 'academy', page: { kind: 'lesson', course: l.course.id, id: l.lesson.id } });
   const sessionCard = (due: number) => block(t('today.session'),
     p(t('today.sessionHint'), 'hint'),
@@ -72,8 +70,8 @@ export async function todayView(): Promise<HTMLElement> {
       el('li', {}, tp('today.stepSolves', SOLVES), ' ', el('a', { href: '/', textContent: t('today.toTimer') }))));
 
   const lessonCard = block(t('today.lesson'), ...(lesson
-    ? [p(`${lesson.course.title} · ${lesson.lesson.title}`),
-      el('div', { className: 'row' }, el('a', { className: 'button', href: lessonLink(lesson), textContent: t(lesson.lesson.id === lesson.course.lessons[0].id ? 'lesson.start' : 'lesson.resume', { title: lesson.lesson.title }) }))]
+    ? [p(lesson.course.title, 'hint'), // the lesson's title is on its button
+      el('div', { className: 'row' }, el('a', { className: 'button primary', href: lessonLink(lesson), textContent: t(lesson.lesson.id === lesson.course.lessons[0].id ? 'lesson.start' : 'lesson.resume', { title: lesson.lesson.title }) }))]
     : [p(t('lesson.allDone'), 'hint')]));
   // the slowest cases of the smart-cube solves (Progreso's), when some are already practised
   const slow = slowQuiz(slowestCases(), redraw);

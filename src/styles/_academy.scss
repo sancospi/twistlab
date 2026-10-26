@@ -65,6 +65,7 @@ body[data-module="academy"] .panel { @include full-page; }
 .tile.tile-today { border-color: var(--accent); }
 .today { display: grid; gap: 12px; max-width: 640px; }
 .today h2, .today p { margin: 0; }
+.today .cube-block { background: $card; border: 1px solid $raised; } /* the shared $well is the page's own colour here: the blocks would not show */
 .today .account-status:empty { display: none; }
 .today-steps { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
 .academy-home h2 { margin: 0; }

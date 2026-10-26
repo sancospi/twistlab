@@ -1059,7 +1059,6 @@ export const pt: Record<MessageKey, string> = {
   'today.stepSolves.other': 'Faça {n} resoluções com o cronômetro:',
   'today.toTimer': 'ir para o cronômetro',
   'today.review': 'Revisão de hoje',
-  'today.nothingDue': 'Nada para revisar hoje: cada caso volta na hora certa.',
   'today.lesson': 'Próxima lição',
   'today.homeDue.one': 'Hoje: {n} caso para revisar',
   'today.homeDue.other': 'Hoje: {n} casos para revisar',

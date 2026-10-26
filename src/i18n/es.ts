@@ -1058,7 +1058,6 @@ export const es = {
   'today.stepSolves.other': 'Haz {n} resoluciones con el cronómetro:',
   'today.toTimer': 'ir al cronómetro',
   'today.review': 'Repaso de hoy',
-  'today.nothingDue': 'Nada que repasar hoy: cada caso vuelve cuando toca.',
   'today.lesson': 'Siguiente lección',
   'today.homeDue.one': 'Hoy: {n} caso para repasar',
   'today.homeDue.other': 'Hoy: {n} casos para repasar',

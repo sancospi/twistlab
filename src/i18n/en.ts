@@ -1055,7 +1055,6 @@ export const en: Record<MessageKey, string> = {
   'today.stepSolves.other': 'Do {n} timed solves:',
   'today.toTimer': 'go to the timer',
   'today.review': "Today's review",
-  'today.nothingDue': "Nothing to review today: each case comes back when it's due.",
   'today.lesson': 'Next lesson',
   'today.homeDue.one': 'Today: {n} case to review',
   'today.homeDue.other': 'Today: {n} cases to review',
