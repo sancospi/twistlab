@@ -50,9 +50,6 @@ kbd { padding: 0 4px; border-radius: 4px; background: var(--bg); color: var(--mu
 .quiz-feedback-diagram { flex: none; }
 .quiz-feedback-diagram svg { width: 72px; height: auto; }
 .quiz-feedback p { margin: 2px 0; }
-.academy-train { display: grid; gap: 4px; }
-.academy-train .row { align-items: center; }
-.tile-due { color: $warn; font-size: 0.8571rem; }
 .review { padding: 8px 0; border-top: 1px solid $raised; }
 .review p { margin: 4px 0; }
 .review .tokens .bad { color: $bad; text-decoration: underline; }

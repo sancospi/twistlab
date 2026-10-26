@@ -17,3 +17,19 @@ a.button.primary { background: var(--accent); color: $on-accent; font-weight: 60
 .lesson-status { flex: none; font-size: 0.8571rem; color: var(--muted); }
 .lesson-item.recommended .lesson-status { color: var(--accent); font-weight: 700; }
 body:not([data-module="academy"]) #lesson { display: none; }
+.lesson { padding: 0 24px 24px; }
+.lesson-card { display: grid; gap: 12px; max-width: 680px; margin-inline: auto; font-size: 1.2143rem; padding: 16px; border-radius: 12px; background: $card; border: 1px solid $raised; }
+.lesson-card h2 { margin: 0; font-size: 1.4286rem; }
+.lesson-card h3 { margin: 0 0 6px; font-size: 1.2857rem; }
+.lesson-text { outline: none; line-height: 1.55; }
+.lesson-text p { margin: 0 0 .6em; }
+.lesson-player twisty-player { width: 100%; height: min(260px, 36dvh); }
+.lesson-body, .lesson-do { display: grid; gap: 10px; }
+.lesson-do dl { grid-template-columns: max-content 1fr; }
+.lesson-ways button { flex: 1; }
+.lesson-ways button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+.lesson-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.lesson-choices button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 8px; font: 700 1.1429rem var(--mono); }
+.lesson-choices button:disabled { opacity: 1; }
+.lesson-feedback { margin: 0; font-weight: 700; }
+@media (max-width: 600px) { .lesson-card { padding: 12px; } }

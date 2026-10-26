@@ -1,11 +1,5 @@
-// The Academia's panel and the guide text (rich-text.ts).
-@use 'tokens' as *;
+// The guide text (rich-text.ts), in the guides, the lessons and the case pages.
 
-/* Academia: the panel widens to fit the case cards */
-/* room below the last cards for the view's arrow pad, which paints over the panel */
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-select { font: inherit; padding: 6px 8px; border: 0; border-radius: 8px; background: $raised; color: var(--fg); }
-summary { cursor: pointer; font-weight: 600; }
 /* Guide text (rich-text.ts): short paragraphs, lists, subheadings; moves inline are tappable notation */
 .prose { margin: 6px 0; line-height: 1.55; }
 .prose p { margin: 0 0 .6em; }
