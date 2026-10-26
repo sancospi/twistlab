@@ -817,6 +817,7 @@ export const es = {
   'lesson.progress': 'Progreso de la lección',
   'lesson.step': '{n} de {total}',
   'lesson.continue': 'Continuar',
+  'lesson.prev': 'Anterior',
   'lesson.how': 'Cómo practicarlo',
   'lesson.virtual': 'Cubo virtual',
   'lesson.virtualHint': 'Mira el cubo; los botones bajo el cubo lo repiten o lo pasan giro a giro.',

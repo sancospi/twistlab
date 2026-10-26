@@ -21,7 +21,7 @@ import { bases2x2 } from './bases2x2.ts';
 import { triggerGuide } from './triggers.ts';
 import { triggersView } from './triggerView.ts';
 import { courseFor, MOVE_GROUPS, type Course } from './lessons.ts';
-import { lessonList, lessonStart, playLesson, stopLesson } from './lessonView.ts';
+import { lessonList, lessonsDone, lessonStart, playLesson, stopLesson } from './lessonView.ts';
 import { libraryView, showCase, stopCase } from './caseView.ts';
 import { caseDiagram, netSVG, twoSidesSVG } from './diagram.ts';
 import { pllRecognitionView, stopPllRecognition } from './pllRecognition.ts';
@@ -218,6 +218,12 @@ const crumbs = (current: string, parent?: GuidePage, parentName = '') =>
 
 // --- Home: one tile per method (what it covers, how far along you are), and the notation ---
 
+/** "6 lecciones", "1/6 lecciones" once one is finished. */
+function lessonsMeta(course: string, lessons: { id: string }[]): string {
+  const done = lessonsDone(course, lessons);
+  return `${done ? `${done}/` : ''}${tp('cross.tileLessons', lessons.length)}`;
+}
+
 function homeView(): HTMLElement {
   const tiles = (puzzle: Puzzle) => METHODS.filter((m) => (m.puzzle ?? '3x3x3') === puzzle).map((m) => {
     const cases = allCases(m);
@@ -270,14 +276,14 @@ function homeView(): HTMLElement {
     el('span', { className: 'tile-badge', textContent: t('cross.firstStep') }),
     el('strong', { textContent: loc(crossGuide.name) }),
     text(loc(crossGuide.summary), 'hint'),
-    el('span', { className: 'tile-meta', textContent: [tp('cross.tileLessons', crossGuide.lessons.length), tp('cross.tileLevels', crossGuide.levels.length)].join(' · ') }));
+    el('span', { className: 'tile-meta', textContent: [lessonsMeta(crossGuide.id, crossGuide.lessons), tp('cross.tileLevels', crossGuide.levels.length)].join(' · ') }));
   // the 2x2 starts with its basics, as the 3x3 with the cross
   const basics = el('a', { className: 'tile', href: academyLink({ kind: 'bases2x2' }) },
     el('div', { className: 'tile-strip', ariaHidden: 'true', innerHTML: caseDiagram('iso', '2x2-pbl', patternToFacelets(kpuzzle.defaultPattern()), { size: 64 }) }),
     el('span', { className: 'tile-badge', textContent: t('cross.firstStep') }),
     el('strong', { textContent: loc(bases2x2.name) }),
     text(loc(bases2x2.summary), 'hint'),
-    el('span', { className: 'tile-meta', textContent: tp('cross.tileLessons', bases2x2.lessons.length) }));
+    el('span', { className: 'tile-meta', textContent: lessonsMeta(bases2x2.id, bases2x2.lessons) }));
   // the trainers: one skill each, across methods
   const trainer = (id: Trainer, strip: HTMLElement) => el('a', { className: 'tile', href: academyLink({ kind: 'trainer', id }) },
     strip, el('strong', { textContent: t(`trainer.${id}.title`) }), text(t(`trainer.${id}.summary`), 'hint'));

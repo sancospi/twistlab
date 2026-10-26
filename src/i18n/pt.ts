@@ -818,6 +818,7 @@ export const pt: Record<MessageKey, string> = {
   'lesson.progress': 'Progresso da lição',
   'lesson.step': '{n} de {total}',
   'lesson.continue': 'Continuar',
+  'lesson.prev': 'Anterior',
   'lesson.how': 'Como praticar',
   'lesson.virtual': 'Cubo virtual',
   'lesson.virtualHint': 'Olhe o cubo; os botões embaixo dele repetem ou avançam movimento a movimento.',

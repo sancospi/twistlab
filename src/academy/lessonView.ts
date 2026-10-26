@@ -1,7 +1,8 @@
 // The lesson player and the lesson list. The player is a static card in index.html (#lesson), outside #mod-academy:
-// pages are rebuilt there, and the one 3D player must never be re-attached. One step at a time with a progress bar;
-// cube steps let you watch it ("Cubo virtual") or do it ("Lo hago en mi cubo": followed move by move on a synced
-// smart cube, else just the moves); questions answer on the spot. A finished lesson is remembered in this browser.
+// pages are rebuilt there, and the one 3D player must never be re-attached. One step at a time with a progress bar,
+// Anterior and Continuar, the step kept in the page's history entry (Back finds the lesson where it was left); cube
+// steps let you watch it ("Cubo virtual") or do it ("Lo hago en mi cubo": followed move by move on a synced smart cube,
+// else just the moves); questions answer on the spot. A finished lesson is remembered in this browser.
 import { TwistyPlayer } from 'cubing/twisty';
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
@@ -27,6 +28,7 @@ const textBox = $('lesson-text');
 const body = $('lesson-body');
 const feedback = $('lesson-feedback'); // persistent live region: the step's content is rebuilt
 const next = $('lesson-next') as HTMLButtonElement;
+const prev = $('lesson-prev') as HTMLButtonElement;
 
 const DONE_KEY = 'academy-lessons';
 const puzzle = () => course.puzzle ?? '3x3x3';
@@ -35,6 +37,11 @@ const lessonPath = (course: string, id: string) => routePath({ mod: 'academy', p
 const guidePath = (course: string) => routePath({ mod: 'academy', page: guidePage(course) });
 
 const doneIn = (course: string): string[] => parseDone(load(DONE_KEY))[course] ?? [];
+/** How many of a guide's lessons are finished (ids no longer in it don't count): "1/6 lecciones" on its tile. */
+export function lessonsDone(course: string, lessons: { id: string }[]): number {
+  const done = doneIn(course);
+  return lessons.filter((l) => done.includes(l.id)).length;
+}
 function markDone(course: string, id: string) {
   const all = parseDone(load(DONE_KEY));
   all[course] = [...new Set([...(all[course] ?? []), id])];
@@ -79,8 +86,9 @@ let kpuzzle: KPuzzle;
 let course: Course;
 let lesson: Lesson;
 let index = 0;
-let right = 0; // questions answered right at the first try
-let asked = 0;
+// Per question step shown, its first answer: right or not, null while unanswered. Kept with the step in the history
+// entry, so going back to a question or leaving and coming back never counts it twice.
+let answers = new Map<number, boolean | null>();
 let player: TwistyPlayer | null = null;
 let autoplay = 0;
 let follower: StepFollower | null = null;
@@ -89,17 +97,26 @@ let redoUntil = 0;
 // How the smart cube is held: slices and wide turns followed in earlier steps moved its centres, and the user keeps
 // holding it as it is (Notación: r, then u).
 let held: Frame = YELLOW_UP;
+let grips: Frame[] = []; // `held` as each step started: Anterior gives it back
 let onCube = false; // the last way picked: the next cube step starts with it
 /** The synced smart cube, if the course is of its puzzle (it's a 3x3: a 2x2 course shows the moves only). */
 const smart = () => (puzzle() === '3x3x3' ? cube.pattern() : null);
 
-/** Shows the lesson (from its first step) in the static card; view.ts has put the crumbs above it. */
+type Saved = { step?: number; answers?: [number, boolean | null][] } | null;
+
+/** Shows the lesson in the static card, from the step its history entry was left at (else the first); view.ts has put
+ *  the crumbs above it. */
 export function playLesson(c: Course, l: Lesson, k: KPuzzle): void {
   kpuzzle = k;
   course = c;
   lesson = l;
-  index = right = asked = 0;
+  const saved = history.state as Saved;
+  index = Math.min(saved?.step ?? 0, l.steps.length);
+  answers = new Map(saved?.answers);
+  // ponytail: a resumed lesson holds the smart cube yellow up; its grip after slices and wide turns (Notación) isn't
+  // kept in the entry, save `grips` there too if that bites
   held = YELLOW_UP;
+  grips = [];
   section.hidden = false;
   section.dataset.puzzle = puzzle(); // for the move tooltips
   $('lesson-title').textContent = l.title;
@@ -123,6 +140,10 @@ next.onclick = () => {
   index++;
   show();
 };
+prev.onclick = () => {
+  index--;
+  show();
+};
 
 // 1–4 answer a question (from a button too: "Ver otra vez" keeps focus); Enter = Continuar when focus isn't on a control.
 section.addEventListener('keydown', (e) => {
@@ -138,12 +159,14 @@ section.addEventListener('keydown', (e) => {
 function show() {
   release();
   const steps = lesson.steps;
+  held = grips[index] ??= held;
   bar.max = steps.length;
   bar.value = Math.min(index + 1, steps.length); // step 1 of 3 fills a third, as "Paso 1 de 3" says
   $('lesson-count').textContent = index < steps.length ? t('lesson.step', { n: index + 1, total: steps.length }) : ''; // the end says it in its heading
   feedback.textContent = '';
   feedback.className = 'lesson-feedback';
   next.hidden = index >= steps.length;
+  prev.hidden = index === 0 || index >= steps.length; // the end has its own way on
   if (index >= steps.length) finish();
   else {
     const s = steps[index];
@@ -156,7 +179,10 @@ function show() {
     else caseStep(s);
   }
   textBox.focus(); // read the new step first; Enter continues
+  keep();
 }
+
+const keep = () => history.replaceState({ ...history.state, step: index, answers: [...answers] }, '');
 
 const heading = (title?: string) => (title ? [el('h3', { textContent: title })] : []);
 
@@ -293,13 +319,17 @@ const listener: CubeListener = {
 
 /** Choice buttons; the first answer counts, and shows right/wrong on the spot. */
 function choices(options: { label: string; right: boolean }[], wrongText: string): HTMLElement {
-  asked++;
+  const at = index;
+  if (!answers.has(at)) answers.set(at, null);
   let answered = false;
   const buttons = options.map((o, i) => el('button', { type: 'button' }, el('kbd', { textContent: String(i + 1) }), o.label));
   buttons.forEach((b, i) => (b.onclick = () => {
     if (answered) return;
     answered = true;
-    if (options[i].right) right++;
+    if (answers.get(at) === null) {
+      answers.set(at, options[i].right);
+      keep();
+    }
     buttons.forEach((x, j) => {
       x.disabled = true;
       x.classList.toggle('right', options[j].right);
@@ -337,8 +367,9 @@ function finish() {
   stage.hidden = true;
   const i = course.lessons.indexOf(lesson);
   const after = course.lessons[i + 1];
+  const right = [...answers.values()].filter(Boolean).length;
   textBox.replaceChildren(el('h3', { textContent: t('lesson.finished') }),
-    ...(asked ? [el('p', { textContent: t('lesson.score', { right, n: asked }) })] : []));
+    ...(answers.size ? [el('p', { textContent: t('lesson.score', { right, n: answers.size }) })] : []));
   const back = el('button', { type: 'button', textContent: t('lesson.back'), onclick: () => navigate(guidePath(course.id)) });
   body.replaceChildren(el('div', { className: 'row' },
     ...(after ? [el('button', { type: 'button', className: 'primary', textContent: t('lesson.nextLesson', { title: after.title }), onclick: () => navigate(lessonPath(course.id, after.id)) })] : []),

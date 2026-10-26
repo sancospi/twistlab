@@ -814,6 +814,7 @@ export const en: Record<MessageKey, string> = {
   'lesson.progress': 'Lesson progress',
   'lesson.step': '{n} of {total}',
   'lesson.continue': 'Continue',
+  'lesson.prev': 'Previous',
   'lesson.how': 'How to practice it',
   'lesson.virtual': 'Virtual cube',
   'lesson.virtualHint': 'Watch the cube; the buttons under it replay it or step through it move by move.',
