@@ -163,6 +163,7 @@ let helped = false; // ...and so the repetition isn't clean (also when Solución
 let session: SessionRep[] = []; // this sitting's repetitions
 let series: SessionRep[] = []; // Memoria muscular without a cube: the running series' laps
 let seriesDone: SessionRep[] = []; // ...and the last one finished, summed up until the next starts
+let warmup = false; // ...and its first lap under way, not recorded: it includes picking the cube up
 let notice = ''; // the solution just hid or came back, the criterion was met
 let celebrate = false; // the streak just reached the goal: its dots pop once
 
@@ -497,6 +498,7 @@ function act() {
   if (hand === 'ready') {
     timerAt = now;
     hand = 'running';
+    warmup = true;
     series = [];
     seriesDone = [];
     comparison = null;
@@ -530,9 +532,16 @@ function grade(ok: boolean) {
   refocus();
 }
 
-/** Memoria muscular without a cube: a repetition ends (clean or not) and the next one starts, `now` (a touch's start). */
+/** Memoria muscular without a cube: a repetition ends (clean or not) and the next one starts, `now` (a touch's start).
+ *  The warm-up lap only ends. */
 function lap(ok: boolean, now = performance.now()) {
   if (hand !== 'running') return;
+  if (warmup) { // ponytail: always one lap; a "N reps, one time" series would leave the pick-up in once over N
+    warmup = peek = helped = false;
+    timerAt = now;
+    render();
+    return announce(t('practice.lap', { n: 1 }));
+  }
   const n = htm(centerMoves(active(), IDENTITY));
   const r = { ms: now - timerAt, moves: n, htm: n, clean: ok && !helped };
   timerAt = now;
@@ -755,7 +764,7 @@ function renderHand(shown: boolean) {
   show('practice-card-scramble', practice && ready);
   show('practice-solution', shown);
   text('practice-card-top', practice ? (ready ? t('practice.setup') : hand === 'running' && !shown ? t('practice.memory') : '')
-    : hand === 'running' ? t('practice.lap', { n: series.length + 1 }) : '\u00a0'); // ponytail: a blank line keeps the lap's place, so the clock doesn't move
+    : hand === 'running' ? (warmup ? t('practice.warmup') : t('practice.lap', { n: series.length + 1 })) : '\u00a0'); // ponytail: a blank line keeps the lap's place, so the clock doesn't move
   if (practice && ready && lastRep) {
     deltaView(comparison, ` · ${t(lastRep.clean ? 'practice.clean' : 'practice.notClean')}`); // the one just graded
   } else if (hand === 'stopped') {
