@@ -80,6 +80,7 @@ code { font-family: var(--mono); }
 .steps li[aria-current="step"] { background: $raised; color: var(--fg); font-weight: 700; }
 .rotate { color: $warn; font-size: 1.2857rem; font-weight: 700; }
 .next { font: 700 3.1429rem/1 var(--mono); color: var(--accent); }
+.practice-card.undo :is(#practice-next, #practice-desc) { color: $bad; } /* a correction, not the algorithm's next turn */
 .tokens { font-family: var(--mono); color: var(--muted); word-break: break-word; }
 .tokens span { margin-right: .6ch; }
 .tokens .done { opacity: .5; }

@@ -2,23 +2,22 @@
 // straight on the clock card, big, with the screen kept awake:
 // - Practicar (aprender): the case set up from solved by the chosen algorithm backwards, and solved with the algorithm
 //   (a random state is the Quiz's). With a synced cube: 1) Mezcla walks the cube there, 2) Resuelve follows the
-//   solution token by token, with corrections, timed from the first turn. Without one: the scramble big on the clock
-//   card; a tap (or Space) hides it and starts the clock, the next stops it, and the user says how it went (Limpio /
-//   Fallé) before the scramble comes back for the next repetition.
+//   solution token by token, with corrections, timed from the first turn; the next turn (or Otra vez) starts another
+//   repetition. Without one: the scramble big on the clock card; a tap (or Space) hides it and starts the clock, the
+//   next stops it, and the user says how it went (Limpio / Fallé) before the scramble comes back for the next one.
 // - Memoria muscular (agilizar): the algorithm alone, no scramble. With a cube it's followed from whatever state the
 //   cube is in (the next turn after a rep starts another); without one, a series: each tap ends a repetition and starts
 //   the next (X for a failed one), until Terminar serie.
 // The algorithm to use is changed under the card. The solution shows while learning and hides by itself after
 // FADE_AFTER clean in a row (Solución toggles it for the sitting; Ver solución shows it once, and that repetition isn't
-// clean). Every repetition
-// (time, moves, clean) counts towards the plan's drill criterion: the streak of STREAK_GOAL, drawn as dots; only the
-// clean ones' times make the best and the average.
+// clean). Every repetition (time, moves, clean) counts towards the plan's drill criterion: the streak of STREAK_GOAL,
+// drawn as dots; only the clean ones' times make the best and the average.
 import { TwistyPlayer, type TwistyPlayerConfig } from 'cubing/twisty';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
 import { describe, nextStep, PathGuide } from '../guide.ts';
-import { CAMERA, IDENTITY, YELLOW_UP, caseSetup, centerMoves, expand, formatAlg, htm, mapMove, tokenize, triggerSegments, turnCount, unmapMove, type Frame } from '../notation.ts';
+import { CAMERA, IDENTITY, YELLOW_UP, caseSetup, centerMoves, expand, formatAlg, htm, invertMove, mapMove, tokenize, triggerSegments, turnCount, unmapMove, type Frame } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView, scrambleNote } from '../notation-view.ts';
 import { inlineText } from '../rich-text-view.ts';
@@ -243,15 +242,15 @@ function stopAll() {
 }
 
 /** Starts the current tab on the card: with a cube, set the case up (Practicar) or follow the algorithm from anywhere
- *  (Memoria muscular); otherwise the hand clock waits for its first tap. */
-function start() {
+ *  (Memoria muscular); otherwise the hand clock waits for its first tap. `undo`: the cube's turn since it was solved. */
+function start(undo?: string) {
   stopAll();
   comparison = null;
   lastRep = null;
   peek = helped = false;
   showContent();
   if (linked()) {
-    if (tab === 'practice') startScramble();
+    if (tab === 'practice') startScramble(undo);
     else {
       beginSolve();
       render();
@@ -282,11 +281,12 @@ function showContent() {
 const anim = new Animation($('practice-player'), (p) => loadCase(p, kpuzzle, kase.stage, tab === 'practice' ? rep.spec.moves : caseSetup(tokens), active()));
 $('practice-anim').append(anim.button());
 
-function startScramble() {
+function startScramble(undo?: string) {
   mode = 'scramble';
   follower = null;
-  // cube frame (yellow is the cube's D). From solved, the repetition's own scramble; from anywhere else the solver's.
-  void guide.start(quizPattern(kpuzzle, rep.spec, YELLOW_UP), rep.spec.moves.map((m) => mapMove(m, YELLOW_UP)));
+  // cube frame (yellow is the cube's D). From solved (or one turn past it), the repetition's own scramble; from
+  // anywhere else the solver's.
+  void guide.start(quizPattern(kpuzzle, rep.spec, YELLOW_UP), [...(undo ? [invertMove(undo)] : []), ...rep.spec.moves.map((m) => mapMove(m, YELLOW_UP))]);
   render();
 }
 
@@ -327,7 +327,10 @@ function record(r: Rep) {
 const listener: CubeListener = {
   move(move) {
     if (!linked()) return; // a 2x2 case isn't done on it
-    if (mode === 'result' && tab === 'drill') beginSolve(); // the next turn starts the next repetition
+    if (mode === 'result') { // the next turn starts the next repetition: Practicar's scramble undoes it first
+      if (tab === 'practice') return newRep(), start(move);
+      beginSolve();
+    }
     if (mode === 'scramble') {
       guide.onMove(move);
       if (guide.reached()) beginSolve();
@@ -700,6 +703,7 @@ function renderCard() {
   const card = $('practice-card');
   card.dataset.state = cubeOn ? mode : hand;
   card.dataset.tab = tab; // Memoria muscular keeps its card while running (index.html)
+  card.classList.remove('undo'); // renderSolve marks a correction under way
   card.toggleAttribute('data-tap', !cubeOn && hand !== 'stopped');
   // everything off, then what the state shows
   batch = new Map();
@@ -784,7 +788,7 @@ function renderCube(shown: boolean) {
   $('practice-step-scramble').setAttribute('aria-current', mode === 'scramble' ? 'step' : 'false');
   $('practice-step-solve').setAttribute('aria-current', mode === 'solve' ? 'step' : 'false');
   text('practice-card-top', mode === 'solve' && !shown ? t('practice.memory') : '');
-  text('practice-card-hint', mode === 'result' && !practice ? t('practice.card.nextTurn') : '');
+  text('practice-card-hint', mode === 'result' ? t('practice.card.nextTurn') : '');
   if (mode === 'scramble') {
     show('practice-clock', false);
     return renderScramble();
@@ -820,6 +824,7 @@ function renderSolve(shown: boolean) {
   const undo = f.undo.reverse(); // next correction first
   const left = f.remaining();
   const partial = left.join(' ') !== step.moves.join(' ');
+  $('practice-card').classList.toggle('undo', undo.length > 0); // the undo in red: not the next turn of the algorithm
   // from memory: only the corrections (they don't give the algorithm away), never the next move
   text('practice-desc', undo.length ? t('practice.wrong', { moves: undo.map(name).join(' ') })
     : tab === 'drill' && performance.now() < redoUntil ? t('practice.restartDrill')
