@@ -43,17 +43,16 @@
 .academy-puzzle { display: grid; gap: 8px; }
 .academy-puzzle h3 { margin: 8px 0 0; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 16px; }
-.tile { display: grid; gap: 8px; align-content: start; padding: 16px; border-radius: 12px; background: $card; border: 1px solid $raised; color: var(--fg); text-decoration: none; }
+.tile { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-content: start; padding: 16px; border-radius: 12px; background: $card; border: 1px solid $raised; color: var(--fg); text-decoration: none; } /* minmax: content never widens the card past its column */
 .tile:hover, .tile:focus-visible { border-color: var(--accent); background: $sheet; }
 .tile strong { font-size: 1.2857rem; }
 .tile .hint { margin: 0; }
 .tile-meta { font-size: 0.8571rem; color: var(--muted); }
-.tile { grid-template-columns: minmax(0, 1fr); } /* content never widens the card past its column */
 .tile-strip { display: flex; gap: 10px; align-items: center; min-height: 72px; }
 .tile-strip svg { flex: 0 1 64px; min-width: 0; height: auto; } /* one per phase: they shrink to fit (6 in the beginner method) */
 .tile-moves { font: 700 2.1429rem var(--mono); letter-spacing: .1em; color: var(--accent); }
-.academy-body, .academy-phase { display: grid; gap: 10px; }
-.academy-body { gap: 18px; }
+.academy-body { display: grid; gap: 18px; }
+.academy-phase { display: grid; gap: 10px; }
 .academy-phase h2 { margin: 6px 0 0; font-size: 1.2143rem; }
 .academy-phase h2.page-title { margin: 0; font-size: 1.5rem; } /* a guide's own title (its first section), as big as the home's */
 .academy-about h3 { margin: 8px 0 0; font-size: 1rem; }

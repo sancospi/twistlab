@@ -53,8 +53,6 @@
 .trainer-buttons button { min-height: 44px; padding: 8px 4px; font: 700 1.0714rem var(--mono); touch-action: manipulation; }
 .trainer-aufs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .trainer-aufs button { min-height: 52px; }
-.trainer-buttons button.right { background: var(--accent); color: $on-accent; }
-.trainer-buttons button.wrong { background: $bad; color: $on-bad; }
 .trainer-col { display: grid; gap: 10px; align-content: start; }
 .trainer-switch .hint { align-self: center; margin-right: 4px; }
 .lookahead-stage { display: grid; gap: 10px; }

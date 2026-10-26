@@ -13,7 +13,6 @@ body.other-puzzle #cube, body.other-puzzle .view, body.other-puzzle #moves { dis
 .stage { position: fixed; inset: 0; z-index: 10; display: grid; place-content: center; justify-items: center; gap: 20px;
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   background: color-mix(in srgb, var(--bg) 90%, transparent); touch-action: none; user-select: none; -webkit-user-select: none; }
-.stage[hidden], #penalties[hidden] { display: none; }
 /* --len (main.ts's showTime): the time's characters, at least 5 ("59.99"), so it grows only past a minute; 85% of the
    width at most, and never taller than a third of a landscape screen */
 .big { font: 700 min(240px, 30vh, calc((100vw - 32px) * .85 / (var(--len, 5) * .6)))/1 var(--clock); }
@@ -34,7 +33,6 @@ body.other-puzzle #cube, body.other-puzzle .view, body.other-puzzle #moves { dis
 .detail-comment textarea { font: inherit; font-size: 1.1429rem; padding: 8px; border: 0; border-radius: 8px; background: $raised; color: var(--fg); resize: vertical; }
 button.danger { color: $bad; }
 .stage-cancel { position: absolute; top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); width: 44px; height: 44px; padding: 0; font-size: 1.4286rem; }
-.stage-cancel[hidden] { display: none; }
 /* Opciones: the clock's choices, one per row; the keyboard's shortcuts */
 .clock-opts { display: grid; gap: 8px; }
 .clock-opts label { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); }
@@ -45,7 +43,6 @@ button.danger { color: $bad; }
 .results li { padding-left: .5ch; }
 .results li::marker { color: var(--muted); }
 .stats-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.stats-row[hidden], #reset-results[hidden] { display: none; }
 button.small { padding: 4px 8px; font-size: 0.8571rem; }
 /* Resolver: inspection-call options, stats dialog (table, histogram, trend) */
 .timer-opts { gap: 4px 16px; font-size: 0.9286rem; color: var(--muted); }

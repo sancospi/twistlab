@@ -8,7 +8,7 @@
 .analysis .cross { --c: var(--cross); } .analysis .f2l { --c: var(--f2l); } .analysis .oll { --c: var(--oll); } .analysis .pll { --c: var(--pll); }
 .analysis-table tbody th { border-left: 4px solid var(--c); }
 .analysis .table-scroll { overflow-x: auto; }
-.analysis-table { font-size: .857rem; }
+.analysis-table { font-size: 0.8571rem; }
 .analysis-table th, .analysis-table td { padding: 4px 3px; }
 @media (max-width: 400px) { .analysis { padding-inline: 6px; } } /* the table's 6 columns fit 360px */
 .analysis-cases { margin: 0; padding-left: 1.5em; }

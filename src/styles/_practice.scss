@@ -62,7 +62,6 @@
 .card-solution code { font: 700 1.1429rem var(--mono); color: var(--fg); }
 .practice-card .practice-clock { background: none; font-size: clamp(4rem, 19vw, 6.4286rem); line-height: 1.05; padding: 0 8px; }
 .practice-card .practice-clock.small { font-size: 2.2857rem; }
-.practice-card .practice-clock.running { color: var(--accent); }
 .practice-card .delta { font-weight: 600; }
 .delta.faster { color: var(--accent); }
 .delta.slower { color: $warn; }

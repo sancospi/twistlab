@@ -10,7 +10,7 @@
 @media (min-width: 1200px) { :root { --header-h: 70px; } } /* the menu in the bar (☰ below) */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-/* Type scales from the root (every size is in rem): 17px on phones and desktops alike. */
+/* Type scales from the root (every size is in rem): 18px on phones and desktops alike. */
 html { font-size: 18px; } html[data-text="l"] { font-size: 20px; } html[data-text="xl"] { font-size: 22px; } /* Tamaño del texto (boot.ts) */
 body { margin: 0; height: 100dvh; background: radial-gradient(circle at 50% 40%, #1b2030, var(--bg)); color: var(--fg); font: 1rem/1.4 system-ui, sans-serif; overflow: hidden; }
 #cube { position: fixed; inset: var(--header-h) 0 0 0; }
@@ -27,15 +27,15 @@ progress::-moz-progress-bar { background: var(--accent); }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 button { font: inherit; padding: 8px 12px; border: 0; border-radius: 8px; background: $raised; color: var(--fg); cursor: pointer; }
 button.primary { background: var(--accent); color: $on-accent; font-weight: 600; }
+button.right { background: var(--accent); color: $on-accent; } /* an answer marked (a lesson's choices, the recognition trainers) */
+button.wrong { background: $bad; color: $on-bad; }
 button:disabled { opacity: .4; cursor: default; }
 dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; color: var(--muted); }
 dd { margin: 0; color: var(--fg); }
 #moves { font-family: var(--mono); min-height: 1.4em; word-break: break-word; }
 #status.solved { color: var(--accent); font-weight: 600; }
 #guide { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: $well; }
-#guide[hidden] { display: none; }
 .guide-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); }
-#guide-actions[hidden], section[hidden] { display: none; }
 .menu { display: flex; gap: 4px; padding: 4px; border-radius: 10px; background: $well; }
 .menu a { flex: 1; padding: 8px 12px; border-radius: 8px; text-align: center; text-decoration: none; color: var(--muted); }
 .menu a:hover, .menu a:focus-visible { color: var(--fg); }
@@ -47,7 +47,6 @@ body:not([data-module="solve"]) #mod-solve, body:not([data-module="cube"]) #mod-
 body:not([data-module="academy"]) #mod-academy, body:not([data-module="progress"]) #mod-progress,
 body:not([data-module="challenges"]) #mod-challenges, body:not([data-module="about"]) #mod-about { display: none; }
 .scramble-box { display: grid; gap: 8px; }
-.scramble-box[hidden], .scramble[hidden] { display: none; }
 .scramble-note { margin: 2px 0 0; font-family: system-ui, sans-serif; } /* under a scramble, also inside monospace boxes */
 .scramble { font: 600 1.3571rem/1.6 var(--mono); word-spacing: .2ch; overflow-wrap: anywhere; }
 .scramble .move { text-decoration-color: #ffffff26; } /* a hint of the tooltips, not a second line of text */

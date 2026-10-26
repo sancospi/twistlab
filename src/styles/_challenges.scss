@@ -1,7 +1,7 @@
 // Challenges in the Resolver, and its page scrolling below 900px.
 
 /* Reto del día (daily-view.ts): a card above the scramble, its rankings in a dialog */
-:is(#daily, #weekly)[hidden], :is(#daily, #weekly) .account-status:empty { display: none; }
+:is(#daily, #weekly) .account-status:empty { display: none; }
 :is(#daily, #weekly) p { margin: 0; }
 /* the Resolver playing a challenge's scramble: whose, and that it's one attempt */
 .challenge-note { margin: 0; text-align: center; color: var(--accent); font-weight: 600; }

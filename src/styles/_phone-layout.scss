@@ -70,7 +70,7 @@ button.last-time:disabled { opacity: 1; cursor: default; }
 #cross-best:empty { display: none; }
 #cross-best .cross-best { text-align: center; } /* the last scramble's shortest cross: one quiet line */
 .typed { display: flex; gap: 8px; }
-.typed[hidden], #typed-status:empty, #session[hidden] { display: none; }
+#typed-status:empty { display: none; }
 .typed input { flex: 1; min-width: 0; font: 600 1.4286rem system-ui, sans-serif; font-variant-numeric: tabular-nums; text-align: center; }
 .stats { display: flex; justify-content: center; gap: 32px; margin: 0; }
 .stats:empty { display: none; }

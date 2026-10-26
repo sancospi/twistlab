@@ -42,6 +42,4 @@ body[data-module="academy"] .panel { @include full-page; }
   .academy-nav ul { display: grid; list-style: none; margin: 0; padding: 0 0 0 8px; }
   .academy-nav li a { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
   .academy-groups { grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 16px; }
-  .cards { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
-  .card svg { width: 92px; }
 }
