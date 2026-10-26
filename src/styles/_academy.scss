@@ -27,6 +27,9 @@ body[data-module="academy"] .panel { @include full-page; }
 .phase-goal { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px 14px; max-width: 80ch; padding: 12px 14px;
   border-radius: 10px; background: $card; border-left: 3px solid var(--accent); }
 .phase-goal-figure { display: flex; }
+/* phones: the cross guide's unfolded cube (168 px wide, crossView.ts) as wide as the phases' 84 px cubes are tall, so
+   the line beside it keeps room to read */
+@media (max-width: 600px) { .phase-goal-figure svg { max-width: 112px; height: auto; } }
 .phase-goal .prose { display: contents; }
 .phase-goal .prose p { margin: 0; }
 .phase-goal .prose > :not(:first-child) { grid-column: 1 / -1; }
