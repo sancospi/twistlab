@@ -713,7 +713,6 @@ export const en: Record<MessageKey, string> = {
   'triggers.best': 'Your best: {tps} TPS ({reps} in {time} s)',
   'triggers.repsCount.one': '{n} repetition',
   'triggers.repsCount.other': '{n} repetitions',
-  'triggers.noBest': 'Not practiced yet',
   // White-cross guide and its trainer
   'cross.title': 'White cross',
   'cross.nav': 'Sections of the cross guide',

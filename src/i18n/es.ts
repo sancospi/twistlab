@@ -716,7 +716,6 @@ export const es = {
   'triggers.best': 'Tu mejor marca: {tps} TPS ({reps} en {time} s)',
   'triggers.repsCount.one': '{n} repetición',
   'triggers.repsCount.other': '{n} repeticiones',
-  'triggers.noBest': 'Sin practicar todavía',
   // White-cross guide (/academia/cruz) and its trainer
   'cross.title': 'Cruz blanca',
   'cross.nav': 'Secciones de la guía de la cruz',

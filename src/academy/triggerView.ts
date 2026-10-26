@@ -36,7 +36,8 @@ function card(x: TriggerInfo, kpuzzle: KPuzzle): HTMLElement {
   const best = el('p', { className: 'hint' });
   const showBest = () => {
     const b = parseBests(load(BESTS_KEY))[x.id];
-    best.textContent = b ? t('triggers.best', { tps: number(b.tps), reps: tp('triggers.repsCount', b.reps), time: formatTime(b.ms) }) : t('triggers.noBest');
+    best.hidden = !b; // kept in the card, filled once a drill ends
+    best.textContent = b ? t('triggers.best', { tps: number(b.tps), reps: tp('triggers.repsCount', b.reps), time: formatTime(b.ms) }) : '';
   };
   showBest();
   const drill = drillView(x, tokens.length, drillReps(n), showBest);

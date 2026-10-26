@@ -228,7 +228,8 @@ function homeView(): HTMLElement {
       strip,
       el('strong', { textContent: loc(m.name) }),
       text(loc(m.summary ?? m.description), 'hint'),
-      el('span', { className: 'tile-meta', textContent: [tp('academy.tilePhases', m.phases.length), tp('academy.tileCases', cases.length), tp('academy.tilePracticed', practiced)].join(' · ') }),
+      // nothing practiced yet: no "0 practicados" on every tile
+      el('span', { className: 'tile-meta', textContent: [tp('academy.tilePhases', m.phases.length), tp('academy.tileCases', cases.length), ...(practiced ? [tp('academy.tilePracticed', practiced)] : [])].join(' · ') }),
       ...(dueCount(cases) ? [el('span', { className: 'tile-meta tile-due', textContent: tp('srs.due', dueCount(cases)) })] : []));
   });
   const notation = el('a', { className: 'tile tile-notation', href: academyLink({ kind: 'notation' }) },
@@ -447,7 +448,8 @@ function card(phase: Phase, c: Case): HTMLAnchorElement {
     el('strong', { textContent: c.code }),
     el('code', { textContent: formatAlg(tokenize(alg)) }),
     ...(p === null ? [] : [el('span', { className: 'hint', textContent: t('prob.card', { p: formatProbability(p) }) })]),
-    el('span', { className: 'hint', textContent: s ? `${tp('academy.reps', s.reps)}${s.best === null ? '' : ` · ${t('academy.best', { time: formatTime(s.best) })}`}` : t('academy.notPracticed') }),
+    // a case never practised says nothing: "Sin practicar" on every card of a new reader is noise
+    ...(s ? [el('span', { className: 'hint', textContent: `${tp('academy.reps', s.reps)}${s.best === null ? '' : ` · ${t('academy.best', { time: formatTime(s.best) })}`}` })] : []),
   );
   return link;
 }
