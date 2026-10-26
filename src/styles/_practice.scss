@@ -56,8 +56,9 @@
 .card-scramble { display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; } /* the scramble, its note under it */
 .card-diagram svg { width: min(96px, 26vw); height: auto; display: block; }
 .card-moves { display: block; font: 700 clamp(1.5rem, 6.5vw, 2rem)/1.35 var(--mono); word-spacing: .15ch; text-wrap: balance; }
-.card-solution { color: var(--muted); }
-.card-solution code { font: 700 1.1429rem var(--mono); color: var(--fg); }
+.card-solution { display: grid; gap: 2px; color: var(--muted); }
+.card-solution .case-moves { font-size: clamp(1.2857rem, 5.5vw, 1.7143rem); line-height: 1.9; color: var(--fg); text-wrap: balance; } /* what's read: big */
+.card-solution .alg { font-weight: 700; } /* the moves, not their triggers' names */
 .practice-card .practice-clock { background: none; font-size: clamp(4rem, 19vw, 6.4286rem); line-height: 1.05; padding: 0 8px; }
 .practice-card .practice-clock.small { font-size: 2.2857rem; }
 .practice-card .delta { font-weight: 600; }

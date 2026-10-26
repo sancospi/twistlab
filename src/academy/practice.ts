@@ -269,7 +269,7 @@ function showContent() {
   $('practice-setup').replaceChildren(algView(rep.spec.moves));
   $('practice-setup-note').replaceWith(Object.assign(scrambleNote(), { id: 'practice-setup-note' }));
   $('practice-alg-label').textContent = t(tab === 'practice' ? 'practice.solution' : 'practice.alg');
-  $('practice-alg').replaceChildren(algView(active()));
+  $('practice-alg').replaceChildren(movesView(active())); // what's read on the card: big, its triggers named
   hints = fingertricks(active());
   const wasOpen = fingers.querySelector('details')?.open ?? false;
   fingers.replaceChildren(fingersView(active()));
@@ -760,6 +760,7 @@ function renderHand(shown: boolean) {
   const ready = hand === 'ready';
   if (hand !== 'running') clock.textContent = formatTime(hand === 'stopped' ? stoppedMs : 0);
   show('practice-clock', !(practice && ready)); // an empty 0.00 between the scramble and the solution: the card is the clock
+  clock.classList.toggle('small', !practice && shown); // Memoria muscular with its algorithm on screen: that's what's read
   show('practice-card-diagram', ready || !practice); // what the scramble leads to; the case Memoria muscular drills
   show('practice-card-scramble', practice && ready);
   show('practice-solution', shown);
@@ -782,6 +783,8 @@ function renderHand(shown: boolean) {
     const reps = tp('academy.reps', s.reps);
     text('practice-delta', s.mean === null ? t('practice.seriesNone', { reps })
       : t('practice.series', { reps, mean: formatTime(s.mean), tps: ((n * 1000) / s.mean).toFixed(1) }));
+  } else if (!practice) {
+    text('practice-delta', '\u00a0'); // ponytail: as the lap's line, a blank keeps the place, so the algorithm doesn't move
   }
   text('practice-card-hint', hand === 'stopped' ? t(helped ? 'practice.card.peeked' : 'practice.card.grade')
     : practice ? t(ready ? 'practice.card.ready' : 'practice.timerStop')
