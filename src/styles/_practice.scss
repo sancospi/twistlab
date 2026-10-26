@@ -38,7 +38,9 @@
 /* Content from the top where the clock or the steps would otherwise move as the lines under them come and go: the
    cube's Practicar (its steps) and Memoria muscular (its laps) */
 .practice-card:has(> .steps:not([hidden])), .practice-card[data-tab="drill"] { align-content: start; }
-.practice-card:focus:not([tabindex="0"]:focus-visible) { outline: none; } /* focused by script (the cube's flow, the clock's turns): the state's outline still shows; Tab reaches it only as Practicar's clock, ready */
+/* Focused by script (the cube's flow, the clock's turns): no ring, and :where keeps this under the running outline. Tab
+   reaches it only as Practicar's clock, ready (tabindex 0): then the keyboard's ring */
+.practice-card:where(:focus:not([tabindex="0"])) { outline: none; }
 .practice-card[data-state="running"] { outline: 2px solid var(--accent); }
 /* The hand clock running (Practicar, the quiz): the card is the whole screen with just the time (and Practicar's
    solution while it's on, to read while solving, or De memoria), so any tap stops it and there's nothing else to hit by
