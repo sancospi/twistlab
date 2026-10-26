@@ -27,7 +27,7 @@ const pll = (code: string, recognition: Localized, alg: string, alts: [number, s
 
 const M_NOTE = bi('M se gira en la misma dirección que L.', 'M turns the same direction as L.', 'M gira na mesma direção que L.');
 const inverse = (a: string, b: string) =>
-  bi(`${a} y ${b} son inversos: la preparación de uno es el algoritmo del otro.`, `${a} and ${b} are inverses: the scramble for one is the algorithm for the other.`, `${a} e ${b} são inversos: a preparação de um é o algoritmo do outro.`);
+  bi(`${a} y ${b} son inversos: la preparación de uno es el algoritmo del otro.`, `${a} and ${b} are inverses: the setup of one is the algorithm of the other.`, `${a} e ${b} são inversos: a preparação de um é o algoritmo do outro.`);
 
 const edges = [
   pll('Ua', bi('Un lado completo: ponlo atrás. La arista del frente es del color del centro derecho', 'One side solved: put it at the back. The front edge matches the right center', 'Um lado completo: coloque-o atrás. A aresta da frente é da cor do centro direito'),

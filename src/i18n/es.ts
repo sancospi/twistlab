@@ -347,7 +347,7 @@ export const es = {
   'dialog.close': 'Cerrar',
 
   // Academy: methods, phases and case cards
-  'academy.homeIntro': 'Empieza por la cruz blanca, el primer paso de casi todos los métodos. Luego elige un método. Cada caso tiene tres secciones, con o sin cubo inteligente: Practicar (aprende: mezcla y resuelve), Quiz (retén: casos al azar, con explicación si fallas) y Memoria muscular (agiliza: solo el algoritmo, con cronómetro). La notación tiene su propio apartado.',
+  'academy.homeIntro': 'Empieza por la cruz blanca, el primer paso de casi todos los métodos. Luego elige un método. Cada caso tiene tres secciones, con o sin cubo inteligente: Practicar (aprende: prepara y resuelve), Quiz (repasa: casos al azar, con explicación si fallas) y Memoria muscular (agiliza: solo el algoritmo, con cronómetro). La notación tiene su propio apartado.',
   'academy.howtoReadAll': '¿Prefieres leer el método principiante de una vez?',
   'academy.howtoOnePage': 'Todo el método en una página',
   'academy.crumbs': 'Ruta',
@@ -825,8 +825,8 @@ export const es = {
   'lesson.virtualHint': 'Mira el cubo; los botones bajo el cubo lo repiten o lo pasan giro a giro.',
   'lesson.onCube': 'Lo hago en mi cubo',
   'lesson.doHint': 'Con amarillo arriba y verde al frente, haz estos giros en tu cubo y pulsa Continuar.',
-  'lesson.doHintSetup': 'Parte del cubo resuelto, con amarillo arriba y verde al frente: haz la mezcla, luego la solución, y pulsa Continuar.',
-  'lesson.setup': 'Primero, la mezcla',
+  'lesson.doHintSetup': 'Parte del cubo resuelto, con amarillo arriba y verde al frente: haz la preparación, luego la solución, y pulsa Continuar.',
+  'lesson.setup': 'Primero, la preparación',
   'lesson.solution': 'Luego, la solución',
   'lesson.moves': 'Giros',
   'lesson.followHint': 'Amarillo arriba, verde al frente: sigo tus giros desde donde esté el cubo.',

@@ -349,7 +349,7 @@ export const pt: Record<MessageKey, string> = {
   'dialog.close': 'Fechar',
 
   // Academy: methods, phases and case cards
-  'academy.homeIntro': 'Comece pela cruz branca, o primeiro passo de quase todos os métodos. Depois escolha um método. Cada caso tem três seções, com ou sem cubo inteligente: Praticar (aprenda: embaralhe e resolva), Quiz (fixe: casos aleatórios, com explicação se errar) e Memória muscular (ganhe agilidade: só o algoritmo, com cronômetro). A notação tem sua própria seção.',
+  'academy.homeIntro': 'Comece pela cruz branca, o primeiro passo de quase todos os métodos. Depois escolha um método. Cada caso tem três seções, com ou sem cubo inteligente: Praticar (aprenda: prepare e resolva), Quiz (revise: casos aleatórios, com explicação se errar) e Memória muscular (agilize: só o algoritmo, com cronômetro). A notação tem sua própria seção.',
   'academy.howtoReadAll': 'Prefere ler o método para iniciantes de uma vez?',
   'academy.howtoOnePage': 'O método inteiro em uma página',
   'academy.crumbs': 'Caminho',
@@ -826,8 +826,8 @@ export const pt: Record<MessageKey, string> = {
   'lesson.virtualHint': 'Olhe o cubo; os botões embaixo dele repetem ou avançam movimento a movimento.',
   'lesson.onCube': 'Faço no meu cubo',
   'lesson.doHint': 'Com amarelo em cima e verde na frente, faça estes movimentos no seu cubo e aperte Continuar.',
-  'lesson.doHintSetup': 'Comece do cubo resolvido, com amarelo em cima e verde na frente: faça o embaralhamento, depois a solução, e aperte Continuar.',
-  'lesson.setup': 'Primeiro, o embaralhamento',
+  'lesson.doHintSetup': 'Comece do cubo resolvido, com amarelo em cima e verde na frente: faça a preparação, depois a solução, e aperte Continuar.',
+  'lesson.setup': 'Primeiro, a preparação',
   'lesson.solution': 'Depois, a solução',
   'lesson.moves': 'Movimentos',
   'lesson.followHint': 'Amarelo em cima, verde na frente: eu sigo seus movimentos de onde o cubo estiver.',

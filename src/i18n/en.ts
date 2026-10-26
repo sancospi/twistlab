@@ -346,7 +346,7 @@ export const en: Record<MessageKey, string> = {
   'dialog.close': 'Close',
 
   // Academy: methods, phases and case cards
-  'academy.homeIntro': 'Start with the white cross, the first step of almost every method. Then pick a method. Every case has three sections, with or without a smart cube: Practice (learn: scramble and solve), Quiz (retain: random cases, with an explanation if you miss) and Muscle memory (speed up: just the algorithm, with a timer). Notation has its own section.',
+  'academy.homeIntro': 'Start with the white cross, the first step of almost every method. Then pick a method. Every case has three sections, with or without a smart cube: Practice (learn: set up and solve), Quiz (review: random cases, with an explanation if you miss) and Muscle memory (speed up: just the algorithm, with a timer). Notation has its own section.',
   'academy.howtoReadAll': 'Rather read the beginner method all at once?',
   'academy.howtoOnePage': 'The whole method on one page',
   'academy.crumbs': 'Breadcrumb',
@@ -822,8 +822,8 @@ export const en: Record<MessageKey, string> = {
   'lesson.virtualHint': 'Watch the cube; the buttons under it replay it or step through it move by move.',
   'lesson.onCube': 'I’ll do it on my cube',
   'lesson.doHint': 'With yellow on top and green in front, do these moves on your cube and press Continue.',
-  'lesson.doHintSetup': 'Start from the solved cube, with yellow on top and green in front: do the scramble, then the solution, and press Continue.',
-  'lesson.setup': 'First, the scramble',
+  'lesson.doHintSetup': 'Start from the solved cube, with yellow on top and green in front: do the setup, then the solution, and press Continue.',
+  'lesson.setup': 'First, the setup',
   'lesson.solution': 'Then, the solution',
   'lesson.moves': 'Moves',
   'lesson.followHint': 'Yellow on top, green in front: I follow your moves from wherever the cube is.',
