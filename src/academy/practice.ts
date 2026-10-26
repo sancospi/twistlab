@@ -247,6 +247,7 @@ function stopAll() {
 function start() {
   stopAll();
   comparison = null;
+  lastRep = null;
   peek = helped = false;
   showContent();
   if (linked()) {
@@ -485,7 +486,7 @@ function act() {
     stoppedMs = now - timerAt;
     stopTimer();
     hand = 'stopped';
-    comparison = compare(stoppedMs, statsFor(kase.id), !helped);
+    comparison = compare(stoppedMs, statsFor(kase.id), false); // no best before Limpio: Fallé would take it back
     render();
     announce(`${formatTime(stoppedMs)}. ${comparison ? `${comparisonText(comparison)}. ` : ''}${t(helped ? 'practice.card.peeked' : 'practice.card.grade')}`);
     return focus('practice-clean'); // Space: Limpio; X: Fallé
@@ -732,7 +733,9 @@ function renderHand(shown: boolean) {
   show('practice-solution', shown);
   text('practice-card-top', practice ? (ready ? t('practice.setup') : hand === 'running' && !shown ? t('practice.memory') : '')
     : hand === 'running' ? t('practice.lap', { n: series.length + 1 }) : '');
-  if (hand === 'stopped') {
+  if (practice && ready && lastRep) {
+    deltaView(comparison, ` · ${t(lastRep.clean ? 'practice.clean' : 'practice.notClean')}`); // the one just graded
+  } else if (hand === 'stopped') {
     deltaView(comparison);
     show('practice-grade', true);
     $('practice-clean').textContent = t(helped ? 'practice.next' : 'practice.cleanBtn');
