@@ -32,6 +32,8 @@
 /* Empezar stays in sight below the four levels: opaque in the sheet's colour and down over its 16px padding, so the
    levels scroll under it and don't peek out below */
 .cross-start { position: sticky; bottom: -16px; padding: 8px 0 24px; margin-bottom: -16px; background: $sheet; }
+/* the bar is ~73px tall: a field tabbed into view at the nearest edge (Firefox, Safari) lands above it, not under it */
+#cross:has(.cross-start) { scroll-padding-bottom: 80px; }
 #cross-player twisty-player, #cross-viewer-player twisty-player { width: 100%; height: min(280px, 40dvh); }
 @media (max-width: 600px) { #cross-player twisty-player { height: 30dvh; } } /* the pad fits below the cube at 360x640 */
 /* Trainers: Reconocer PLL and AUF (pllRecognition.ts, aufTrainer.ts) */
