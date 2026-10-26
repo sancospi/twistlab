@@ -842,6 +842,7 @@ export const en: Record<MessageKey, string> = {
   'lesson.score': 'Questions: {right} of {n} right the first time.',
   'lesson.nextLesson': 'Next: {title}',
   'lesson.back': 'Back',
+  'lesson.practice': 'Practise these cases',
   'academy.back': 'Back',
   'lesson.notFound': 'Lesson not found',
   'lesson.notFoundHint': 'That lesson doesn’t exist or has moved; pick another one.',

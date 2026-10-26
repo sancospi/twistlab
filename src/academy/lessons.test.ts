@@ -5,6 +5,10 @@ import { tokenize } from '../notation.ts';
 import { beginner } from './beginner.ts';
 import { cfopReduced } from './cfop.ts';
 import { crossGuide } from './crossGuide.ts';
+import { f2lAdvanced } from './f2lAdvanced.ts';
+import { roux } from './roux.ts';
+import { beginner2x2 } from './beginner2x2.ts';
+import { ortega } from './ortega.ts';
 import { caseChoices, courseFor, minutes, moveQuestion, nextLesson, parseDone, splitSteps, suggestedLesson } from './lessons.ts';
 import type { Case } from './types.ts';
 
@@ -103,6 +107,19 @@ test('lessons: CFOP reducido gets a lesson per group in big phases, every case s
   assert.equal(shown.length, cases.length);
   for (const l of c.lessons) assert.ok(l.steps.filter((s) => s.kind === 'cube').length <= 8, l.id); // short lessons
   assert.equal(new Set(c.lessons.map((l) => l.id)).size, c.lessons.length); // ids unique (progress keys)
+});
+
+test('lessons: a lesson with cases ends on their Quiz, under the id of a Quiz button in the Guía', () => {
+  for (const m of [beginner, cfopReduced, f2lAdvanced, roux, beginner2x2, ortega]) {
+    // the Guía's buttons (view.ts): one per group, one per phase of several groups
+    const buttons = new Set(m.phases.flatMap((p) => [...p.groups.map((g) => g.id), ...(p.groups.length > 1 ? [p.id] : [])]));
+    for (const l of courseFor(m.id)!.lessons) {
+      const shown = l.steps.filter((s) => s.kind === 'cube').length;
+      if (l.id === 'sostener' || !shown) { assert.equal(l.quiz, undefined, l.id); continue; }
+      assert.ok(l.quiz && buttons.has(l.quiz.id), `${m.id}/${l.id}`); // the beginner's 'capa1' is no button's id
+      assert.equal(l.quiz.cases.length, shown, l.id);
+    }
+  }
 });
 
 test('suggestedLesson: the recent course first, then one started, then the cross; finished courses are skipped', () => {

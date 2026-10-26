@@ -25,6 +25,7 @@ export interface Lesson {
   id: string;
   title: string;
   steps: LessonStep[];
+  quiz?: { id: string; cases: Case[] }; // its cases' Quiz, under the id of the Guía's Quiz button for them (its last result)
 }
 
 export interface Course {
@@ -157,12 +158,13 @@ function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
     steps: [...splitSteps(loc(m.orientation)), ...splitSteps(m.notation ? loc(m.notation) : '')].map(text),
   };
   // goal and tips: a phase taught step by step (types.ts), each one step, the tips after its cases
-  const lesson = (id: string, title: string, intro: string, cases: Case[], diagram: Phase['diagram'], goal = '', tips = ''): Lesson => {
+  const lesson = (id: string, quizId: string, title: string, intro: string, cases: Case[], diagram: Phase['diagram'], goal = '', tips = ''): Lesson => {
     const n = cases.length;
     const asked = [...new Set([n - 1, Math.floor((n - 1) / 2)])].filter((i) => i >= 0); // two spread out, if there are two
     return {
       id,
       title,
+      quiz: n ? { id: quizId, cases } : undefined,
       steps: [
         ...(goal ? [text({ text: goal })] : []),
         ...splitSteps(intro).map(text),
@@ -185,9 +187,11 @@ function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
     const cases = phase.groups.flatMap((g) => g.cases);
     const id = m === beginner ? phase.id.replace(/^prin-/, '') : phase.id; // the beginner's ids predate other methods' lessons
     const [goal, tips] = [phase.goal ? loc(phase.goal) : '', phase.tips ? loc(phase.tips) : ''];
-    if (cases.length <= MAX_CASES) return [lesson(id, loc(phase.name), desc, cases, phase.diagram, goal, tips)];
+    // the Guía has a phase Quiz only over several groups (view.ts); never the beginner's shortened id
+    const quizId = phase.groups.length === 1 ? phase.groups[0].id : phase.id;
+    if (cases.length <= MAX_CASES) return [lesson(id, quizId, loc(phase.name), desc, cases, phase.diagram, goal, tips)];
     const last = phase.groups.length - 1; // the goal opens the phase's first lesson, the tips close its last
-    return phase.groups.map((g, i) => lesson(g.id, `${loc(phase.name)} · ${loc(g.name)}`,
+    return phase.groups.map((g, i) => lesson(g.id, g.id, `${loc(phase.name)} · ${loc(g.name)}`,
       [...(i ? [] : [desc]), ...(g.description ? [loc(g.description)] : [])].join('\n'), g.cases, phase.diagram,
       i ? '' : goal, i === last ? tips : ''));
   })];

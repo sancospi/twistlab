@@ -3,7 +3,8 @@
 // Anterior and Continuar, the step kept in the page's history entry (Back finds the lesson where it was left); cube
 // steps let you watch it ("Cubo virtual") or do it ("Lo hago en mi cubo": followed move by move on a synced smart cube,
 // else just the moves); questions answer on the spot. A finished lesson is remembered in this browser; a course's last
-// one leads on to the lesson Hoy would suggest (suggestedLesson), usually the next course.
+// one leads on to the lesson Hoy would suggest (suggestedLesson), usually the next course. A lesson with cases ends on
+// their Quiz too ("Practicar estos casos"): only the Quiz makes a case known and brings it back in Hoy's review.
 import type { TwistyPlayer } from 'cubing/twisty';
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
@@ -19,6 +20,7 @@ import { minutes, nextLesson, parseDone, suggestedLesson, type Course, type Less
 import type { Stage } from './types.ts';
 import { cube, type CubeListener } from './link.ts';
 import { aim, setPuzzle } from './practice.ts';
+import { openQuiz } from './quiz.ts';
 import { $, el } from '../el.ts';
 import { load, save } from './store.ts';
 
@@ -386,8 +388,12 @@ function finish() {
   // the course's last lesson: on to the lesson Hoy would suggest now (its `next` course when this one is finished)
   const way = after ? { course, lesson: after } : suggestedLesson([course.id], parseDone(load(DONE_KEY)));
   const title = way && (way.course.id === course.id ? way.lesson.title : `${way.course.title}: ${way.lesson.title}`);
+  const { quiz } = lesson;
+  const practiceFirst = !!quiz && right < answers.size; // a question missed: practising the cases comes first
   body.replaceChildren(el('div', { className: 'row' },
-    ...(way ? [el('button', { type: 'button', className: 'primary', textContent: t('lesson.nextLesson', { title: title! }), onclick: () => navigate(lessonPath(way.course.id, way.lesson.id), true) })] : []), // Volver: still one Back to the guide
+    ...(quiz ? [el('button', { type: 'button', className: practiceFirst ? 'primary' : '', textContent: t('lesson.practice'),
+      onclick: () => void openQuiz({ kind: 'cases', id: quiz.id, cases: quiz.cases, title: lesson.title }) })] : []),
+    ...(way ? [el('button', { type: 'button', className: practiceFirst ? '' : 'primary', textContent: t('lesson.nextLesson', { title: title! }), onclick: () => navigate(lessonPath(way.course.id, way.lesson.id), true) })] : []), // Volver: still one Back to the guide
     back));
-  if (!way) back.classList.add('primary');
+  if (!way && !practiceFirst) back.classList.add('primary');
 }
