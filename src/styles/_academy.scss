@@ -32,6 +32,14 @@ body[data-module="academy"] .panel { @include full-page; }
 .phase-goal-text { grid-template-columns: minmax(0, 1fr); } /* no figure: the text alone */
 @media (max-width: 359px) { .phase-goal .alg { white-space: normal; } } /* the narrowest phones: wrap rather than widen the page */
 .academy-tips { max-width: 80ch; }
+/* phones: the phase being read shows its groups' chips after its pill, to jump to one (no counts: the wide screens'
+   list has them; a phase of one group needs no chip) */
+@media (max-width: 959px) {
+  .academy-nav a[aria-current="location"] + ul, .academy-nav a[aria-current="location"] + ul li { display: contents; }
+  .academy-nav a[aria-current="location"] + ul li:only-child { display: none; }
+  .academy-nav li a { background: none; border: 1px solid $raised; color: var(--muted); }
+  .academy-nav li a span + span { display: none; }
+}
 @media (min-width: 960px) {
   .academy-layout { grid-template-columns: 230px minmax(0, 1fr); gap: 36px; }
   .academy-nav { top: 16px; align-self: start; flex-direction: column; gap: 2px; margin: 0; padding: 0; border: 0; background: none;
@@ -78,6 +86,7 @@ h2.page-title { margin: 0; font-size: 1.5rem; } /* a guide's own title (a method
 .academy-group { display: grid; gap: 6px; }
 .academy-group h3 { margin: 0; font-size: 1rem; }
 .academy-group-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.academy-cases > summary { padding: 6px 0; color: var(--muted); font-size: 0.9286rem; } /* a long group's folded cards */
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
 .card { display: grid; justify-items: center; align-content: start; gap: 4px; padding: 10px 6px; background: $well; text-align: center; }
 .card:hover, .card:focus-visible { background: $raised; }

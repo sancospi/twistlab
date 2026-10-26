@@ -163,6 +163,7 @@ function lessonPage(root: HTMLElement, courseId: string, id: string): string {
 }
 
 /** A case's page (caseView.ts), under its method. */
+let lastCase = ''; // the case page shown last: Back to its method finds its card's group open (groupView)
 function casePage(root: HTMLElement, methodId: string, id: string): string {
   const m = METHODS.find((x) => x.id === methodId);
   const c = m && allCases(m).find((x) => x.id === id);
@@ -173,6 +174,7 @@ function casePage(root: HTMLElement, methodId: string, id: string): string {
     return inAcademy(t('case.notFound'));
   }
   root.dataset.puzzle = puzzleOf(c.stage);
+  lastCase = c.id;
   root.replaceChildren(crumbs(caseLabel(c), { kind: 'method', id: m.id }, loc(m.name)), showCase(m, c, kpuzzle));
   return t('app.pageTitle', { page: caseLabel(c), app: loc(m.name) }); // "Sune · OLL 27 · CFOP completo": OLL cases share names across methods (seo.ts)
 }
@@ -436,14 +438,28 @@ function lastLayerButton(phase: Phase): HTMLElement[] {
   return [b];
 }
 
+// The long groups left open in this visit: coming back (Back from a case) finds them as they were, so the saved scroll
+// still lands on the same card. ponytail: in memory, so a reload forgets them; only the last case's group then reopens.
+const openGroups = new Set<string>();
+
+/** A group's head (name and Quiz), then its cards: a long group folds them (CFOP completo would be 29 screens on a
+ *  phone) unless some are due, it was left open, or it holds the case just left. */
 function groupView(phase: Phase, g: Group, odds: (() => void)[]): HTMLElement {
   const head = el('div', { className: 'academy-group-head' },
     el('h3', { textContent: loc(g.name) }),
     quizButton(t('academy.quiz'), { kind: 'cases', id: g.id, cases: g.cases, title: loc(g.name) }, t('academy.quizOf', { name: loc(g.name) })));
+  const cards = el('div', { className: 'cards' }, ...g.cases.map((c) => card(phase, c, odds)));
+  let body: HTMLElement = cards;
+  if (g.cases.length > 6) {
+    const fold = el('details', { className: 'academy-cases', open: openGroups.has(g.id) || dueCount(g.cases) > 0 || g.cases.some((c) => c.id === lastCase) },
+      el('summary', { textContent: tp('academy.tileCases', g.cases.length) }), cards);
+    fold.ontoggle = () => void (fold.open ? openGroups.add(g.id) : openGroups.delete(g.id));
+    body = fold;
+  }
   return el('section', { className: 'academy-group', id: anchor(g.id) },
     head,
     ...(g.description ? [prose(loc(g.description), 'prose hint')] : []),
-    el('div', { className: 'cards' }, ...g.cases.map((c) => card(phase, c, odds))));
+    body);
 }
 
 /** A case's card: opens its page, where it's practised. Its odds, when its stage has them, come later (`odds`). */
