@@ -1,5 +1,6 @@
 // Guide text (see rich-text.ts) as DOM: paragraphs, lists and subheadings; `moves` become tappable notation and cube
-// terms (terms.ts) tappable definitions, except in subheadings.
+// terms (terms.ts) tappable definitions, except in subheadings: in a block of text, only a term's first appearance
+// (each one a Tab stop and an underline: "cruz" 16 times on its own page was noise).
 import { algView } from './notation-view.ts';
 import { tokenize } from './notation.ts';
 import { parseBlocks, parseInline, type Inline } from './rich-text.ts';
@@ -33,13 +34,15 @@ function termButton(word: string, key: string): HTMLElement {
   return b;
 }
 
-/** Plain text with every cube term tappable. A term is a button, and a line may break after one: the punctuation right
- *  after it ("arista:") goes in one unbreakable span with it, so it never starts a line alone. */
-export function termNodes(s: string): Node[] {
+/** Plain text with its cube terms tappable (`seen`: the terms already marked in this block, left plain; marks each one
+ *  it marks). A term is a button, and a line may break after one: the punctuation right after it ("arista:") goes in
+ *  one unbreakable span with it, so it never starts a line alone. */
+export function termNodes(s: string, seen = new Set<string>()): Node[] {
   const out: Node[] = [];
   const pieces = splitTerms(s);
   pieces.forEach((p, i) => {
-    if (!p.term) return void (p.text && out.push(document.createTextNode(p.text)));
+    if (!p.term || seen.has(p.term)) return void (p.text && out.push(document.createTextNode(p.text)));
+    seen.add(p.term);
     const next = pieces[i + 1];
     const glued = next && !next.term ? /^[.,:;!?)»”…]+/.exec(next.text)?.[0] : undefined;
     if (!glued) return void out.push(termButton(p.text, p.term));
@@ -51,8 +54,9 @@ export function termNodes(s: string): Node[] {
   return out;
 }
 
-function inlineNodes(inline: Inline[], terms = true): Node[] {
-  const words = (s: string) => (terms ? termNodes(s) : [document.createTextNode(s)]);
+/** `seen`: as termNodes' (false: no terms, as in a subheading). */
+function inlineNodes(inline: Inline[], seen: Set<string> | false): Node[] {
+  const words = (s: string) => (seen ? termNodes(s, seen) : [document.createTextNode(s)]);
   return inline.flatMap((part) => {
     if (part.kind === 'strong') {
       const strong = document.createElement('strong');
@@ -68,22 +72,23 @@ function inlineNodes(inline: Inline[], terms = true): Node[] {
 }
 
 /** One line of data text (recognition, notes…) inline: **bold**, `moves` and cube terms, no blocks. */
-export const inlineText = (s: string): Node[] => inlineNodes(parseInline(s.replace(/\s*\n\s*/g, ' ')));
+export const inlineText = (s: string): Node[] => inlineNodes(parseInline(s.replace(/\s*\n\s*/g, ' ')), new Set());
 
 /** The formatted text as DOM nodes. */
 export function richText(s: string, heading: 'h3' | 'h4' = 'h4'): Node[] {
+  const seen = new Set<string>(); // each term tappable once in the whole text
   return parseBlocks(s).map((b) => {
     if ('items' in b) {
       const list = document.createElement(b.kind);
       for (const item of b.items) {
         const li = document.createElement('li');
-        li.append(...inlineNodes(item));
+        li.append(...inlineNodes(item, seen));
         list.append(li);
       }
       return list;
     }
     const el = document.createElement(b.kind === 'h' ? heading : 'p');
-    el.append(...inlineNodes(b.inline, b.kind !== 'h'));
+    el.append(...inlineNodes(b.inline, b.kind !== 'h' && seen));
     return el;
   });
 }

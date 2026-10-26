@@ -1,6 +1,6 @@
 // Cube terms (faros, AUF, arista…): the Notación glossary's entries, in its order (definitions: glossary.term.* /
-// glossary.def.* in i18n), and the words that name them in each language. Pure: rich-text-view.ts marks every
-// occurrence in texts as a tappable term with its definition.
+// glossary.def.* in i18n), and the words that name them in each language. Pure: rich-text-view.ts marks a term's first
+// occurrence in each text as a tappable term with its definition.
 import type { Lang } from './i18n.ts';
 
 export interface Term {
