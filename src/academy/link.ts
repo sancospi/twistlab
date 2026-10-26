@@ -9,6 +9,10 @@ export interface CubeListener {
 export const cube = {
   /** Mirrored cube state (cube frame); null = no cube, or not synced yet. main.ts sets it. */
   pattern: (): KPattern | null => null,
+  /** The latest turns made (cube frame), oldest first; they may predate a re-sync. main.ts sets it. */
+  moves: (): readonly string[] => [],
+  /** Asks the cube for its full state (a re-sync follows if the mirror drifted). main.ts sets it. */
+  refresh: (): void => {},
   /** Cube-frame move -> its name for the user, as in the Guía (follows the 3D view). main.ts sets it. */
   label: (move: string): string => move,
   /** The open dialog that wants the cube's events. */

@@ -18,12 +18,12 @@ import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
 import { describe, nextStep, PathGuide } from '../guide.ts';
-import { CAMERA, IDENTITY, YELLOW_UP, caseSetup, centerMoves, expand, formatAlg, htm, invertMove, mapMove, tokenize, triggerSegments, turnCount, unmapMove, type Frame } from '../notation.ts';
+import { CAMERA, IDENTITY, YELLOW_UP, caseSetup, centerMoves, expand, formatAlg, htm, mapMove, tokenize, triggerSegments, turnCount, unmapMove, type Frame } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView, scrambleNote } from '../notation-view.ts';
 import { inlineText, richText } from '../rich-text-view.ts';
 import { loc, t, tp, type MessageKey } from '../i18n.ts';
-import { MASKS, goalReached, heldMask, holdRotation, practiceSpec, quizPattern, type QuizSpec } from './cube.ts';
+import { MASKS, goalReached, heldMask, holdRotation, practiceSpec, quizPattern, setupRoute, type QuizSpec } from './cube.ts';
 import { caseDiagram, isoTurns, type DiagramOpts } from './diagram.ts';
 import { MAX_UNDO, REDO_MS, StepFollower } from './follow.ts';
 import { cube, type CubeListener } from './link.ts';
@@ -204,6 +204,7 @@ export async function openPractice(c: Case, onChange: (c: Case) => void, startTa
   anim.set(false); // the figure is the default; the animation is asked for
   renderInfo();
   cube.listener = listener; // a 2x2 case too: its note on the 3x3 cube follows the connection
+  cube.refresh(); // the setup starts from the mirrored state: if it drifted, the re-sync sets the setup up again
   openSheet(dialog);
   void keepAwake(true);
   choose(preferred(c));
@@ -249,15 +250,15 @@ function stopAll() {
 }
 
 /** Starts the current tab on the card: with a cube, set the case up (Practicar) or follow the algorithm from anywhere
- *  (Memoria muscular); otherwise the hand clock waits for its first tap. `undo`: the cube's turn since it was solved. */
-function start(undo?: string) {
+ *  (Memoria muscular); otherwise the hand clock waits for its first tap. */
+function start() {
   stopAll();
   comparison = null;
   lastRep = null;
   peek = helped = false;
   showContent();
   if (linked()) {
-    if (tab === 'practice') startScramble(undo);
+    if (tab === 'practice') startScramble();
     else {
       beginSolve();
       render();
@@ -288,16 +289,15 @@ function showContent() {
 const anim = new Animation($('practice-player'), (p) => loadCase(p, kpuzzle, kase.stage, tab === 'practice' ? rep.spec.moves : caseSetup(tokens), active()));
 $('practice-anim').append(anim.button());
 
-function startScramble(undo?: string) {
+function startScramble() {
   mode = 'scramble';
   follower = null;
-  // cube frame (yellow is the cube's D). From a state with the case already solved (solved, or a last layer a Quiz
-  // left), the algorithm backwards from there: the same case, its other pieces as they are; one turn past solved,
-  // undo it first; from anywhere else the solver's way to the case (as long as a scramble).
+  // cube frame (yellow is the cube's D): the algorithm backwards from the case solved where it is (as a repetition
+  // leaves it, or a Quiz's last layer), after undoing a few stray turns (setupRoute); else the solver's way to the case
   const back = rep.spec.moves.map((m) => mapMove(m, YELLOW_UP));
   const p = cube.pattern();
-  if (p && goalReached(kase.stage, p, YELLOW_UP)) void guide.start(p.applyAlg(back.join(' ')), back);
-  else void guide.start(quizPattern(kpuzzle, rep.spec, YELLOW_UP), [...(undo ? [invertMove(undo)] : []), ...back]);
+  const short = p && setupRoute(kase.stage, p, cube.moves(), back);
+  void guide.start(short ? short.target : quizPattern(kpuzzle, rep.spec, YELLOW_UP), short ? short.route : back);
   render();
 }
 
@@ -340,7 +340,7 @@ const listener: CubeListener = {
   move(move) {
     if (!linked()) return; // a 2x2 case isn't done on it
     if (mode === 'result') { // the next turn starts the next repetition: Practicar's scramble undoes it first
-      if (tab === 'practice') return newRep(), start(move);
+      if (tab === 'practice') return newRep(), start();
       beginSolve();
     }
     if (mode === 'scramble') {

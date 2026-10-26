@@ -184,6 +184,8 @@ function onMove(move: string, at = performance.now()) {
 
 academyCube.pattern = () => (conn ? pattern : null); // only a connected cube can be practised on
 academyCube.label = label;
+academyCube.moves = () => moves;
+academyCube.refresh = () => void conn?.sendCubeCommand({ type: 'REQUEST_FACELETS' }).catch(() => {});
 
 // --- Connection ---
 export let conn: SmartCube | null = null;

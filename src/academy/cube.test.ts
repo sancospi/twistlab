@@ -5,7 +5,7 @@ import { patternToFacelets } from '../facelets.ts';
 import { KPattern } from 'cubing/kpuzzle';
 import { IDENTITY, YELLOW_UP, centerMoves, invertTokens, mapMove, tokenize } from '../notation.ts';
 import {
-  CROSS_MASK, FULL_MASK, HOLDS, MASKS, POOL_STAGES, caseState, goalReached, heldMask, holdIn, holdRotation, type HeldMask, makeQuizItems, practiceSpec, quizPattern, quizPool, randomStateScramble, referenceMoves, rouxAligned, specsFor,
+  CROSS_MASK, FULL_MASK, HOLDS, MASKS, POOL_STAGES, caseState, goalReached, heldMask, holdIn, holdRotation, type HeldMask, makeQuizItems, practiceSpec, quizPattern, quizPool, randomStateScramble, referenceMoves, rouxAligned, setupRoute, specsFor,
 } from './cube.ts';
 import { METHODS, allCases, findCase } from './methods.ts';
 import { is2x2, type Case, type Stage } from './types.ts';
@@ -396,4 +396,20 @@ test('player masks: one per stage, each orbit with its piece count in known lett
     }
   }
   for (const [stage, mask] of Object.entries(MASKS)) assert.equal(mask.includes('EDGES'), !is2x2(stage as Stage), stage);
+});
+
+test('setupRoute: the algorithm backwards from the case solved, after undoing the fewest stray turns', () => {
+  const d1 = findCase('cfop-f2l-d1')!;
+  const back = practiceSpec(d1, d1.algs[0].alg).moves.map((m) => mapMove(m, YELLOW_UP));
+  const solved = kpuzzle.defaultPattern();
+  const route = (p: KPattern, made: string[]) => setupRoute(d1.stage, p, made, back)?.route.join(' ');
+  assert.equal(route(solved, []), back.join(' '), 'solved: the algorithm backwards');
+  const tperm = solved.applyAlg(tokenize("R U R' U' R' F R2 U' R' U' R U R' F'").map((m) => mapMove(m, YELLOW_UP)).join(' ')); // a last layer a Quiz left
+  assert.equal(route(tperm, []), back.join(' '), 'F2L solved, last layer anywhere: the same, from there');
+  const stray = ['R', 'F', 'L'];
+  const off = solved.applyAlg(stray.join(' '));
+  const r = setupRoute(d1.stage, off, ['U', ...stray], back)!;
+  assert.deepEqual(r.route.slice(0, 3), ["L'", "F'", "R'"], 'the stray turns undone first, then the setup');
+  assert.ok(off.applyAlg(r.route.join(' ')).isIdentical(r.target));
+  assert.equal(setupRoute(d1.stage, solved.applyAlg("R U F D L B R2 U' F'"), [], back), null, 'scrambled, no turns to undo: the solver');
 });

@@ -6,7 +6,7 @@
 import { KPattern, type KPuzzle, type KTransformation } from 'cubing/kpuzzle';
 import { cube2x2x2 } from 'cubing/puzzles';
 import { experimentalSolve2x2x2, experimentalSolve3x3x3IgnoringCenters } from 'cubing/search';
-import { IDENTITY, centerMoves, expand, htm, invertTokens, mapMove, merge, tokenize, type Face, type Frame } from '../notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertMove, invertTokens, mapMove, merge, tokenize, type Face, type Frame } from '../notation.ts';
 import { patternToFacelets } from '../facelets.ts';
 import { METHODS, allCases } from './methods.ts';
 import { caseDiagram, netSVG } from './diagram.ts';
@@ -172,6 +172,22 @@ export function goalReached(stage: Stage, p: KPattern, held: Face | Frame): bool
     case 'll-corners-twist':
       return f2l && afterAuf((x) => x.home && x.oriented);
   }
+}
+
+/** The most latest turns undone to find the case solved before setting it up; past that the solver's way is as short. */
+export const UNDO_MAX = 8;
+
+/** Practicar's short setup on a smart cube (cube frame): undo the fewest of the latest turns `made` (none: a
+ *  repetition leaves the case solved) to reach a state with the stage's goal met, then `back`, the algorithm
+ *  backwards: the same case, its other pieces as they were. `target` is where that leads; null when no state within
+ *  UNDO_MAX turns has the goal (the solver's way, then). */
+export function setupRoute(stage: Stage, p: KPattern, made: readonly string[], back: string[]): { target: KPattern; route: string[] } | null {
+  for (let i = 0; i <= Math.min(UNDO_MAX, made.length); i++) {
+    const undo = made.slice(made.length - i).reverse().map(invertMove);
+    const from = p.applyAlg(undo.join(' '));
+    if (goalReached(stage, from, YELLOW_UP)) return { target: from.applyAlg(back.join(' ')), route: merge([...undo, ...back]) };
+  }
+  return null;
 }
 
 /** A generated quiz state: `moves` (user-frame center turns) from solved; `auf` goes before the case's algorithm. */
