@@ -402,7 +402,7 @@ export const en: Record<MessageKey, string> = {
   'practice.wrong': 'Wrong move. Undo: {moves}',
   'practice.restart': 'Too many mistakes: let’s set up the case again.',
   'practice.restartDrill': 'Too many mistakes: start the algorithm again.',
-  'practice.rep': '{moves} moves ({htm} HTM; the algorithm is {ref})',
+  'practice.rep': '{htm} moves (the algorithm is {ref})',
   'practice.clean': 'No mistakes',
   'practice.notClean': 'With mistakes',
   'practice.streak': 'Clean streak: {n} of {goal}',

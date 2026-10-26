@@ -404,7 +404,7 @@ export const pt: Record<MessageKey, string> = {
   'practice.wrong': 'Movimento errado. Desfaça: {moves}',
   'practice.restart': 'Erros demais: vamos preparar o caso de novo.',
   'practice.restartDrill': 'Erros demais: comece o algoritmo de novo.',
-  'practice.rep': '{moves} movimentos ({htm} HTM; o algoritmo tem {ref})',
+  'practice.rep': '{htm} movimentos (o algoritmo tem {ref})',
   'practice.clean': 'Sem erros',
   'practice.notClean': 'Com erros',
   'practice.streak': 'Sequência sem erros: {n} de {goal}',

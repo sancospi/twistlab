@@ -403,7 +403,7 @@ export const es = {
   'practice.wrong': 'Giro equivocado. Deshaz: {moves}',
   'practice.restart': 'Demasiados errores: volvemos a preparar el caso.',
   'practice.restartDrill': 'Demasiados errores: empieza el algoritmo otra vez.',
-  'practice.rep': '{moves} giros ({htm} HTM; el algoritmo son {ref})',
+  'practice.rep': '{htm} giros (el algoritmo son {ref})',
   'practice.clean': 'Sin errores',
   'practice.notClean': 'Con errores',
   'practice.streak': 'Racha sin errores: {n} de {goal}',

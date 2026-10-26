@@ -891,7 +891,7 @@ function renderResult() {
   const r = lastRep!;
   $('practice-clock').textContent = formatTime(r.ms);
   deltaView(comparison, ` · ${t(r.clean ? 'practice.clean' : 'practice.notClean')}`);
-  text('practice-desc', t('practice.rep', { moves: r.moves, htm: r.htm, ref: htm(centerMoves(active(), IDENTITY)) }));
+  text('practice-desc', t('practice.rep', { htm: r.htm, ref: htm(centerMoves(active(), IDENTITY)) }));
   show('practice-again', tab === 'practice');
   $('practice-again').textContent = t('practice.again');
 }
