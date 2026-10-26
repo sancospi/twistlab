@@ -13,8 +13,7 @@ run it.
 
 ## Commits
 
-- Push straight to `main`: the maintainer works this way. Outside contributions come as pull requests, which only the
-  maintainer merges (the `main` ruleset).
+- Changes come as pull requests against `main`, which only the maintainer merges (the `main` ruleset).
 - An English subject line naming the area ("Resolver: …", "Sync: …"), then a body saying what changed and why.
 - Never add a `Co-Authored-By` trailer.
 - One commit per change that can be reviewed on its own.
