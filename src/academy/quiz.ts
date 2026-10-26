@@ -162,6 +162,10 @@ dialog.addEventListener('close', () => {
   if (cube.listener === listener) cube.listener = null;
   guide.stop();
   anim.set(false);
+  if (screen !== 'setup' && screen !== 'results') { // closed halfway (×, Esc, Back, Repasar ahora): the items done count
+    dropPending();
+    saveSession();
+  }
   screen = 'setup';
   onClose();
 });
@@ -373,8 +377,7 @@ function explain(w: Why) {
 
 /** Closes the quiz and drills the case: its practice on the Memoria muscular tab. */
 function reviewNow(c: Case) {
-  saveSession(); // the items done so far count
-  dialog.close(); // releases the cube for the practice
+  dialog.close(); // its 'close' saves the items done so far // releases the cube for the practice
   void openPractice(c, () => {}, 'drill');
 }
 
