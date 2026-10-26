@@ -121,8 +121,10 @@ export interface Learning {
   due: number; // epoch ms
   interval: number; // days; 0 = failed or just started
   lapses: number; // fails, ever
-  recognitionMs: number | null; // moving average of the time to recognize it (both quiz modes measure it)
-  solveMs: number | null; // ...and of the whole solve on the smart cube
+  // ponytail: no longer written nor read (without a cube it timed doing the scramble); kept in the record because an
+  // older client's parser requires it and would drop the case
+  recognitionMs: number | null;
+  solveMs: number | null; // moving average of the quiz's solve: from the state on screen (cube) or the hand clock
 }
 
 const DAY = 86_400_000;
@@ -151,10 +153,10 @@ export function graded(s: Learning | undefined, grade: Grade, now: number): Lear
   return { ...base, interval, due: now + interval * DAY };
 }
 
-/** `s` with a new time folded into one of its moving averages. */
-export function timed(s: Learning, key: 'recognitionMs' | 'solveMs', ms: number): Learning {
-  const avg = s[key];
-  return { ...s, [key]: avg === null ? ms : avg + AVG_WEIGHT * (ms - avg) };
+/** `s` with a new solve time folded into its moving average. */
+export function timed(s: Learning, ms: number): Learning {
+  const avg = s.solveMs;
+  return { ...s, solveMs: avg === null ? ms : avg + AVG_WEIGHT * (ms - avg) };
 }
 
 export function parseLearning(raw: unknown): Record<string, Learning> {
@@ -174,10 +176,10 @@ const learning = parseLearning(load(LEARN_KEY));
 
 export const learningFor = (caseId: string): Learning | undefined => learning[caseId];
 
-/** Grades a case; `time` (only for a real one: a right answer, a solve without help) joins its averages. */
-export function recordGrade(caseId: string, grade: Grade, time?: { key: 'recognitionMs' | 'solveMs'; ms: number }): Learning {
+/** Grades a case; `solveMs` (only for a real one: a solve without help) joins its average. */
+export function recordGrade(caseId: string, grade: Grade, solveMs?: number): Learning {
   let s = graded(learning[caseId], grade, Date.now());
-  if (time) s = timed(s, time.key, time.ms);
+  if (solveMs !== undefined) s = timed(s, solveMs);
   learning[caseId] = s;
   save(LEARN_KEY, learning);
   return s;

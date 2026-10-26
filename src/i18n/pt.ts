@@ -620,7 +620,6 @@ export const pt: Record<MessageKey, string> = {
   'case.repsValue': '{reps}, {clean} sem erros',
   'case.best': 'Melhor tempo',
   'case.avg': 'Média das últimas {n} limpas',
-  'case.recognitionTime': 'Tempo de reconhecimento (média)',
   'case.status': 'Status',
   'case.due': 'Próxima revisão',
   'case.dueNone': 'Ainda não está na sua revisão. Entra quando você fizer ele num Quiz.',

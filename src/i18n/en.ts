@@ -616,7 +616,6 @@ export const en: Record<MessageKey, string> = {
   'case.repsValue': '{reps}, {clean} without mistakes',
   'case.best': 'Best time',
   'case.avg': 'Mean of the last {n} clean reps',
-  'case.recognitionTime': 'Recognition time (mean)',
   'case.status': 'Status',
   'case.due': 'Next review',
   'case.dueNone': 'Not in your reviews yet. It’s added when you do it in a Quiz.',

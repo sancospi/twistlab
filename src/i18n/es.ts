@@ -619,7 +619,6 @@ export const es = {
   'case.repsValue': '{reps}, {clean} sin errores',
   'case.best': 'Mejor tiempo',
   'case.avg': 'Media de las últimas {n} limpias',
-  'case.recognitionTime': 'Tiempo de reconocimiento (media)',
   'case.status': 'Estado',
   'case.due': 'Próximo repaso',
   'case.dueNone': 'Aún no está en tu repaso. Se añade cuando lo hagas en un Quiz.',

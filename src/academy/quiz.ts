@@ -108,7 +108,7 @@ let rendered: Screen | null = null; // the screen last drawn, to keep the focus 
 let items: Item[] = [];
 let index = 0;
 let attempts: Attempt[] = [];
-let shownAt = 0; // the item became answerable / solvable
+let shownAt = 0; // on the cube, the item's state was reached: its solve (and recognition) time runs from here
 let firstMoveAt = 0;
 let fromClock = false; // the explanation follows a failed solve on the hand clock: Reintentar goes back to it
 let retried = false; // Reintentar: the item is not graded for the SRS again
@@ -173,9 +173,7 @@ const oneCase = (): Case | null => (scope.kind === 'cases' && scope.cases.length
 /** The smart cube is a 3x3: a 2x2 quiz is solved on a normal cube (the hand clock). */
 const smartScope = () => scopeCases(scope).every((c) => puzzleOf(c.stage) === '3x3x3');
 const executionNext = () => !!cube.pattern() && smartScope(); // with a cube the quiz is solved on it
-const selectContext = () => ({
-  one: oneCase(), picked, learning: learningFor, now: Date.now(), timeKey: executionNext() ? 'solveMs' as const : 'recognitionMs' as const,
-});
+const selectContext = () => ({ one: oneCase(), picked, learning: learningFor, now: Date.now() });
 const selected = (sel = selection): Case[] => selectCases(sel, scopeCases(scope), selectContext());
 
 /** From a case: random cases of its group ("Uno solo" one tap away); a retry, Hoy's review or Progreso's slowest
@@ -266,9 +264,9 @@ function prefetch(i: number) {
   });
 }
 
-/** Grades the item's case for the spaced repetition; `time` only for a real one (right answer, solve without help). */
-function gradeItem(item: Item, g: Grade, time?: Parameters<typeof recordGrade>[2]) {
-  if (!retried) recordGrade(item.c.id, g, time); // a retry, after the answer was shown, doesn't touch the SRS
+/** Grades the item's case for the spaced repetition; `solveMs` only for a real solve (without help). */
+function gradeItem(item: Item, g: Grade, solveMs?: number) {
+  if (!retried) recordGrade(item.c.id, g, solveMs); // a retry, after the answer was shown, doesn't touch the SRS
   if (g === 'fail') failed.add(item.c.id);
 }
 
@@ -288,7 +286,6 @@ function startItem() {
   } else {
     // without a cube: the scramble, you start the clock and solve it on your cube (no "which case is it?")
     screen = 'clock';
-    shownAt = performance.now();
     attempts.push({ caseId: items[index].c.id, correct: true, recognitionMs: 0 });
   }
   render();
@@ -305,8 +302,7 @@ function beginSolve() {
 function toggleClock() {
   if (screen !== 'clock' || clockMs !== null) return;
   if (!clockAt) {
-    clockAt = performance.now();
-    attempts.at(-1)!.recognitionMs = clockAt - shownAt; // looking at the scramble and planning, before the clock
+    clockAt = performance.now(); // the time before it is doing the scramble: nothing to measure
     requestAnimationFrame(tick);
   } else {
     clockMs = performance.now() - clockAt;
@@ -320,7 +316,7 @@ function toggleClock() {
  *  explained) or Reintentar (the same scramble again, not graded). */
 function solvedByHand() {
   const item = items[index];
-  if (!retried) gradeItem(item, 'good', { key: 'recognitionMs', ms: attempts.at(-1)!.recognitionMs });
+  gradeItem(item, 'good', clockMs!); // the clock times recognising and solving, as on the cube
   const n = htm(centerMoves(solution(item), IDENTITY)); // ponytail: no cube, so the moves are the algorithm's
   recordRep(item.c.id, { ms: clockMs!, moves: n, htm: n, clean: true });
   logs.push({ item, n: index + 1, done, skipped: false, assisted: false });
@@ -383,7 +379,7 @@ function solved() {
   const { issue, extra } = review(done, centerMoves(solution(item), onCube(item)), false, assisted);
   const g = autoGrade(issue, now - shownAt, item.hold !== IDENTITY ? null : learningFor(item.c.id)?.solveMs ?? null);
   recordRep(item.c.id, { ms: now - firstMoveAt, moves: done.length, htm: turnCount(done), clean: !issue });
-  gradeItem(item, g, issue || item.hold !== IDENTITY ? undefined : { key: 'solveMs', ms: now - shownAt }); // regripping is in the clock when neutral
+  gradeItem(item, g, issue || item.hold !== IDENTITY ? undefined : now - shownAt); // regripping is in the clock when neutral
   feedback = { item, grade: g, issue, extra };
   attempts.push({
     caseId: item.c.id,
@@ -952,7 +948,8 @@ function renderResults(): Node[] {
   const tile = (k: string, v: string, sub = '') => el('div', {}, el('small', { textContent: k }), el('strong', { textContent: v }), ...(sub ? [el('small', { textContent: sub })] : []));
   const summary = el('div', { className: 'quiz-tiles' },
     tile(t('quiz.accuracy'), percent(s.accuracy), t('quiz.accuracyOf', { correct: s.correct, n: s.n })),
-    tile(t('quiz.avgRecognition'), timeOr(s.recognitionMs)),
+    // without a cube there's no recognition time: the hand clock runs from recognising to solved
+    ...(execution ? [tile(t('quiz.avgRecognition'), timeOr(s.recognitionMs))] : []),
     tile(t('quiz.avgExecution'), timeOr(s.executionMs)), // both modes time the solve
     ...(execution ? [tile(t('quiz.avgEfficiency'), pctOr(s.efficiency))] : []));
   const th = (text: string) => el('th', { textContent: text, scope: 'col' });

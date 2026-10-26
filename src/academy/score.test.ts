@@ -160,7 +160,7 @@ const LEARN: Record<string, Learning> = {
   // f, g: new
 };
 const ctx = (over: Partial<SelectContext> = {}): SelectContext =>
-  ({ one: null, picked: new Set(), learning: (id) => LEARN[id], now: NOW, timeKey: 'solveMs', ...over });
+  ({ one: null, picked: new Set(), learning: (id) => LEARN[id], now: NOW, ...over });
 const ids = (cs: Case[]) => cs.map((c) => c.id);
 
 test('selectCases: one, by hand, by status, slowest, due, all', () => {
@@ -171,7 +171,6 @@ test('selectCases: one, by hand, by status, slowest, due, all', () => {
   assert.deepEqual(ids(selectCases('learning', pool, ctx())), ['c', 'd', 'e']);
   assert.deepEqual(ids(selectCases('due', pool, ctx())), ['b', 'c']);
   assert.deepEqual(ids(selectCases('slow', pool, ctx())), ['c', 'd'], 'slowest third of the 4 with a time');
-  assert.deepEqual(selectCases('slow', pool, ctx({ timeKey: 'recognitionMs' })), []);
   assert.equal(selectCases('all', pool, ctx()), pool);
 });
 

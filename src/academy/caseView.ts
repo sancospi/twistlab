@@ -177,7 +177,6 @@ function yourData(c: Case): HTMLElement {
     ...row(t('case.reps'), s ? t('case.repsValue', { reps: tp('academy.reps', s.reps), clean: s.clean }) : t('academy.notPracticed')),
     ...(s?.best == null ? [] : row(t('case.best'), formatTime(s.best))),
     ...(avg == null || s!.last.length < 2 ? [] : row(t('case.avg', { n: s!.last.length }), formatTime(avg))), // one rep: that's the best
-    ...(l?.recognitionMs == null ? [] : row(t('case.recognitionTime'), formatTime(l.recognitionMs))),
     ...row(t('case.status'), t(`library.status.${learnStatus(l)}`)),
     ...row(t('case.due'), !l ? t('case.dueNone') : isDue(l, Date.now()) ? t('case.dueToday') : day.format(l.due)));
 }

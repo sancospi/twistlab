@@ -11,7 +11,7 @@ export type QuizMode = 'recognition' | 'execution';
 export interface Attempt {
   caseId: string;
   correct: boolean; // recognition: picked the right case; execution: solved it without skipping or looking
-  recognitionMs: number; // until the answer (recognition) or the first move (execution)
+  recognitionMs: number; // on the cube, until the first move; 0 without one (the hand clock times the whole solve)
   executionMs?: number; // first move to the stage goal
   moves?: number; // quarter turns reported by the cube
   htm?: number; // the same moves in half-turn metric
@@ -204,7 +204,6 @@ export interface SelectContext {
   picked: ReadonlySet<string>; // ticked by hand
   learning: (caseId: string) => Learning | undefined;
   now: number;
-  timeKey: 'recognitionMs' | 'solveMs'; // the mode's time, for "slowest"
 }
 
 /** The cases of `pool` a selection asks; "slow" is the slowest third of those with a time, slowest first. */
@@ -217,7 +216,7 @@ export function selectCases(sel: Selection, pool: Case[], ctx: SelectContext): C
     case 'learning': return pool.filter((c) => learnStatus(of(c)) === sel);
     case 'due': return pool.filter((c) => isDue(of(c), ctx.now));
     case 'slow': {
-      const ms = (c: Case) => of(c)?.[ctx.timeKey] ?? null;
+      const ms = (c: Case) => of(c)?.solveMs ?? null;
       const timed = pool.filter((c) => ms(c) !== null).sort((a, b) => ms(b)! - ms(a)!);
       return timed.slice(0, Math.ceil(timed.length / 3));
     }

@@ -83,10 +83,10 @@ test('learnStatus and isDue: new, learning, known', () => {
 
 test('timed: moving average of the times', () => {
   const s: Learning = { due: 0, interval: 0, lapses: 0, recognitionMs: null, solveMs: null };
-  const once = timed(s, 'solveMs', 2000);
+  const once = timed(s, 2000);
   assert.equal(once.solveMs, 2000);
   assert.equal(once.recognitionMs, null);
-  assert.equal(timed(once, 'solveMs', 1000).solveMs, 1700);
+  assert.equal(timed(once, 1000).solveMs, 1700);
 });
 
 test('parseLearning keeps valid entries and drops corrupted ones', () => {
