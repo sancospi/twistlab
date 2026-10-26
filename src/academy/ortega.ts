@@ -75,7 +75,7 @@ const lastCornerDown = [
 const oll = (slug: string, code: string, name: string | T, recognition: T, rank: number, alg: string, alts: Alt[], note?: T) =>
   kase({ phase: 'oll', slug, stage: '2x2-oll', code: [code, code, code], name: typeof name === 'string' ? [name, name, name] : name, recognition, alg, rank, alts, note });
 
-const SUNE_NOTE: T = ['Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra.', 'Sune and Antisune are inverses: the scramble of one is the algorithm of the other.', 'Sune e Antisune são inversos: o embaralhamento de um é o algoritmo do outro.'];
+const SUNE_NOTE: T = ['Sune y Antisune son inversas: la preparación de una es el algoritmo de la otra.', 'Sune and Antisune are inverses: the setup of one is the algorithm of the other.', 'Sune e Antisune são inversos: a preparação de um é o algoritmo do outro.'];
 const ollOne = [
   oll('sune', 'Sune', 'Sune', ['1 amarilla arriba, adelante-izquierda; la de adelante-derecha mira al frente',
     '1 yellow on top, front-left; the front-right one faces front', '1 amarela em cima, frente-esquerda; a da frente-direita olha para a frente'], 1,

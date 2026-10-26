@@ -158,9 +158,9 @@ function oll(n: number, name: string, recognition: string, alg: string, alts: [n
 /** The 7 OCLL cases keep their common name as code, with the wording of CFOP reducido. */
 const ocll = (code: string, n: number, recognition: string, alg: string, alts: [number, string][], note?: Localized): Case =>
   oll(n, `OLL ${n}`, `Cruz hecha. ${recognition}`, alg, alts, note, code);
-const inverse = (n: number) => tr(`Es el inverso del OLL ${n}: la mezcla de uno es el algoritmo del otro.`, `It's the inverse of OLL ${n}: the scramble of one is the algorithm of the other.`, `É o inverso do OLL ${n}: o embaralhamento de um é o algoritmo do outro.`);
-const SUNE_NOTE = tr('Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra. Apréndelas primero: salen en muchos solves y comparten gatillos con la H.', 'Sune and Antisune are inverses: the scramble of one is the algorithm of the other. Learn them first: they show up in many solves and share triggers with the H.', 'Sune e Antisune são inversos: o embaralhamento de um é o algoritmo do outro. Aprenda-os primeiro: aparecem em muitas resoluções e compartilham gatilhos com o H.');
-const UL_NOTE = tr('U y L son inversas: la mezcla de la L es el algoritmo de la U. D gira la capa de abajo en sentido horario, mirándola desde abajo.', 'U and L are inverses: the scramble of the L is the algorithm of the U. D turns the bottom layer clockwise, looking at it from below.', 'U e L são inversos: o embaralhamento do L é o algoritmo do U. D gira a camada de baixo no sentido horário, olhando-a por baixo.');
+const inverse = (n: number) => tr(`Es el inverso del OLL ${n}: la preparación de uno es el algoritmo del otro.`, `It's the inverse of OLL ${n}: the setup of one is the algorithm of the other.`, `É o inverso do OLL ${n}: a preparação de um é o algoritmo do outro.`);
+const SUNE_NOTE = tr('Sune y Antisune son inversas: la preparación de una es el algoritmo de la otra. Apréndelas primero: salen en muchos solves y comparten gatillos con la H.', 'Sune and Antisune are inverses: the setup of one is the algorithm of the other. Learn them first: they show up in many solves and share triggers with the H.', 'Sune e Antisune são inversos: a preparação de um é o algoritmo do outro. Aprenda-os primeiro: aparecem em muitas resoluções e compartilham gatilhos com o H.');
+const UL_NOTE = tr('U y L son inversas: la preparación de la L es el algoritmo de la U. D gira la capa de abajo en sentido horario, mirándola desde abajo.', 'U and L are inverses: the setup of the L is the algorithm of the U. D turns the bottom layer clockwise, looking at it from below.', 'U e L são inversos: a preparação do L é o algoritmo do U. D gira a camada de baixo no sentido horário, olhando-a por baixo.');
 
 // "A los lados" = the yellow stickers on the side faces of the top layer, as drawn (front at the bottom).
 const CASES: Case[] = [
@@ -308,19 +308,19 @@ export const ollPhase: Phase = {
   progression: tr(
     [
       'Orden: **OCLL → T, P y C → W, cuadrados y relámpagos → peces y saltos de caballo → L pequeñas y líneas → esquinas listas y raros → puntos**.',
-      '- Aprende también el inverso de cada caso, aunque sea de otro grupo: la mezcla de uno es el algoritmo del otro (5 y 8, 6 y 7, 31 y 40, 33 y 37, 48 y 51, 49 y 50, 28 y 57).',
+      '- Aprende también el inverso de cada caso, aunque sea de otro grupo: la preparación de uno es el algoritmo del otro (5 y 8, 6 y 7, 31 y 40, 33 y 37, 48 y 51, 49 y 50, 28 y 57).',
       '- Mientras no sepas un caso, resuélvelo en 2 pasos: cruz amarilla y luego OCLL.',
       '- Deja los puntos para el final: mientras tanto, usa el Punto del OLL en 2 pasos.',
     ].join('\n'),
     [
       'Order: **OCLL → T, P and C → W, squares and lightning bolts → fish and knight moves → small Ls and lines → corners done and awkward → dots**.',
-      '- Also learn the inverse of each case, even if it is in another group: the scramble of one is the algorithm of the other (5 and 8, 6 and 7, 31 and 40, 33 and 37, 48 and 51, 49 and 50, 28 and 57).',
+      '- Also learn the inverse of each case, even if it is in another group: the setup of one is the algorithm of the other (5 and 8, 6 and 7, 31 and 40, 33 and 37, 48 and 51, 49 and 50, 28 and 57).',
       '- Until you know a case, solve it in 2 looks: yellow cross, then OCLL.',
       '- Leave the dots for last: in the meantime, use the Dot from 2-look OLL.',
     ].join('\n'),
     [
       'Ordem: **OCLL → T, P e C → W, quadrados e raios → peixes e saltos de cavalo → Ls pequenos e linhas → quinas prontas e estranhos → pontos**.',
-      '- Aprenda também o inverso de cada caso, mesmo que seja de outro grupo: o embaralhamento de um é o algoritmo do outro (5 e 8, 6 e 7, 31 e 40, 33 e 37, 48 e 51, 49 e 50, 28 e 57).',
+      '- Aprenda também o inverso de cada caso, mesmo que seja de outro grupo: a preparação de um é o algoritmo do outro (5 e 8, 6 e 7, 31 e 40, 33 e 37, 48 e 51, 49 e 50, 28 e 57).',
       '- Enquanto não souber um caso, resolva em 2 passos: cruz amarela e depois OCLL.',
       '- Deixe os pontos para o final: enquanto isso, use o Ponto do OLL em 2 passos.',
     ].join('\n'),

@@ -134,8 +134,8 @@ const ollCross = [
     note: 'No es nuevo: es la Línea seguida de la L, sin giro en medio.' }),
 ];
 
-const SUNE_NOTE = 'Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra. Apréndelas primero: salen mucho y comparten gatillos con la H.';
-const UL_NOTE = 'U y L son inversas: la mezcla de una es el algoritmo de la otra. D gira la capa de abajo en sentido horario, mirándola desde abajo.';
+const SUNE_NOTE = 'Sune y Antisune son inversas: la preparación de una es el algoritmo de la otra. Apréndelas primero: salen mucho y comparten gatillos con la H.';
+const UL_NOTE = 'U y L son inversas: la preparación de una es el algoritmo de la otra. D gira la capa de abajo en sentido horario, mirándola desde abajo.';
 const ollCorners = [
   kase({ slug: 'sune', code: 'Sune', recognition: '1 esquina arriba, adelante-izq; la de adelante-der muestra amarillo al frente', stage: 'oll-corners',
     alg: "R U R' U R U2 R'", setup: "R U2 R' U' R U' R'", scdb: ['OLL', '27'], note: SUNE_NOTE }),
@@ -153,7 +153,7 @@ const ollCorners = [
     alg: "R U2 R D R' U2 R D' R2", setup: "R2 D R' U2 R D' R' U2 R'", scdb: ['OLL', '25'], note: UL_NOTE }),
 ];
 
-const U_NOTE = 'Ua y Ub son inversos: la mezcla de uno es el algoritmo del otro.';
+const U_NOTE = 'Ua y Ub son inversos: la preparación de uno es el algoritmo del otro.';
 const M_NOTE = 'M se gira en la misma dirección que L.';
 const pllCorners = [
   kase({ slug: 't', code: 'T-perm', recognition: 'Faros en un solo lado; ponlos a la izquierda', stage: 'pll-corners',

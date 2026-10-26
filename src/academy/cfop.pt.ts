@@ -45,11 +45,11 @@ export const PT: Record<string, string> = {
   '2 arriba (las de atrás); dos amarillos al frente': '2 em cima (as de trás); dois amarelos na frente',
   '2 arriba (las de la derecha); a la izquierda un amarillo al frente y otro atrás': '2 em cima (as da direita); à esquerda um amarelo na frente e outro atrás',
   '2 arriba en diagonal (atrás-izq y adelante-der); la de adelante-izq muestra amarillo al frente': '2 em cima na diagonal (atrás-esq e frente-dir); a da frente-esq mostra amarelo na frente',
-  'Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra. Apréndelas primero: salen mucho y comparten gatillos con la H.':
-    'Sune e Antisune são inversos: o embaralhamento de um é o algoritmo do outro. Aprenda-os primeiro: aparecem muito e compartilham gatilhos com a H.',
-  'U y L son inversas: la mezcla de una es el algoritmo de la otra. D gira la capa de abajo en sentido horario, mirándola desde abajo.':
-    'U e L são inversos: o embaralhamento de um é o algoritmo do outro. D gira a camada de baixo no sentido horário, olhando-a por baixo.',
-  'Ua y Ub son inversos: la mezcla de uno es el algoritmo del otro.': 'Ua e Ub são inversos: o embaralhamento de um é o algoritmo do outro.',
+  'Sune y Antisune son inversas: la preparación de una es el algoritmo de la otra. Apréndelas primero: salen mucho y comparten gatillos con la H.':
+    'Sune e Antisune são inversos: a preparação de um é o algoritmo do outro. Aprenda-os primeiro: aparecem muito e compartilham gatilhos com a H.',
+  'U y L son inversas: la preparación de una es el algoritmo de la otra. D gira la capa de abajo en sentido horario, mirándola desde abajo.':
+    'U e L são inversos: a preparação de um é o algoritmo do outro. D gira a camada de baixo no sentido horário, olhando-a por baixo.',
+  'Ua y Ub son inversos: la preparación de uno es el algoritmo del otro.': 'Ua e Ub são inversos: a preparação de um é o algoritmo do outro.',
   'M se gira en la misma dirección que L.': 'M gira na mesma direção que L.',
   'Faros en un solo lado; ponlos a la izquierda': 'Faróis em um lado só; coloque-os à esquerda',
   'Aparece en 2 de cada 3 solves.': 'Aparece em 2 de cada 3 resoluções.',

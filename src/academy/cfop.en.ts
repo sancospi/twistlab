@@ -44,11 +44,11 @@ export const EN: Record<string, string> = {
   '2 arriba (las de atrás); dos amarillos al frente': '2 up (the back ones); two yellows facing front',
   '2 arriba (las de la derecha); a la izquierda un amarillo al frente y otro atrás': '2 up (the right ones); on the left one yellow facing front and one facing back',
   '2 arriba en diagonal (atrás-izq y adelante-der); la de adelante-izq muestra amarillo al frente': '2 up on a diagonal (back-left and front-right); the front-left one shows yellow facing front',
-  'Sune y Antisune son inversas: la mezcla de una es el algoritmo de la otra. Apréndelas primero: salen mucho y comparten gatillos con la H.':
-    'Sune and Antisune are inverses: the scramble of one is the algorithm of the other. Learn them first: they come up a lot and share triggers with the H.',
-  'U y L son inversas: la mezcla de una es el algoritmo de la otra. D gira la capa de abajo en sentido horario, mirándola desde abajo.':
-    'U and L are inverses: the scramble of one is the algorithm of the other. D turns the bottom layer clockwise, as seen from below.',
-  'Ua y Ub son inversos: la mezcla de uno es el algoritmo del otro.': 'Ua and Ub are inverses: the scramble of one is the algorithm of the other.',
+  'Sune y Antisune son inversas: la preparación de una es el algoritmo de la otra. Apréndelas primero: salen mucho y comparten gatillos con la H.':
+    'Sune and Antisune are inverses: the setup of one is the algorithm of the other. Learn them first: they come up a lot and share triggers with the H.',
+  'U y L son inversas: la preparación de una es el algoritmo de la otra. D gira la capa de abajo en sentido horario, mirándola desde abajo.':
+    'U and L are inverses: the setup of one is the algorithm of the other. D turns the bottom layer clockwise, as seen from below.',
+  'Ua y Ub son inversos: la preparación de uno es el algoritmo del otro.': 'Ua and Ub are inverses: the setup of one is the algorithm of the other.',
   'M se gira en la misma dirección que L.': 'M turns in the same direction as L.',
   'Faros en un solo lado; ponlos a la izquierda': 'Headlights on one side only; put them on the left',
   'Aparece en 2 de cada 3 solves.': 'Shows up in 2 out of 3 solves.',
