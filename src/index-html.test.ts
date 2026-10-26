@@ -15,11 +15,11 @@ function run(pathname: string, items: Record<string, string> = {}, language = 'e
   const keys = Object.keys(items);
   const storage = { length: keys.length, key: (i: number) => keys[i] ?? null, getItem: (k: string) => items[k] ?? null };
   const location = { pathname, search: '', hash: '' };
-  const history = { state: null, replaceState: (_: unknown, __: string, url: string) => void (location.pathname = url) };
+  const history = { state: null as unknown, replaceState(state: unknown, _: string, url: string) { this.state = state; location.pathname = url; } };
   const sessionStorage = { getItem: (k: string) => session[k] ?? null, setItem: (k: string, v: string) => void (session[k] = v) };
   new Function('document', 'location', 'localStorage', 'navigator', 'history', 'sessionStorage', code)(
     { body, documentElement: html, createElement: () => ({}), head: { appendChild() {} } }, location, storage, { language, userAgent }, history, sessionStorage);
-  return { module: body.dataset.module, fresh: classes.has('fresh'), lang: html.lang, wait: classes.has('i18n-wait'), path: location.pathname, paint: classes.has('@data-paint'), other: classes.has('other-puzzle') };
+  return { module: body.dataset.module, fresh: classes.has('fresh'), lang: html.lang, wait: classes.has('i18n-wait'), path: location.pathname, paint: classes.has('@data-paint'), other: classes.has('other-puzzle'), state: history.state };
 }
 
 test('inline script: the URL decides the language', () => {
@@ -34,7 +34,7 @@ test('inline script: the URL decides the language', () => {
 });
 
 test('inline script: a visit starting at a Spanish URL goes to the chosen language, else the browser\'s (not crawlers)', () => {
-  assert.deepEqual(run('/', {}, 'en-US'), { module: 'solve', fresh: true, lang: 'en', wait: true, path: '/en/', paint: false, other: false });
+  assert.deepEqual(run('/', {}, 'en-US'), { module: 'solve', fresh: true, lang: 'en', wait: true, path: '/en/', paint: false, other: false, state: null });
   assert.equal(run('/academia/cruz', {}, 'EN').path, '/en/academia/cruz');
   assert.equal(run('/academia/cruz', {}, 'en-US').module, 'academy');
   assert.equal(run('/', {}, 'fr-FR').path, '/');
@@ -57,6 +57,10 @@ test('inline script: reopened at the start page, back to the last page in that l
   assert.equal(run('/en/', last('/academia/cruz')).path, '/en/'); // another language: stays
   assert.equal(run('/', { lang: 'en', ...last('/academia/cruz') }).path, '/en/academia/cruz'); // saved before languages had URLs
   assert.equal(run('/', last('/academia/cruz'), 'es-ES', 'Mozilla/5.0', { session: { open: '1' } }).path, '/'); // a reload or the Resolver's link
+  // the entry's own state comes back with it (router.ts saveLast): a lesson reopens at its step, not at step 1
+  const lesson = { 'last-page': JSON.stringify({ path: '/academia/cruz/leccion/que-es', scroll: 40, state: { step: 5, answers: [[2, true]] } }) };
+  assert.deepEqual(run('/', lesson).state, { step: 5, answers: [[2, true]], scroll: 40 });
+  assert.deepEqual(run('/', last('/academia/cruz')).state, { scroll: 0 }); // saved before the state was
 });
 
 test('inline script: /acerca is the About page', () => {

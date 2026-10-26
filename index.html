@@ -49,7 +49,7 @@
           var last = JSON.parse(localStorage.getItem('last-page')), lp = last && typeof last.path === 'string' && /^\/[^\/]/.test(last.path) && /^(?:\/(en|pt)(?=\/|$))?/.exec(last.path);
           // An unprefixed one saved before languages had URLs, by someone just sent to theirs (`want`): there in it
           if (lp && !lp[1] && want === l && l !== 'es') last.path = '/' + l + last.path, lp[1] = l;
-          if (lp && (lp[1] || 'es') === l) { history.replaceState({ scroll: +last.scroll || 0 }, '', last.path); p = location.pathname; q = p.replace(/^\/(en|pt)(?=\/|$)/, '') || '/'; }
+          if (lp && (lp[1] || 'es') === l) { var st = last.state && typeof last.state === 'object' ? last.state : {}; st.scroll = +last.scroll || 0; history.replaceState(st, '', last.path); p = location.pathname; q = p.replace(/^\/(en|pt)(?=\/|$)/, '') || '/'; }
         }
         sessionStorage.setItem('open', '1');
       } catch (x) {}

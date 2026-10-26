@@ -120,10 +120,13 @@ export const plainClick = (e: MouseEvent) => e.button === 0 && !e.metaKey && !e.
 let current = '';
 let apply: (r: Route, scroll: number | null) => void = () => {};
 let readScroll: () => number = () => 0;
-/** Where the app was left ({ path, scroll }): the inline script in index.html reopens it there. Not in the backup. */
+/** Where the app was left ({ path, scroll, state }): the inline script in index.html reopens it there, with the entry's
+ *  own state (a lesson's step and answers, a method's open groups) but not where it came from nor its sheets. Not in
+ *  the backup. */
 const LAST = 'last-page';
 const saveLast = (scroll = 0) => {
-  try { localStorage.setItem(LAST, JSON.stringify({ path: location.pathname + location.search, scroll })); } catch { /* private mode */ }
+  const { from: _from, sheet: _sheet, scroll: _scroll, ...state } = (history.state ?? {}) as Record<string, unknown>;
+  try { localStorage.setItem(LAST, JSON.stringify({ path: location.pathname + location.search, scroll, state })); } catch { /* private mode */ }
 };
 
 /** `back`: from back/forward, so the page's saved scroll (if any) comes back; a new page starts at the top. */
