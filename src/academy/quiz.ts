@@ -323,18 +323,23 @@ function solvedByHand() {
   next();
 }
 
-/** Without a cube, "Lo resolví" without stopping a clock: graded good like Siguiente. A running clock is stopped and
- *  counted; never started, nothing is timed (left out of the averages). */
+/** Without a cube, "Lo resolví" without stopping a clock: a running clock is stopped and counted (Limpio); never
+ *  started, the item moves on without a grade and out of the score. */
+// ponytail: the user's word with nothing to check it against would inflate the accuracy and the spaced repetition;
+// naming the case (a "which case is it?" step) would make it checkable
 function solvedNoClock() {
   if (clockAt) {
     toggleClock();
     return solvedByHand();
   }
-  const item = items[index];
-  Object.assign(attempts.at(-1)!, { untimed: true });
-  if (!retried) gradeItem(item, 'good');
-  logs.push({ item, n: index + 1, done, skipped: false, assisted: false });
+  dropPending();
   next();
+}
+
+/** Without a cube the item's attempt is pushed as right when it's shown, a placeholder until Limpio: an item left
+ *  without a verdict ("Lo resolví", the quiz closed) is dropped from the score. A miss (Fallé, Ver respuesta) stays. */
+function dropPending() {
+  if (screen === 'clock' && attempts.at(-1)?.correct) attempts.pop();
 }
 
 function retryClock() {

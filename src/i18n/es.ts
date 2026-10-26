@@ -477,7 +477,7 @@ export const es = {
   'quiz.items.other': '{n} ítems',
   'quiz.howCube': 'Con el cubo inteligente: te llevo a cada caso (paso 1, Mezcla) y lo resuelves contra el reloj (paso 2). Al resolverlo ves tu tiempo y eliges Repetir o Siguiente. Si te atascas, te explico el algoritmo.',
   'quiz.howNoCube': 'Sin cubo inteligente: haces la mezcla en tu cubo, tocas la tarjeta (o Espacio) para iniciar el reloj y lo resuelves. Al pararlo marcas Limpio (Espacio) o Fallé (X), que te enseña el caso; o Reintentar. Con el cubo inteligente conectado, te llevo a cada caso y compruebo tus giros.',
-  'quiz.helpClock': 'Haz la mezcla en tu cubo y toca la tarjeta o pulsa Espacio: la mezcla se oculta y corre el tiempo. Resuélvelo y vuelve a tocar para parar. ¿Sin reloj? «Lo resolví». ¿No sabes qué caso es? «Ver respuesta».',
+  'quiz.helpClock': 'Haz la mezcla en tu cubo y toca la tarjeta o pulsa Espacio: la mezcla se oculta y corre el tiempo. Resuélvelo y vuelve a tocar para parar. ¿Sin reloj? «Lo resolví» pasa al siguiente sin nota. ¿No sabes qué caso es? «Ver respuesta».',
   'quiz.helpClockDone': 'Limpio (Espacio) si lo resolviste sin errores: pasa al siguiente. Fallé (X) te enseña el caso y su algoritmo, y cuenta como fallo. Reintentar: la misma mezcla otra vez, sin nota.',
   'quiz.showAnswer': 'Ver respuesta',
   'quiz.helpScramble': 'Paso 1: con amarillo arriba y verde al frente, haz estos giros para llegar al caso. Si te equivocas, se recalcula. Al llegar empieza el paso 2.',

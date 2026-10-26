@@ -201,13 +201,3 @@ test('isStuck: too many turns beyond the algorithm, or too long', () => {
   assert.equal(isStuck(3, 10, STUCK_MS + 1), true);
   assert.equal(isStuck(99, null, 1000), false); // no reference: only the clock
 });
-
-test('score: a case marked solved without the clock counts, but not in the time averages', () => {
-  const s = score([
-    { caseId: 'a', correct: true, recognitionMs: 1000, executionMs: 3000 },
-    { caseId: 'b', correct: true, recognitionMs: 0, untimed: true },
-  ]);
-  assert.equal(s.correct, 2);
-  assert.equal(s.recognitionMs, 1000);
-  assert.equal(s.ms, 4000);
-});

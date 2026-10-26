@@ -478,7 +478,7 @@ export const pt: Record<MessageKey, string> = {
   'quiz.items.other': '{n} itens',
   'quiz.howCube': 'Com o cubo inteligente: eu te levo a cada caso (passo 1, Embaralhar) e você resolve contra o relógio (passo 2). Ao resolver, você vê o seu tempo e escolhe Repetir ou Próximo. Se travar, eu explico o algoritmo.',
   'quiz.howNoCube': 'Sem cubo inteligente: você faz o embaralhamento no seu cubo, toca no cartão (ou Espaço) para iniciar o relógio e resolve. Ao parar, marca Limpo (Espaço) ou Errei (X), que te mostra o caso; ou Tentar de novo. Com o cubo inteligente conectado, eu te levo a cada caso e confiro os seus movimentos.',
-  'quiz.helpClock': 'Faça o embaralhamento no seu cubo e toque no cartão ou aperte Espaço: o embaralhamento some e o tempo corre. Resolva e toque de novo para parar. Sem relógio? "Resolvi". Não sabe qual caso é? "Ver resposta".',
+  'quiz.helpClock': 'Faça o embaralhamento no seu cubo e toque no cartão ou aperte Espaço: o embaralhamento some e o tempo corre. Resolva e toque de novo para parar. Sem relógio? "Resolvi" passa para o próximo, sem nota. Não sabe qual caso é? "Ver resposta".',
   'quiz.helpClockDone': 'Limpo (Espaço) se resolveu sem erros: passa para o próximo. Errei (X) mostra o caso e o algoritmo dele, e conta como erro. Tentar de novo: o mesmo embaralhamento outra vez, sem nota.',
   'quiz.showAnswer': 'Ver resposta',
   'quiz.helpScramble': 'Passo 1: com amarelo em cima e verde na frente, faça estes movimentos para chegar no caso. Se errar, é recalculado. Ao chegar, começa o passo 2.',
