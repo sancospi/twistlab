@@ -11,8 +11,8 @@
 // The algorithm to use is changed under the card. The solution shows while learning and hides by itself after
 // FADE_AFTER clean in a row (Solución toggles it for the sitting; Ver solución shows it once, and that repetition isn't
 // clean). Every repetition (time, moves, clean) counts towards the plan's drill criterion: the streak of STREAK_GOAL,
-// drawn as dots; only the clean ones' times make the best and the average. Meeting it puts a case not yet in the spaced
-// repetition into it (graded good: due tomorrow in Hoy and the Quiz).
+// drawn as dots; only the clean ones' times make the best and the average. Meeting it counts as the case's review when it's
+// new or due (graded good: due again later in Hoy and the Quiz).
 import type { TwistyPlayer, TwistyPlayerConfig } from 'cubing/twisty';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
@@ -27,7 +27,7 @@ import { MASKS, goalReached, heldMask, holdRotation, practiceSpec, quizPattern, 
 import { caseDiagram, isoTurns, type DiagramOpts } from './diagram.ts';
 import { MAX_UNDO, REDO_MS, StepFollower } from './follow.ts';
 import { cube, type CubeListener } from './link.ts';
-import { addCustom, average, byChoice, learningFor, preferred, recordGrade, recordRep, removeCustom, setPreferred, statsFor, STREAK_GOAL, variants, type Rep } from './store.ts';
+import { addCustom, average, byChoice, preferred, recordGrade, recordRep, removeCustom, setPreferred, statsFor, STREAK_GOAL, variants, type Rep } from './store.ts';
 import { FADE_AFTER, compare, solutionView, summary, type Comparison, type SessionRep, type SolutionView } from './practiceSession.ts';
 import { caseLabel, puzzleOf, type AlgSource, type AlgVariant, type Case, type Puzzle, type Stage } from './types.ts';
 import { checkCustomAlg } from './customAlg.ts';
@@ -327,7 +327,9 @@ function record(r: Rep) {
   comparison = compare(r.ms, before, r.clean);
   lastRep = r;
   const s = recordRep(kase.id, r);
-  if (s.streak >= STREAK_GOAL && !learningFor(kase.id)) recordGrade(kase.id, 'good'); // the drill done: recognition review from tomorrow (Hoy, Quiz); >= also catches a streak already past the goal
+  // the drill done: a review (good) for a new case or one due, so Hoy and the Quiz see it next from tomorrow on; a case
+  // not due yet stays as it is (graded()), so the reps past the goal change nothing more
+  if (s.streak >= STREAK_GOAL) recordGrade(kase.id, 'good');
   session.push({ ms: r.ms, clean: r.clean });
   onUpdate(kase);
   const now = solutionView(s.streak, choice);
