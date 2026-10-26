@@ -215,7 +215,6 @@ function choose(v: AlgVariant) {
   variant = v;
   tokens = tokenize(v.alg);
   newRep();
-  lastRep = null;
   session = [];
   seriesDone = [];
   start();
