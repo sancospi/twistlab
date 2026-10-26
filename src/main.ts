@@ -84,15 +84,24 @@ async function onRoute(r: Route, scroll: number | null = null) {
     document.title = pageTitle(t(painting ? 'paint.seoTitle' : TITLE[r.mod]));
     return;
   }
+  const root = $('mod-academy');
+  root.ariaBusy = 'true'; // its first page, coming from another screen: "…" while the Academia's code loads (_academy.scss)
   academy = await import('./academy/view.ts');
   if (id !== routeId) return;
-  const title = await academy.showAcademy($('mod-academy'), r.page);
+  const title = await academy.showAcademy(root, r.page);
+  root.ariaBusy = 'false';
   if (id !== routeId) return; // a newer route won while the puzzle was loading
   document.title = pageTitle(title);
   const target = location.hash && document.getElementById(location.hash.slice(1));
   if (scroll !== null) panelEl().scrollTop = scroll; // Back: where you were (e.g. down a method's case list)
   else if (target) target.scrollIntoView();
-  else panelEl().scrollTop = 0; // a new page starts at the top
+  else {
+    panelEl().scrollTop = 0; // a new page starts at the top
+    // and its title takes the focus, left on the body by the link that went, so a screen reader names the new page.
+    // Not on the app's first page (the reader starts there anyway) nor when a control of the page kept it.
+    const h = root.querySelector<HTMLElement>('h1, h2');
+    if (id > 1 && h && !root.contains(document.activeElement)) { h.tabIndex = -1; h.focus({ preventScroll: true }); }
+  }
 }
 const panelEl = () => document.querySelector<HTMLElement>('.panel')!;
 startRouter((r, scroll) => void onRoute(r, scroll), () => panelEl().scrollTop);
