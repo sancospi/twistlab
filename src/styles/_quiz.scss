@@ -30,8 +30,6 @@
 .quiz-tiles strong { font: 700 1.5rem var(--mono); font-variant-numeric: tabular-nums; }
 .quiz-diagram { display: grid; place-items: center; }
 .quiz-diagram svg { width: min(180px, 50vw); height: auto; }
-.answers { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
-.answers button { display: flex; align-items: center; justify-content: center; gap: 6px; }
 kbd { padding: 0 4px; border-radius: 4px; background: var(--bg); color: var(--muted); font: 0.7857rem var(--mono); }
 .ok { color: var(--accent); font-weight: 700; }
 .bad { color: $bad; font-weight: 700; }
@@ -42,11 +40,7 @@ kbd { padding: 0 4px; border-radius: 4px; background: var(--bg); color: var(--mu
 .quiz-modes { display: grid; gap: 8px; margin: 0; padding: 8px 12px; border: 1px solid $raised; border-radius: 8px; }
 .quiz-mode { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
 .quiz-mode small { color: var(--muted); }
-.scramble-toggle { display: block; width: 100%; text-align: left; background: $well; border: 1px dashed $raised; }
-.scramble-toggle[aria-expanded="true"] { border-style: solid; }
 .quiz-net { margin: 0; display: grid; justify-items: center; gap: 4px; }
-.quiz-choices { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
-.quiz-choices .quiz-mode:has(input:disabled) { opacity: .5; cursor: default; }
 .quiz-picks { display: grid; gap: 6px; }
 .quiz-pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; max-height: 45dvh; overflow-y: auto; }
 .quiz-pick { display: grid; justify-items: center; gap: 2px; padding: 4px; border-radius: 8px; background: $well; font-size: 0.8571rem; cursor: pointer; }
@@ -56,10 +50,6 @@ kbd { padding: 0 4px; border-radius: 4px; background: var(--bg); color: var(--mu
 .quiz-feedback-diagram { flex: none; }
 .quiz-feedback-diagram svg { width: 72px; height: auto; }
 .quiz-feedback p { margin: 2px 0; }
-.quiz-verdict-case { display: flex; gap: 10px; align-items: flex-start; }
-.quiz-verdict-case svg { width: 72px; height: auto; }
-.quiz-verdict-case > div:first-child { flex: none; }
-.quiz-verdict-case > div:last-child { display: grid; gap: 6px; }
 .academy-train { display: grid; gap: 4px; }
 .academy-train .row { align-items: center; }
 .tile-due { color: $warn; font-size: 0.8571rem; }
