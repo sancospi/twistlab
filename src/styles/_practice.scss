@@ -11,7 +11,6 @@
 .practice-help p { margin: 6px 0 0; } /* the 2x2's note under them */
 .practice-change > summary { color: var(--muted); }
 .practice-change[open] > summary { margin-bottom: 8px; }
-.practice-start { min-height: 56px; font-size: 1.2857rem; }
 .practice-tiles { display: grid; grid-template-columns: 1fr 1fr 1.6fr; gap: 6px; }
 .practice-tiles > div { display: grid; gap: 2px; align-content: start; padding: 6px 10px; border-radius: 8px; background: $well; }
 .practice-tiles small { color: var(--muted); font-size: 0.7857rem; }

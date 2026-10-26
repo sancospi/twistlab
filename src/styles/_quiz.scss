@@ -4,6 +4,7 @@
 /* Quiz */
 #quiz-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
 @media (min-width: 601px) { #quiz[open] { margin-top: 16px; margin-bottom: auto; } } /* like Practicar: no jump between screens */
+.quiz-start { min-height: 56px; font-size: 1.2857rem; } /* Empezar, and the results' "repeat the failed ones" */
 .quiz-progress { display: flex; align-items: center; gap: 10px; }
 .quiz-bar { flex: 1; height: 6px; border-radius: 3px; background: $raised; overflow: hidden; }
 .quiz-bar span { display: block; height: 100%; background: var(--accent); }

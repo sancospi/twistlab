@@ -9,8 +9,10 @@
 // Solved: the time, turns and grade with the case's best and average, then Otra mezcla (the same case, another state)
 // or Siguiente. A wrong answer, "Me atasqué", or (with the cube) too many turns or too long: the explanation (figure,
 // algorithm with its triggers, recognition, fingers, animation on demand), then Reintentar or Siguiente. Saltar is
-// always there. Every item grades its case for the spaced repetition (store.ts) and every solve counts as a repetition
-// of it; scoring lives in score.ts, a short history of sessions in this browser; the errors are reviewed at the end.
+// always there. Every item with a verdict grades its case for the spaced repetition (store.ts; "Lo resolví" without the
+// clock moves on ungraded and out of the score) and every solve counts as a repetition of it (a retry, after the answer,
+// as a helped one); scoring lives in score.ts, a short history of sessions in this browser; the errors are reviewed at
+// the end.
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { describe, nextStep, PathGuide } from '../guide.ts';
@@ -642,7 +644,7 @@ function renderSetup(): Node[] {
   }
   if (scope.kind !== 'cases') out.push(el('div', { className: 'row quiz-setup-row' }, neutralChip()));
   if (cube.pattern() && !execution) out.push(p(t('practice.no2x2Cube'), 'hint'));
-  const go = button(t('quiz.start'), start, 'primary practice-start');
+  const go = button(t('quiz.start'), start, 'primary quiz-start');
   go.disabled = !n;
   go.dataset.focus = '';
   const last = lastResult(scopeId(scope));
@@ -1004,7 +1006,7 @@ function renderResults(): Node[] {
   if (retry.length) {
     const again = button(t('quiz.retry', { n: retry.length }), () => void openQuiz({
       kind: 'cases', id: `${scopeId(scope)}:retry`, cases: retry, answers: scopeCases(scope), title: t('quiz.retryTitle', { title: scopeTitle(scope) }),
-    }, onClose), 'primary practice-start');
+    }, onClose), 'primary quiz-start');
     again.dataset.focus = '';
     actions.append(again, close);
   } else {
