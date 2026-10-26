@@ -328,10 +328,13 @@ function solvedByHand() {
   const item = items[index];
   gradeItem(item, 'good', clockMs!); // the clock times recognising and solving, as on the cube
   const n = htm(centerMoves(solution(item), IDENTITY)); // ponytail: no cube, so the moves are the algorithm's
-  recordRep(item.c.id, { ms: clockMs!, moves: n, htm: n, clean: true });
-  logs.push({ item, n: index + 1, done, skipped: false, assisted: false });
+  recordRep(item.c.id, { ms: clockMs!, moves: n, htm: n, clean: !retried }); // a retry was helped: no best, no streak
+  if (!retried) logs.push({ item, n: index + 1, done, skipped: false, assisted: false });
   next();
 }
+
+/** The stopped hand clock against the case's record: a retry, after the answer, claims no first mark nor best. */
+const handComparison = () => compare(clockMs!, statsFor(items[index].c.id), !retried);
 
 /** Without a cube, "Lo resolví" without stopping a clock: a running clock is stopped and counted (Limpio); never
  *  started, the item moves on without a grade and out of the score. */
@@ -394,7 +397,7 @@ function solved() {
   const item = items[index];
   const { issue, extra } = review(done, centerMoves(solution(item), onCube(item)), false, assisted);
   const g = autoGrade(issue, now - shownAt, item.hold !== IDENTITY ? null : learningFor(item.c.id)?.solveMs ?? null);
-  recordRep(item.c.id, { ms: now - firstMoveAt, moves: done.length, htm: turnCount(done), clean: !issue });
+  recordRep(item.c.id, { ms: now - firstMoveAt, moves: done.length, htm: turnCount(done), clean: !issue && !retried }); // a retry was helped
   gradeItem(item, g, issue || item.hold !== IDENTITY ? undefined : now - shownAt); // regripping is in the clock when neutral
   const attempt: Attempt = {
     caseId: item.c.id,
@@ -559,9 +562,11 @@ function statusText(): string {
   const where = items.length ? t('quiz.progress', { n: index + 1, total: items.length }) : '';
   const item = items[index];
   switch (screen) {
-    case 'clock': return clockMs !== null // stopped: the time, against the case's record, and the question
-      ? `${where}. ${formatTime(clockMs)}. ${comparisonText(compare(clockMs, statsFor(item.c.id))!)}. ${t('practice.card.grade')}`
-      : `${where}. ${neutral && !clockAt ? `${holdText(item)} ` : ''}${t(clockAt ? 'practice.timerStop' : 'quiz.helpClock')}`;
+    case 'clock': { // stopped: the time, against the case's record, and the question
+      if (clockMs === null) return `${where}. ${neutral && !clockAt ? `${holdText(item)} ` : ''}${t(clockAt ? 'practice.timerStop' : 'quiz.helpClock')}`;
+      const c = handComparison();
+      return [where, formatTime(clockMs), ...(c ? [comparisonText(c)] : []), t('practice.card.grade')].join('. ');
+    }
     case 'scramble': return [nextMove() ?? '', scrambleDesc(), neutral && item ? holdText(item, 'neutral.holdAfter') : ''].join(' ').trim();
     case 'solve': return `${where}. ${t('quiz.helpSolve')}${neutral ? ` ${holdText(item, 'neutral.holdSolve')}` : ''}`; // not the clock: it would talk every frame
     case 'done': return `${feedbackText(feedback!)} ${t('quiz.time', { time: formatTime(itemTime()) })}`;
@@ -769,15 +774,15 @@ function renderClock(): Node[] {
     return [progress(), card(clockAt ? 'running' : 'ready', [...holdHint(item), ...(ready ? itemScramble() : []), clock, hint], toggleClock),
       actions(action('solved', t('quiz.solvedNoClock'), solvedNoClock), action('skip', t('quiz.skip'), skip), stuckButton('quiz.showAnswer', 'shown'))];
   }
-  const c = compare(clockMs!, statsFor(item.c.id))!; // clean until said otherwise: never null
-  const delta = p(comparisonText(c), ['delta', deltaClass(c)].filter(Boolean).join(' '));
+  const c = handComparison();
+  const delta = c ? [p(comparisonText(c), ['delta', deltaClass(c)].filter(Boolean).join(' '))] : [];
   const ok = action('next', t('practice.cleanBtn'), solvedByHand);
   ok.className = 'primary';
   ok.dataset.focus = '';
   const miss = action('stuck', '', () => stuck('fail'));
   miss.ariaKeyShortcuts = 'x';
   miss.append(el('span', { textContent: t('practice.failBtn') }), el('kbd', { className: 'key-hint', ariaHidden: 'true', textContent: 'X' }));
-  return [progress(), card('stopped', [clock, delta, hint, el('div', { className: 'row grade' }, ok, miss)]),
+  return [progress(), card('stopped', [clock, ...delta, hint, el('div', { className: 'row grade' }, ok, miss)]),
     feedbackView(item), // which case it was: on the cube the done screen says it
     actions(action('retry', t('quiz.retryItem'), retryClock))];
 }
