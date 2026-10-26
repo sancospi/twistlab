@@ -190,6 +190,12 @@ function sectioned(root: HTMLElement, head: Node[], navLabel: string, sections: 
   const nav = el('nav', { className: 'academy-nav', ariaLabel: navLabel },
     ...(links ?? (sections as HTMLElement[]).map((s) => el('a', { href: `#${s.id}`, textContent: s.querySelector('h2')!.textContent! }))));
   root.replaceChildren(...head, el('div', { className: 'academy-layout' }, nav, el('div', { className: 'academy-body' }, ...sections)));
+  // a long group's link opens its folded cards, which the reader came to see (the router then scrolls to it)
+  nav.addEventListener('click', (e) => {
+    const a = (e.target as Element).closest('a');
+    const fold = a && document.getElementById(a.hash.slice(1))?.querySelector<HTMLDetailsElement>(':scope > .academy-cases');
+    if (fold) fold.open = true;
+  });
   followPhase(root, nav);
 }
 
@@ -455,8 +461,8 @@ function lastLayerButton(phase: Phase): HTMLElement[] {
 }
 
 // The long groups left open, kept in the page's history entry: Back (after a reload too) finds them as they were, so
-// the saved scroll lands on the same card. A group that opens by itself (cases due) is kept as well: its toggle event
-// fires then too, so the card just practised finds its group open even once it is no longer due.
+// the saved scroll lands on the same card. A group that opens by itself (cases due, or a link to it) is kept as well:
+// its toggle event fires then too, so the card just practised finds its group open even once it is no longer due.
 const openGroups = (): string[] => (history.state as { open?: string[] } | null)?.open ?? [];
 
 /** A group's head (name and Quiz), then its cards: a long group folds them (CFOP completo would be 29 screens on a
@@ -468,7 +474,9 @@ function groupView(phase: Phase, g: Group, odds: (() => void)[]): HTMLElement {
   const cards = el('div', { className: 'cards' }, ...g.cases.map((c) => card(phase, c, odds)));
   let body: HTMLElement = cards;
   if (g.cases.length > 6) {
-    const fold = el('details', { className: 'academy-cases', open: openGroups().includes(g.id) || dueCount(g.cases) > 0 },
+    // as the entry left it (Back), else open when a link came for it (the case page's "Grupo", the side list's link)
+    const wanted = (history.state as { open?: string[] } | null)?.open ? openGroups().includes(g.id) : location.hash === `#${anchor(g.id)}`;
+    const fold = el('details', { className: 'academy-cases', open: wanted || dueCount(g.cases) > 0 },
       el('summary', { textContent: tp('academy.tileCases', g.cases.length) }), cards);
     fold.ontoggle = () => history.replaceState({ ...history.state, open: [...openGroups().filter((id) => id !== g.id), ...(fold.open ? [g.id] : [])] }, '');
     body = fold;
