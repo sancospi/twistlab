@@ -122,4 +122,7 @@ test('suggestedLesson: the recent course first, then one started, then the cross
   // on another course: the whole cross, as before
   assert.equal(suggestedLesson(['cfop-reducido'], { cruz: cross.slice(0, 2), 'cfop-reducido': ['x'] })!.course.id, 'cfop-reducido');
   assert.equal(suggestedLesson([], { cruz: cross.slice(0, 2), 'cfop-reducido': courseFor('cfop-reducido')!.lessons.map((l) => l.id) })!.lesson.id, cross[2]);
+  // a finished course hands over to its `next`: the beginner's method to CFOP reducido, the 2x2's to Ortega
+  assert.equal(suggestedLesson([], { cruz: cross, principiante: beginnerAll })!.course.id, 'cfop-reducido');
+  assert.equal(suggestedLesson(['principiante-2x2'], { 'principiante-2x2': courseFor('principiante-2x2')!.lessons.map((l) => l.id) })!.course.id, 'ortega');
 });

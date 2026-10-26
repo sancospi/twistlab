@@ -193,13 +193,15 @@ function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
   })];
 }
 
+// The methods with lessons: the full CFOP and COLL are references
+const METHOD_COURSES = [beginner, cfopReduced, f2lAdvanced, roux, beginner2x2, ortega];
+
 /** The lessons of a guide (by its URL segment), or null when it has none (yet). */
 export function courseFor(id: string, algOf: (c: Case) => string = (c) => c.algs[0].alg): Course | null {
   if (id === 'notacion') return { id, title: t('glossary.title'), lessons: notationLessons() };
   if (id === crossGuide.id) return { id, title: t('cross.title'), lessons: guideLessons(crossGuide) };
   if (id === bases2x2.id) return bases2x2.lessons.length ? { id, title: loc(bases2x2.name), lessons: guideLessons(bases2x2), puzzle: '2x2x2' } : null;
-  // the full CFOP and COLL are references: no lessons
-  const m = [beginner, cfopReduced, f2lAdvanced, roux, beginner2x2, ortega].find((x) => x.id === id);
+  const m = METHOD_COURSES.find((x) => x.id === id);
   if (m) return { id, title: loc(m.name), lessons: methodLessons(m, algOf), ...(m.puzzle ? { puzzle: m.puzzle } : {}) };
   return null;
 }
@@ -225,13 +227,19 @@ export const nextLesson = (lessons: Lesson[], done: string[]): Lesson | null => 
 // for speed, after the beginner's method
 const CROSS_BASICS = 2;
 
-/** Hoy's next lesson: the first unfinished one of the most recently practised course (`recent`: guide ids, newest
- *  first), else of a course already started, else of the white cross, then the beginner's method. Null when all done.
- *  Someone on no other course yet (a first-timer) gets only the cross's basics until the beginner's method is done. */
+/** Hoy's next lesson, and the one a course's last lesson leads to: the first unfinished one of the most recently
+ *  practised course (`recent`: guide ids, newest first), else of a course already started, else of the white cross,
+ *  then the beginner's method. A finished course hands over to its `next` guides right after it (principiante →
+ *  CFOP reducido, Principiante 2x2 → Ortega). Null when all done. Someone on no other course yet (a first-timer) gets
+ *  only the cross's basics until the beginner's method is done. */
 export function suggestedLesson(recent: string[], done: Record<string, string[]>, algOf?: (c: Case) => string): { course: Course; lesson: Lesson } | null {
-  const ids = new Set([...recent, ...Object.keys(done), crossGuide.id, beginner.id]);
-  const newcomer = [...ids].every((id) => [crossGuide.id, beginner.id, 'notacion'].includes(id));
+  const base = [...new Set([...recent, ...Object.keys(done), crossGuide.id, beginner.id])];
+  const newcomer = base.every((id) => [crossGuide.id, beginner.id, 'notacion'].includes(id));
   const beginnerDone = !nextLesson(courseFor(beginner.id, algOf)!.lessons, done[beginner.id] ?? []);
+  const finished = (id: string) => { const c = courseFor(id, algOf); return !!c && !nextLesson(c.lessons, done[id] ?? []); };
+  const nextOf = (id: string) => [[crossGuide, bases2x2, ...METHOD_COURSES].find((g) => g.id === id)?.next ?? []].flat();
+  // a first-timer finishes the cross (its basics, then the rest after the beginner's method) before any next course
+  const ids = new Set(base.flatMap((id) => [id, ...(finished(id) ? [...(newcomer ? [crossGuide.id] : []), ...nextOf(id)] : [])]));
   for (const id of ids) {
     const course = courseFor(id, algOf);
     const lessons = id === crossGuide.id && newcomer && !beginnerDone ? course?.lessons.slice(0, CROSS_BASICS) : course?.lessons;
