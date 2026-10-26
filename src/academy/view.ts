@@ -1,4 +1,5 @@
-// Academia: a home of tiles (the white cross first, one per method, plus Notación and Gatillos), then each on its own route.
+// Academia: a home of tiles (the white cross and Notación first, one per method, Gatillos; then the 2x2, the trainers
+// and the tools), then each on its own route.
 // A method page starts with its name, what it is and the step before it, then its next lesson (the way in) and the Quiz
 // of the whole method (and how many cases are due today); then its phases and groups, each case as a card that opens
 // its page (caseView.ts: Practicar, Quiz, Memoria muscular), with Quiz buttons per group and phase, plus the plan's own
