@@ -1,0 +1,16 @@
+// The Academia's panel and the guide text (rich-text.ts).
+@use 'tokens' as *;
+
+/* Academia: the panel widens to fit the case cards */
+/* room below the last cards for the view's arrow pad, which paints over the panel */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+select { font: inherit; padding: 6px 8px; border: 0; border-radius: 8px; background: $raised; color: var(--fg); }
+summary { cursor: pointer; font-weight: 600; }
+/* Guide text (rich-text.ts): short paragraphs, lists, subheadings; moves inline are tappable notation */
+.prose { margin: 6px 0; line-height: 1.55; }
+.prose p { margin: 0 0 .6em; }
+.prose p:last-child, .prose ul:last-child, .prose ol:last-child { margin-bottom: 0; }
+.prose ul, .prose ol { margin: 0 0 .7em; padding-left: 1.3em; display: grid; gap: .3em; }
+.prose h3, .prose h4 { margin: .9em 0 .35em; font-size: 0.9286rem; color: var(--fg); letter-spacing: .02em; }
+.prose strong { color: var(--fg); }
+.prose .alg { white-space: nowrap; }

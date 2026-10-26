@@ -1,0 +1,16 @@
+// The ☰ menu up to 1199px.
+@use 'tokens' as *;
+
+/* Up to 1199px the menu is ☰ (a popover): the six entries, the heart, the cube's status and the title fit one line only from
+   1200px, in every language (17px text; boot.ts measures the bar live for larger text) */
+@media (max-width: 759px) { body[data-module="cube"] .view { display: none; } } /* the panel covers the 3D cube here: its arrows would only cover text */
+@media (max-width: 1199px) {
+  .app-header { padding: 8px 16px; }
+  .header-module, .menu-toggle { display: inline-block; }
+  .menu-toggle { margin-left: 0; order: 3; } /* ☰ at the right edge, after the status */
+  .header-status dt, .header-status dd:not(#status) { display: none; } /* just the status */
+  .header-menu:not(:popover-open) { display: none; }
+  .header-menu:popover-open { position: fixed; inset: var(--header-h) 0 auto 0; display: grid; gap: 12px; padding: 16px;
+    background: #151924; border-bottom: 1px solid $raised; box-shadow: 0 12px 24px #0008; }
+  .header-menu .menu { flex: none; }
+}

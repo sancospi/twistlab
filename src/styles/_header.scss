@@ -1,0 +1,37 @@
+// The top bar: title, modules, the cube's status, and the connection block (also in its dialog).
+@use 'tokens' as *;
+
+/* Permanent top bar: title, modules, cube connection and status; collapses into ☰ on phones */
+.app-header { position: fixed; top: 0; left: 0; right: 0; z-index: 6; display: flex; align-items: center; gap: 8px 20px; padding: 10px 24px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid $raised; }
+.app-header h1 { white-space: nowrap; }
+.app-brand { display: flex; align-items: center; gap: 8px; }
+.app-mark { width: 1.35em; height: auto; flex: none; } /* the logo: a cube layer twisting */
+.header-module { display: none; color: var(--muted); }
+.menu-toggle { display: none; margin-left: auto; font-size: 1.4286rem; padding: 4px 12px; }
+.header-menu { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; flex: 1;
+  position: static; inset: auto; margin: 0; padding: 0; border: 0; background: none; color: inherit; overflow: visible; width: auto; height: auto; }
+.header-menu .menu { flex: 0 1 460px; }
+.header-status { display: flex; flex-wrap: wrap; gap: 0 6px; margin: 0; }
+.header-status-link { margin-left: auto; padding: 6px 4px; color: inherit; text-decoration: none; border-radius: 8px; } /* the cube's status opens its screen */
+.header-status-link #status { white-space: nowrap; }
+/* the connection block: in the dialog, the dialog's title replaces its own and its status is shown (the header is behind) */
+.conn-status, .conn-more { display: none; }
+.conn-error { margin: 0; color: #fb923c; }
+#cube-dialog .conn-status, #cube-dialog .conn-more { display: block; }
+#cube-dialog #conn > h3 { display: none; }
+#cube-dialog #conn { padding: 0; background: none; }
+.support-open { flex: none; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; margin-left: auto; background: none; color: var(--muted); border-radius: 50%; }
+.support-open + .header-status-link { margin-left: 0; } /* the heart takes the push to the right */
+.support-open:hover, .support-open:focus-visible { color: #f472b6; }
+.support-open svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.header-status-link[aria-current="page"] #status { color: var(--accent); }
+.header-status-link:hover dd#status, .header-status-link:focus-visible dd#status { text-decoration: underline; }
+.header-status dt { color: var(--muted); }
+.header-status dd { margin: 0 10px 0 0; }
+.cube-screen { display: grid; gap: 12px; }
+.cube-screen h2 { margin: 0; font-size: 1.2857rem; }
+.cube-block { display: grid; gap: 8px; padding: 12px; border-radius: 10px; background: $well; }
+.cube-block h3 { margin: 0; font-size: 1rem; }
+.cube-block dl, .cube-block .hint { margin: 0; }
+.ios-ble { display: grid; gap: 6px; } .ios-ble[hidden] { display: none; } .ios-ble p, .ios-ble ol { margin: 0; } .ios-ble ol { padding-left: 1.3em; }

@@ -1,0 +1,101 @@
+// A case's page (caseView.ts), its algorithms, and the library.
+@use 'tokens' as *;
+
+/* A case's page (caseView.ts): the picture on the side on wide screens, on top on phones; and the library */
+body:not([data-module="academy"]) #case { display: none; }
+.case-head { display: grid; gap: 4px; }
+.case-head h2 { margin: 0; font-size: 1.5714rem; }
+.case-page { display: grid; gap: 20px; align-items: start; padding: 0 24px 24px; }
+/* phones: diagram above the 3D cube (side by side the player is too narrow for its controls) */
+.case-visual { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 8px; padding: 12px; border-radius: 12px; background: $card; }
+.case-diagram svg { width: 120px; height: auto; display: block; }
+.case-player { width: 100%; }
+.case-player twisty-player { width: 100%; height: 220px; }
+@media (min-width: 860px) {
+  .case-page { grid-template-columns: 300px minmax(0, 1fr); gap: 32px; }
+  .case-visual { position: sticky; top: 16px; grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .case-diagram svg { width: 140px; }
+  .case-player { width: 100%; }
+  .case-player twisty-player { height: 240px; }
+}
+.case-body { display: grid; gap: 20px; max-width: 760px; }
+.case-section { display: grid; gap: 8px; }
+.case-section h3 { margin: 0; font-size: 1.0714rem; }
+.case-section p { margin: 0; }
+.case-section a { color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.chip { display: inline-block; padding: 4px 10px; border-radius: 999px; background: $raised; color: var(--fg); font-size: 0.8571rem; text-decoration: none; }
+a.chip { color: var(--fg); text-decoration: underline dotted #ffffff60; text-underline-offset: .2em; }
+a.chip:hover, a.chip:focus-visible { background: #3a4358; }
+.case-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 8px; }
+.case-actions button { display: grid; gap: 4px; padding: 14px 16px; text-align: left; font-size: 1.1429rem; font-weight: 700; }
+.case-actions small { font-size: 0.8571rem; font-weight: 400; color: #b4bacb; }
+.case-actions .primary small { color: $on-accent; }
+.case-alg { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: $card; }
+.case-alg.chosen { outline: 2px solid var(--accent); }
+.case-alg:focus-visible { outline: 2px solid var(--fg); }
+.case-setup { display: flex; gap: 10px; align-items: baseline; margin: 0 0 8px; } .case-setup dt { color: var(--muted); } .case-setup dd { margin: 0; font-family: ui-monospace, monospace; }
+.case-moves { font-size: 1.4286rem; line-height: 2.2; }
+/* alternatives stay quiet next to the chosen algorithm; "Usar este" makes one the chosen (big) one */
+/* compact: the moves on one line, then source · chips · Ver dedos · Usar este on another */
+.case-alg:not(.chosen) { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; padding: 6px 12px; background: #0e1117; font-size: 0.8571rem; }
+.case-alg:not(.chosen) .case-moves { flex: 1 0 100%; font-size: 1rem; line-height: 1.8; color: var(--muted); }
+.case-alg:not(.chosen) .trigger-name { display: none; } /* underlined is enough here: the label is on the chosen one */
+.case-alg:not(.chosen) .hint { margin: 0; font-size: 0.8571rem; }
+.case-alg:not(.chosen) .chips { margin: 0; font-size: 0.7857rem; }
+.case-alg:not(.chosen) .chip { padding: 1px 8px; }
+.case-alg:not(.chosen) .fingers-box { order: 1; font-size: 0.8571rem; }
+.case-alg:not(.chosen) .fingers-box[open] { flex-basis: 100%; }
+.case-alg:not(.chosen) .row { order: 2; margin-left: auto; }
+.trigger { display: inline-grid; justify-items: center; vertical-align: top; line-height: 1.5; }
+.trigger > .alg { padding: 0 2px; border-bottom: 2px solid var(--accent); }
+.trigger-name { font-size: 0.7857rem; color: var(--accent); white-space: nowrap; }
+.fingers-box { display: grid; gap: 6px; }
+.fingers { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.fingers li { display: grid; justify-items: center; align-content: start; gap: 2px; min-width: 64px; max-width: 96px; padding: 4px 6px; border-radius: 8px; background: $well; text-align: center; }
+.fingers .alg { font-size: 1.2857rem; }
+.fingers small { font-size: 0.7857rem; color: var(--muted); }
+.fingers .finger-mark { color: $warn; }
+.case-data { grid-template-columns: max-content 1fr; gap: 4px 14px; }
+.mini-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.mini-case { display: grid; justify-items: center; align-content: start; gap: 2px; padding: 8px 4px; border-radius: 8px; background: $well; color: var(--fg); text-align: center; text-decoration: none; font-size: 0.9286rem; }
+.mini-case:hover, .mini-case:focus-visible { background: $raised; }
+.mini-case svg { width: 56px; height: auto; }
+.mini-case .hint { font-size: 0.7857rem; }
+.case-status { font-size: 0.7857rem; color: var(--muted); }
+.case-method { font-size: 0.7143rem; color: var(--muted); } /* the library by set: whose case it is */
+.case-status.known { color: var(--accent); }
+.case-status.due { color: $warn; }
+.library { display: grid; gap: 12px; }
+.library h2 { margin: 0; }
+.library-filters { z-index: 2; display: flex; flex-wrap: wrap; gap: 8px 12px; margin: 0 -24px; padding: 8px 24px; background: var(--bg); border-bottom: 1px solid $raised; }
+@media (min-width: 860px) { .library-filters { position: sticky; top: 0; } }
+.library-field { display: grid; gap: 2px; }
+.library-field:first-child { flex: 1 1 240px; }
+.library-filters select { font-size: 1.1429rem; }
+.library-filters input { width: 100%; padding: 8px; border: 0; border-radius: 8px; background: $raised; color: var(--fg); font: 1.1429rem system-ui, sans-serif; } /* 16px: no zoom on focus in iOS */
+.library-list, .library-method, .library-phase { display: grid; gap: 14px; }
+.library-method h3 { margin: 8px 0 0; font-size: 1.2857rem; }
+.library-phase h4 { margin: 0; font-size: 1.0714rem; }
+.library-group { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: $card; }
+.library-group h5 { margin: 0; font-size: 0.9286rem; color: var(--muted); }
+a.card { color: var(--fg); text-decoration: none; border-radius: 8px; }
+.lesson { padding: 0 24px 24px; }
+.lesson-card { display: grid; gap: 12px; max-width: 680px; margin-inline: auto; font-size: 1.2143rem; padding: 16px; border-radius: 12px; background: $card; border: 1px solid $raised; }
+.lesson-card h2 { margin: 0; font-size: 1.4286rem; }
+.lesson-card h3 { margin: 0 0 6px; font-size: 1.2857rem; }
+.lesson-card progress { width: 100%; height: 8px; accent-color: var(--accent); }
+.lesson-text { outline: none; line-height: 1.55; }
+.lesson-text p { margin: 0 0 .6em; }
+.lesson-player twisty-player { width: 100%; height: min(260px, 36dvh); }
+.lesson-body, .lesson-do { display: grid; gap: 10px; }
+.lesson-do dl { grid-template-columns: max-content 1fr; }
+.lesson-ways button { flex: 1; }
+.lesson-ways button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+.lesson-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.lesson-choices button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 8px; font: 700 1.1429rem ui-monospace, monospace; }
+.lesson-choices button:disabled { opacity: 1; }
+.lesson-choices button.right { background: var(--accent); color: $on-accent; }
+.lesson-choices button.wrong { background: $bad; color: #2b0606; }
+.lesson-feedback { margin: 0; font-weight: 700; }
+@media (max-width: 600px) { .lesson-card { padding: 12px; } }

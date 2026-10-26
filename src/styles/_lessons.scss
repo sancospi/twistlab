@@ -1,0 +1,19 @@
+// Lessons: the Guía · Lecciones switch, the list and the player.
+@use 'tokens' as *;
+
+/* Lessons: the Guía · Lecciones switch, the list, and the player (one card, one step at a time) */
+.view-switch { align-items: center; margin-bottom: 16px; }
+.view-switch button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+a.button { display: inline-block; padding: 8px 12px; border-radius: 8px; background: $raised; color: var(--fg); text-decoration: none; }
+a.button.primary { background: var(--accent); color: $on-accent; font-weight: 600; }
+.lesson-list { display: grid; gap: 12px; max-width: 680px; margin-inline: auto; font-size: 1.2143rem; }
+.lesson-list ol { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lesson-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; background: $card; border: 1px solid $raised; color: var(--fg); text-decoration: none; }
+.lesson-item:hover, .lesson-item:focus-visible { border-color: var(--accent); background: #151924; }
+.lesson-item.recommended { border-color: var(--accent); }
+.lesson-num { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: $raised; font-weight: 700; }
+.lesson-item.done .lesson-num { background: var(--accent); color: $on-accent; }
+.lesson-info { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.lesson-status { flex: none; font-size: 0.8571rem; color: var(--muted); }
+.lesson-item.recommended .lesson-status { color: var(--accent); font-weight: 700; }
+body:not([data-module="academy"]) #lesson { display: none; }

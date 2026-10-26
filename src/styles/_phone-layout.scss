@@ -1,0 +1,81 @@
+// Phones and the Resolver's own layout: the tab bar, one column, the readout.
+@use 'tokens' as *;
+
+/* viewport-fit=cover (for the tab bar's bottom inset): keep the bar, the panel and the arrows clear of a landscape notch */
+.app-header { left: env(safe-area-inset-left); right: env(safe-area-inset-right); }
+.panel { margin: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+.view { margin: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) 0; }
+/* Phones: the modules move to a bottom tab bar (☰ goes away); what reached the bottom edge now stops above it.
+   Dialogs (top layer) and the Resolver's timer (z-index 10) still cover it. */
+.tabbar { display: none; }
+@media (max-width: 600px) {
+  :root { --tabbar-h: calc(56px + env(safe-area-inset-bottom)); }
+  .menu-toggle, .header-module { display: none; }
+  #mod-progress, #mod-challenges { padding: 16px; }
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; height: var(--tabbar-h);
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); border-top: 1px solid $raised; }
+  .tabbar a { flex: 1; display: grid; place-content: center; justify-items: center; gap: 2px; color: var(--muted); font-size: 0.7857rem; text-decoration: none; }
+  .tabbar a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+  .tabbar svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #cube { bottom: var(--tabbar-h); }
+  .panel { max-height: calc(100dvh - var(--header-h) - var(--tabbar-h) - 32px); }
+  .view { margin-bottom: 0; } /* #cube already stops above the bar */
+  body:is([data-module="academy"], [data-module="progress"], [data-module="challenges"], [data-paint]) .panel { bottom: var(--tabbar-h); }
+}
+/* Resolver, mobile first: one column in the page's flow, nothing over the cube. Event + Opciones, the scramble and its
+   net, the 3D cube (arrows in its corner), Empezar, the results. .panel and #mod-solve become display: contents so
+   their children and #cube (outside the panel) share the body's grid, ordered with `order` (the DOM keeps tab order).
+   From 900px: the side panel again, the big cube to its right (never under it). */
+body[data-module="solve"] { height: auto; min-height: 100dvh; overflow: visible; display: grid; grid-template-columns: minmax(0, 640px); justify-content: center; align-content: start; gap: 10px;
+  padding: calc(var(--header-h) + 10px) calc(16px + env(safe-area-inset-right)) calc(var(--tabbar-h, env(safe-area-inset-bottom)) + 16px) calc(16px + env(safe-area-inset-left)); }
+body[data-module="solve"] :is(.panel, #mod-solve) { display: contents; }
+body[data-module="solve"] { grid-auto-rows: max-content; } /* rows as tall as their content: the page scrolls, a scroll box (the times) never shrinks to nothing */
+body[data-module="solve"] #mod-solve > * { order: 4; }
+body[data-module="solve"] :is(.solve-top, #scramble-box, #guide) { order: 1; }
+body[data-module="solve"] :is(#readout, #timer-hint, .solve-actions, #moves) { order: 2; } /* Empezar next to the scramble, thumb reach: the cube follows */
+body[data-module="solve"] #cube { order: 3; position: relative; inset: auto; height: clamp(140px, 26dvh, 300px); }
+body[data-module="solve"] #cube twisty-player { touch-action: pan-y; } /* a swipe on the cube still scrolls the page */
+body[data-module="solve"] .scramble.long { max-height: none; } /* the page scrolls, not a box inside it */
+body[data-module="solve"] :is(.solve-more button, .solve-more select, .solve-top button, .solve-top select) { min-height: 44px; font-size: 1rem; }
+body[data-module="solve"] .solve-top select { font-size: 1.1429rem; } /* no zoom on focus in iOS */
+body[data-module="solve"] .results button.time { padding: 6px 10px; margin: -4px -10px; } /* a finger's target in the list */
+#solve-opts .timer-opts label { min-height: 44px; }
+#solve-opts input[type=checkbox] { width: 22px; height: 22px; }
+#solve-opts .round .timer-opts { display: grid; grid-template-columns: 1fr 1fr; }
+#solve-opts .round input { width: 100%; box-sizing: border-box; }
+#solve-opts .round label { flex-direction: column; align-items: stretch; gap: 2px; }
+body[data-module="solve"] #moves:empty { display: none; }
+body[data-module="solve"] .view { right: 8px; bottom: 8px; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); gap: 4px; }
+body[data-module="solve"] .view button { font-size: 1.0714rem; }
+body[data-module="solve"] .net { height: clamp(96px, 26vw, 160px); }
+body[data-module="solve"] :is(#scramble-text, #scramble-note) { text-align: center; }
+body[data-module="solve"] .event-pick > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } /* the select says 3x3: the label is for screen readers */
+@media (max-width: 600px) { /* a phone: the scramble, the readout and Empezar on one screen */
+  body[data-module="solve"] .scramble:not(.long) { font-size: 1.1429rem; min-height: calc(3 * 1.6em); }
+  body[data-module="solve"] #scramble-note { font-size: .8571rem; }
+}
+@media (pointer: coarse) { #timer-hint.keys { display: none; } } /* "(Espacio)": no keyboard here; the cube's "apply the scramble" stays */
+.solve-top { display: flex; align-items: center; gap: 8px; }
+.solve-top .event-pick { flex: 1; min-width: 0; }
+.solve-actions { display: grid; gap: 8px; }
+#start { min-height: 52px; font-size: 1.2857rem; } /* full width, thumb-sized */
+/* the readout: the last time as the stage shows it (same face), the averages as figures under it */
+.readout { display: grid; justify-items: center; gap: 10px; padding: 6px 0 2px; container-type: inline-size; }
+.last-time { margin: 0; font: 700 clamp(2.5rem, 90cqw / (var(--len, 5) * .6), 6rem)/1 var(--clock); } /* --len: as .big's; cqw: its column's width */
+.readout.empty .last-time { color: #3b4254; } /* no time yet: the zeros wait */
+.readout.pb .last-time { color: var(--accent); } /* the last solve is the best */
+button.last-time { padding: 0; border-radius: 12px; background: none; color: inherit; } /* opens the time's sheet */
+button.last-time:disabled { opacity: 1; cursor: default; }
+#cross-best:empty { display: none; }
+#cross-best .cross-best { text-align: center; } /* the last scramble's shortest cross: one quiet line */
+.typed { display: flex; gap: 8px; }
+.typed[hidden], #typed-status:empty, #session[hidden] { display: none; }
+.typed input { flex: 1; min-width: 0; font: 600 1.4286rem system-ui, sans-serif; font-variant-numeric: tabular-nums; text-align: center; }
+.stats { display: flex; justify-content: center; gap: 32px; margin: 0; }
+.stats:empty { display: none; }
+.stats div { display: flex; flex-direction: column-reverse; align-items: center; } /* the figure over its name */
+.stats dt { color: var(--muted); font-size: .8571rem; }
+.stats dd { margin: 0; font-weight: 600; font-size: 1.1429rem; font-variant-numeric: tabular-nums; }
+.solve-more { align-items: center; }
+#session { max-width: 11em; padding: 4px 8px; text-overflow: ellipsis; } /* 1rem (the row's): smaller, iOS zooms on focus */

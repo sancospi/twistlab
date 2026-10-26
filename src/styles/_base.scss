@@ -1,0 +1,50 @@
+// The base: the clocks' face, colours and sizes (:root), the type scale and plain elements.
+@use 'tokens' as *;
+
+/* the clocks' face: Chivo Mono (OFL, public/fonts), every character as wide (0.6em), so a time's width is its length */
+@font-face { font-family: 'Chivo Mono'; font-weight: 700; font-display: swap; src: url('/fonts/chivo-mono-700.woff2') format('woff2'); }
+:root { --clock: 'Chivo Mono', ui-monospace, monospace; color-scheme: dark; --bg: #0b0d12; --fg: #e6e8ee; --muted: #8a90a0; --accent: #4ade80; --panel: #151924cc; --header-h: 54px; /* updated live by boot.ts; these defaults match it, so the first paint is already right */ }
+@media (min-width: 601px) { :root { --header-h: 61px; } }
+@media (min-width: 1200px) { :root { --header-h: 70px; } } /* the menu in the bar (☰ below) */
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+/* Type scales from the root (every size is in rem): 17px on phones and desktops alike. */
+html { font-size: 18px; } html[data-text="l"] { font-size: 20px; } html[data-text="xl"] { font-size: 22px; } /* Tamaño del texto (boot.ts) */
+body { margin: 0; height: 100dvh; background: radial-gradient(circle at 50% 40%, #1b2030, var(--bg)); color: var(--fg); font: 1rem/1.4 system-ui, sans-serif; overflow: hidden; }
+#cube { position: fixed; inset: var(--header-h) 0 0 0; }
+#cube twisty-player { width: 100%; height: 100%; }
+.panel { position: fixed; top: calc(var(--header-h) + 16px); left: 16px; right: 16px; max-width: 400px; max-height: calc(100dvh - var(--header-h) - 32px); overflow-y: auto; padding: 16px; border-radius: 12px; background: var(--panel); backdrop-filter: blur(8px); display: grid; gap: 10px; z-index: 1; } /* over #cube, which comes after it */
+h1 { margin: 0; font-size: 1.2857rem; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+button { font: inherit; padding: 8px 12px; border: 0; border-radius: 8px; background: $raised; color: var(--fg); cursor: pointer; }
+button.primary { background: var(--accent); color: $on-accent; font-weight: 600; }
+button:disabled { opacity: .4; cursor: default; }
+dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; color: var(--muted); }
+dd { margin: 0; color: var(--fg); }
+#moves { font-family: ui-monospace, monospace; min-height: 1.4em; word-break: break-word; }
+#status.solved { color: var(--accent); font-weight: 600; }
+#guide { display: grid; gap: 6px; padding: 12px; border-radius: 10px; background: $well; }
+#guide[hidden] { display: none; }
+.guide-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); }
+#guide-actions[hidden], section[hidden] { display: none; }
+.menu { display: flex; gap: 4px; padding: 4px; border-radius: 10px; background: $well; }
+.menu a { flex: 1; padding: 8px 12px; border-radius: 8px; text-align: center; text-decoration: none; color: var(--muted); }
+.menu a:hover, .menu a:focus-visible { color: var(--fg); }
+.menu a[aria-current="page"] { background: $raised; color: var(--fg); font-weight: 600; }
+#mod-solve { display: grid; gap: 8px; }
+/* Screens: only the one body[data-module] names shows (the inline script sets it before the first paint, main.ts's
+   setModule after); Pinta tu cubo is a page of the Cubo screen (body[data-paint]) */
+body:not([data-module="solve"]) #mod-solve, body:not([data-module="cube"]) #mod-cube, body[data-paint] #mod-cube, body:not([data-paint]) #mod-paint,
+body:not([data-module="academy"]) #mod-academy, body:not([data-module="progress"]) #mod-progress,
+body:not([data-module="challenges"]) #mod-challenges, body:not([data-module="about"]) #mod-about { display: none; }
+.scramble-box { display: grid; gap: 8px; }
+.scramble-box[hidden], .scramble[hidden] { display: none; }
+.scramble-note { margin: 2px 0 0; font-family: system-ui, sans-serif; } /* under a scramble, also inside monospace boxes */
+.scramble { font: 600 1.3571rem/1.6 ui-monospace, monospace; word-spacing: .2ch; overflow-wrap: anywhere; }
+.scramble .move { text-decoration-color: #ffffff26; } /* a hint of the tooltips, not a second line of text */
+.net { height: 190px; } /* reserved: the 2D player arrives after the first scramble */
+.net twisty-player { width: 100%; height: 100%; }
+button.net { display: block; width: 100%; padding: 0; border-radius: 12px; background: none; cursor: zoom-in; }
+button.net:disabled { opacity: 1; cursor: default; } /* while the scramble is being made: the old net, no zoom */
+.net-big { height: min((min(640px, 100vw - 32px) - 32px) * .75, 60dvh); } /* the net is 4:3, as wide as the sheet's inside */
+.net-big twisty-player { width: 100%; height: 100%; }

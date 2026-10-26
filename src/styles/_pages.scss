@@ -1,0 +1,28 @@
+// Progreso, Acerca de, and the tools' "what this does" text.
+@use 'tokens' as *;
+
+/* Progreso (progress-view.ts): a full page under the bar, like the Academia */
+body:is([data-module="progress"], [data-module="challenges"]) :is(#cube, .view, #moves) { display: none; }
+body:is([data-module="progress"], [data-module="challenges"]) .panel { @include full-page; }
+#mod-progress, #mod-challenges { max-width: 760px; padding: 20px 24px; }
+#mod-challenges { display: grid; gap: 12px; align-content: start; } /* Retos: the cards, their rankings in them */
+#mod-challenges h2 { margin: 0; }
+#mod-challenges h4 { margin: 0; font-size: 0.9286rem; }
+#mod-progress h4 { margin: 0; font-size: 0.9286rem; }
+/* Acerca de (/acerca): a full page like Progreso, shown by the module alone (static markup); the FAQ as <details> */
+#mod-about { display: grid; max-width: 760px; padding: 20px 24px; }
+body[data-module="about"] :is(#cube, .view, #moves) { display: none; }
+body[data-module="about"] .panel { @include full-page; }
+#mod-about :is(h2, h3, p, ul) { margin: 0; }
+#mod-about h3 { margin-top: 8px; font-size: 1.0714rem; }
+#mod-about ul { padding-left: 1.3em; display: grid; gap: 4px; }
+#mod-about details { padding: 10px 12px; border-radius: 10px; background: $card; }
+#mod-about details p { margin-top: 6px; line-height: 1.55; color: #c9cdd8; }
+#mod-about a, .foot-link a { color: var(--accent); }
+.foot-link { margin: 0; font-size: 0.8571rem; }
+/* The Resolver's and Pinta tu cubo's "what this tool does" (for search too), under the tool: small, never above it */
+.tool-about { display: grid; gap: 6px; font-size: 0.8571rem; color: var(--muted); }
+.tool-about :is(h2, h3, p, ul) { margin: 0; }
+.tool-about :is(h2, h3) { font-size: 1rem; color: var(--fg); }
+.tool-about ul { padding-left: 1.2em; display: grid; gap: 2px; }
+.tool-about a { color: var(--accent); }

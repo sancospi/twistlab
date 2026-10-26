@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1218" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="preload" href="/fonts/chivo-mono-700.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="icon" href="/icon-32.png" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <title data-i18n="app.title">TwistLab</title>
+  <meta name="description" content="Cronómetro de cubo de Rubik online que también te enseña: mezclas WCA, inspección, ao5 y ao12, y una academia del método principiante a CFOP, con cada OLL y PLL. Gratis y sin anuncios." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="TwistLab" />
+  <meta property="og:title" content="Cronómetro de cubo de Rubik online, con academia · TwistLab" />
+  <meta property="og:description" content="Cronómetro de cubo de Rubik que también te enseña: mezclas WCA, ao5 y ao12, y una academia del método principiante a CFOP. Gratis y sin anuncios." />
+  <meta property="og:image" content="https://twistlab.app/apple-touch-icon.png" />
+  <meta property="og:locale" content="es_ES" />
+  <meta name="twitter:card" content="summary" />
+</head>
+<body>
+  <script>
+    // The layout depends on these (main.ts sets them too): set before the first paint so nothing moves when the app loads
+    (function (b, p) {
+      // Language (i18n.ts reads <html lang>): the URL's (/en/…, /pt/…; Spanish at the root). A visit that starts at a Spanish
+      // URL goes to the chosen language's (else the browser's: en* → English) with replaceState, but not for crawlers:
+      // they read each language at its own URL. A page the build wrote in Spanish waits hidden (html.i18n-wait) for
+      // boot.ts to swap its texts, so they never flash (CSS shows it anyway after 3 s); one prerendered in its language
+      // (<html lang> already it) doesn't. Its dictionary chunk (`dicts`, written in by the build: vite.config.ts) is
+      // fetched alongside the app.
+      var h = document.documentElement, dicts = {}, pre = /^\/(en|pt)(\/|$)/.exec(p), l = pre ? pre[1] : 'es', want, first;
+      try { first = !sessionStorage.getItem('open'); } catch (x) {}
+      if (!pre && first && !/bot|crawl|spider|slurp|google|lighthouse/i.test(navigator.userAgent || '')) {
+        try { want = localStorage.getItem('lang'); } catch (x) {}
+        if (want !== 'es' && want !== 'en' && want !== 'pt') want = /^en/i.test(navigator.language || '') ? 'en' : /^pt/i.test(navigator.language || '') ? 'pt' : 'es';
+        if (want !== 'es') { l = want; history.replaceState(history.state, '', '/' + l + p + location.search + location.hash); p = location.pathname; }
+      }
+      if (l !== 'es' && h.lang !== l) h.classList.add('i18n-wait');
+      h.lang = l;
+      try { var tx = localStorage.getItem('ui-text'); if (tx === 'l' || tx === 'xl') h.dataset.text = tx; } catch (x) {} // Tamaño del texto, before the first paint
+      if (dicts[l]) { var k = document.createElement('link'); k.rel = 'modulepreload'; k.crossOrigin = ''; k.href = dicts[l]; document.head.appendChild(k); }
+      // Reopened (the installed app, or a new tab: nothing in this tab's session yet) at the start page: back where it
+      // was left (router.ts saves it), if that was in this language. A link to a page, a reload or the Resolver's own
+      // link still go where they say. `q`: the path without its language.
+      var q = p.replace(/^\/(en|pt)(?=\/|$)/, '') || '/';
+      try {
+        if (q === '/' && !location.search && !location.hash && first) {
+          var last = JSON.parse(localStorage.getItem('last-page')), lp = last && typeof last.path === 'string' && /^\/[^\/]/.test(last.path) && /^(?:\/(en|pt)(?=\/|$))?/.exec(last.path);
+          // An unprefixed one saved before languages had URLs, by someone just sent to theirs (`want`): there in it
+          if (lp && !lp[1] && want === l && l !== 'es') last.path = '/' + l + last.path, lp[1] = l;
+          if (lp && (lp[1] || 'es') === l) { history.replaceState({ scroll: +last.scroll || 0 }, '', last.path); p = location.pathname; q = p.replace(/^\/(en|pt)(?=\/|$)/, '') || '/'; }
+        }
+        sessionStorage.setItem('open', '1');
+      } catch (x) {}
+      // The screen, as router.ts's parseRoute (index-html.test.ts checks every route against it)
+      var m = /^\/(academia|algoritmos|hoy|como-resolver-el-cubo-de-rubik|cubos-inteligentes)(\/|$)/.test(q) ? 'academy' : /^\/progreso(\/|$)/.test(q) ? 'progress' : /^\/retos(\/|$)/.test(q) ? 'challenges' : /^\/acerca(\/|$)/.test(q) ? 'about' : /^\/(cubo|guia)(\/|$)/.test(q) ? 'cube' : q === '/' && /[?&]reto=/.test(location.search) ? 'challenges' : 'solve'; // a duel's link: router.ts takes it to /retos
+      b.dataset.module = m;
+      if (/^\/cubo\/pintar(\/|$)/.test(q)) b.setAttribute('data-paint', '');
+      try { var e = JSON.parse(localStorage.getItem('cube-event')); if (m === 'solve' && typeof e === 'string' && e.slice(0, 3) !== '333' && e !== '222') b.classList.add('other-puzzle'); } catch (x) {} // the events without the 3D model, as timer.ts's has3d
+      // First visit (none of the app's keys, as progress.ts's inBackup, but the empty times main.ts writes on load):
+      // the Resolver's welcome card, laid out before the first paint so nothing moves. Dismissed: 'cube-welcome'.
+      try { for (var i = 0, s = localStorage, k, fresh = true; fresh && i < s.length; i++) { k = s.key(i); if (/^(cube|academy|quiz|cross|practice|progress|paint)-/.test(k) && !(k === 'cube-results' && s.getItem(k) === '[]')) fresh = false; } if (fresh) b.classList.add('fresh'); } catch (x) {}
+    })(document.body, location.pathname);
+  </script>
+  <header class="app-header">
+    <h1 class="app-brand"><svg class="app-mark" viewBox="158 210 707 604" aria-hidden="true"><g fill="#eef1f7"><rect x="166" y="218" width="176" height="176" rx="40"/><rect x="372" y="218" width="176" height="176" rx="40"/><rect x="578" y="218" width="176" height="176" rx="40"/><rect x="166" y="630" width="176" height="176" rx="40"/><rect x="372" y="630" width="176" height="176" rx="40"/><rect x="578" y="630" width="176" height="176" rx="40"/></g><g fill="#4ade80"><rect x="270" y="424" width="176" height="176" rx="40"/><rect x="476" y="424" width="176" height="176" rx="40"/><rect x="682" y="424" width="176" height="176" rx="40"/></g></svg><span data-i18n="app.title">TwistLab</span></h1>
+    <span id="header-module" class="header-module"></span>
+    <button id="menu-toggle" class="menu-toggle" popovertarget="header-menu" data-i18n-aria-label="menu.open">☰</button>
+    <!-- a popover on phones (☰); on wide screens CSS keeps it inline in the bar -->
+    <div id="header-menu" class="header-menu" popover>
+      <nav class="menu" data-i18n-aria-label="menu.label">
+        <a href="/" data-mod="solve" aria-current="page" data-i18n="menu.solve"></a>
+        <a href="/retos" data-mod="challenges" data-i18n="challenges.title"></a>
+        <a href="/hoy" data-mod="today" data-i18n="menu.today"></a>
+        <a href="/academia" data-mod="academy" data-i18n="menu.academy"></a>
+        <a href="/algoritmos" data-mod="library" data-i18n="menu.library"></a>
+        <a href="/progreso" data-mod="progress" data-i18n="nav.progress"></a>
+      </nav>
+      <a class="menu-about" href="/acerca" data-mod="about" data-i18n="about.link"></a><!-- the ☰ menu's foot only -->
+      <p class="lang-switch" role="group" data-i18n-aria-label="lang.label"><button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button> · <button type="button" data-lang="pt" lang="pt" aria-label="Português">PT</button></p>
+    </div>
+    <!-- always in the bar, phones included (there only the status) -->
+    <!-- Apoya TwistLab: a quiet heart, opening a sheet that says what donations pay for -->
+    <button id="support-open" class="support-open" type="button" aria-haspopup="dialog" data-i18n-aria-label="support.title" data-i18n-title="support.title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-9-8.6C1.6 8.4 3.5 5 6.8 5c2 0 3.3 1.1 5.2 3 1.9-1.9 3.2-3 5.2-3 3.3 0 5.2 3.4 3.8 6.4C19 15.6 12 20 12 20z"/></svg></button>
+    <!-- the smart cube's status, a link to its screen (on phones the tab bar has Retos in its place) -->
+    <a class="header-status-link" href="/cubo" data-mod="cube"><span class="sr-only" data-i18n="menu.cube"></span><dl class="header-status">
+      <dt data-i18n="cube.status"></dt><dd id="status" data-i18n="cube.noCube"></dd>
+      <dt data-i18n="cube.battery"></dt><dd id="battery">–</dd>
+    </dl></a>
+  </header>
+  <!-- phones (CSS, up to 600px): the modules as a bottom tab bar, in place of ☰ -->
+  <nav class="tabbar" data-i18n-aria-label="nav.label">
+    <a href="/" data-mod="solve" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="14" r="7"/><path d="M12 10v4l2 2M10 3h4M12 3v4"/></svg><span data-i18n="menu.solve"></span></a>
+    <a href="/academia" data-mod="academy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5M22 9v6"/></svg><span data-i18n="menu.academy"></span></a>
+    <a href="/algoritmos" data-mod="library"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span data-i18n="menu.library"></span></a>
+    <a href="/progreso" data-mod="progress"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M6 17v-5M11 17V6M16 17v-8M21 17v-3"/></svg><span data-i18n="nav.progress"></span></a>
+    <a href="/retos" data-mod="challenges"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></svg><span data-i18n="challenges.title"></span></a>
+  </nav>
+  <main class="panel">
+    <section id="mod-solve" role="region" data-i18n-aria-label="menu.solve">
+      <div class="solve-top">
+        <label class="event-pick"><span data-i18n="event.label"></span> <select id="event"></select></label>
+        <button id="new-scramble" title="N" data-i18n="solve.newScramble"></button>
+        <button id="opts-open" type="button" aria-haspopup="dialog" data-i18n="solve.options"></button>
+      </div>
+      <p id="challenge-note" class="challenge-note" role="status"></p>
+      <div id="scramble-box" class="scramble-box">
+        <div id="scramble-text" class="scramble" role="group" data-i18n-aria-label="solve.scramble" data-i18n="solve.generating"></div>
+        <p id="scramble-note" hidden></p>
+        <!-- a tap opens it big, with the scramble (#net-dialog) -->
+        <button id="net" class="net" type="button" aria-haspopup="dialog" data-i18n-aria-label="solve.netOpen" data-i18n-title="solve.netOpen" disabled></button>
+      </div>
+      <!-- the last time, big (a tap opens its sheet), and the averages under it: what a timer is looked at for -->
+      <div id="readout" class="readout">
+        <button id="last-open" type="button" class="last-time" aria-haspopup="dialog" disabled><span class="sr-only" data-i18n="solve.lastTime"></span> <span id="last-time">0.00</span></button>
+        <dl id="stats" class="stats"></dl>
+      </div>
+      <p id="timer-hint" class="hint" data-i18n="solve.spaceToInspect"></p>
+      <div class="solve-actions">
+        <button id="start" class="primary" title="Espacio" data-i18n="solve.start"></button>
+        <form id="typed" class="typed" hidden>
+          <input id="typed-time" autocomplete="off" autocapitalize="characters" enterkeyhint="done" data-i18n-aria-label="typed.label" placeholder="12.34" />
+          <button class="primary" data-i18n="typed.add"></button>
+        </form>
+        <p id="typed-status" class="hint" role="status"></p>
+      </div>
+      <div id="cross-best"></div> <!-- under Empezar: on a phone, Empezar stays on the first screen -->
+      <!-- first visit only (body.fresh, set by the inline script above): under Empezar, so it never pushes it down -->
+      <section id="welcome" class="welcome" aria-labelledby="welcome-title">
+        <p id="welcome-title" data-i18n="about.welcome"></p>
+        <div class="row">
+          <a class="button" href="/academia/principiante" data-i18n="about.welcomeLearn"></a>
+          <a class="button" href="/academia/cfop-reducido" data-i18n="about.welcomeCfop"></a>
+          <a class="button" href="/hoy" data-i18n="today.welcome"></a>
+          <button id="welcome-timer" type="button" data-i18n="about.welcomeTimer"></button>
+        </div>
+      </section>
+      <section id="analysis" class="cube-block analysis" hidden></section>
+      <div class="row solve-more">
+        <button id="stats-open" class="small" aria-haspopup="dialog" data-i18n="stats.open"></button>
+        <button id="round-start" class="small" data-i18n="round.start"></button>
+        <button id="round-stop" class="small" hidden data-i18n="round.stop"></button>
+        <span id="round-status" class="hint" role="status"></span>
+        <select id="session" class="small" data-i18n-aria-label="session.label"></select>
+        <button id="reset-results" class="small" hidden data-i18n="results.deleteAll"></button>
+      </div>
+      <ol id="results" class="results" reversed></ol>
+      <section class="tool-about" aria-labelledby="solve-about-title">
+        <h2 id="solve-about-title" data-i18n="solve.seoTitle"></h2>
+        <p data-i18n="solve.about"></p>
+        <ul>
+          <li data-i18n="solve.aboutWca"></li>
+          <li data-i18n="solve.aboutInspection"></li>
+          <li data-i18n="solve.aboutAverages"></li>
+          <li data-i18n="solve.aboutSmart"></li>
+          <li data-i18n="solve.aboutFree"></li>
+        </ul>
+        <p><a href="/como-resolver-el-cubo-de-rubik" data-i18n="solve.aboutLearn"></a> · <a href="/cubo/pintar" data-i18n="paint.seoTitle"></a></p>
+      </section>
+      <p class="foot-link"><a href="/acerca" data-i18n="about.link"></a></p>
+    </section>
+    <section id="mod-cube" class="cube-screen" data-i18n-aria-label="menu.cube">
+      <h2 data-i18n="cube.title"></h2>
+      <!-- the connection: here on the Cubo screen, and moved into #cube-dialog when the header's status opens it elsewhere -->
+      <div id="conn-home"><section id="conn" class="cube-block">
+        <h3 data-i18n="cube.connection"></h3>
+        <p id="conn-status" class="conn-status" role="status"></p>
+        <div class="row"><button id="connect" class="primary" data-i18n="cube.connect"></button></div>
+        <p id="conn-error" class="conn-error" role="alert" hidden></p>
+        <div id="ios-ble" class="ios-ble" hidden>
+          <p><strong data-i18n="cube.iosTitle"></strong></p>
+          <ol>
+            <li data-i18n="cube.iosStep1"></li>
+            <li data-i18n="cube.iosStep2"></li>
+            <li data-i18n="cube.iosStep3"></li>
+          </ol>
+          <a href="https://apps.apple.com/app/id1492822055" target="_blank" rel="noopener" data-i18n="cube.iosLink"></a>
+          <p class="hint" data-i18n="cube.iosNote"></p>
+        </div>
+        <dl><dt data-i18n="cube.device"></dt><dd id="device">–</dd></dl>
+        <p id="cube-note" class="hint" hidden data-i18n="cube.assumeSolved"></p>
+        <p id="bluefy-hint" class="hint" hidden data-i18n="cube.bluefyHint"></p>
+        <p class="hint" data-i18n="cube.connectionHint"></p>
+        <details id="mac-help">
+          <summary data-i18n="cube.macHelpTitle"></summary>
+          <p data-i18n="cube.macHelpIntro"></p>
+          <ol>
+            <li data-i18n="cube.macHelpFlag"></li>
+            <li data-i18n="cube.macHelpInternals"></li>
+            <li data-i18n="cube.macHelpGan"></li>
+          </ol>
+          <p class="hint" data-i18n="cube.macHelpWrong"></p>
+        </details>
+        <p><a href="/cubos-inteligentes" data-i18n="cube.whichCube"></a></p>
+        <p class="conn-more"><a href="/cubo" data-i18n="cube.moreSettings"></a></p>
+      </section></div>
+      <section id="inspect" class="cube-block" hidden>
+        <h3 data-i18n="inspect.title"></h3>
+        <div id="inspect-body"></div>
+        <p class="hint" data-i18n="inspect.hint"></p>
+      </section>
+      <section class="cube-block">
+        <h3 data-i18n="cube.settings"></h3>
+        <div class="row">
+          <button id="reset-gyro" disabled data-i18n="cube.resetGyro"></button>
+          <button id="reset-state" disabled data-i18n="cube.resetState"></button>
+        </div>
+        <p class="hint" data-i18n="cube.resetGyroHint"></p>
+        <p class="hint" data-i18n="cube.resetStateHint"></p>
+        <!-- phones have no ☰ menu (the tab bar replaces it): the language switch lives here too -->
+        <p class="lang-switch" role="group" aria-labelledby="cube-lang"><span id="cube-lang" data-i18n="lang.label"></span> <button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button> · <button type="button" data-lang="pt" lang="pt" aria-label="Português">PT</button></p>
+        <p class="lang-switch" role="group" aria-labelledby="cube-text"><span id="cube-text" data-i18n="text.label"></span> <button type="button" data-text="" data-i18n-aria-label="text.normal">A</button> · <button type="button" data-text="l" data-i18n-aria-label="text.large">A+</button> · <button type="button" data-text="xl" data-i18n-aria-label="text.xlarge">A++</button></p>
+      </section>
+      <section id="guide-actions" class="cube-block">
+        <h3 data-i18n="cube.guide"></h3>
+        <div class="row">
+          <button id="scramble-start" disabled data-i18n="guide.scramble"></button>
+          <button id="guide-start" class="primary" disabled data-i18n="guide.start"></button>
+        </div>
+        <p class="hint" data-i18n="cube.guideHint"></p>
+      </section>
+      <section class="cube-block">
+        <h3 data-i18n="paint.title"></h3>
+        <p class="hint" data-i18n="paint.summary"></p>
+        <div class="row"><a class="button" href="/cubo/pintar" data-i18n="paint.open"></a></div>
+      </section>
+    </section>
+    <!-- Pinta tu cubo (paint-view.ts) -->
+    <section id="mod-paint" aria-labelledby="paint-title">
+      <nav class="crumbs" data-i18n-aria-label="academy.crumbs"><a href="/cubo" data-i18n="menu.cube"></a> › <span aria-current="page" data-i18n="paint.title"></span></nav>
+      <h2 id="paint-title" data-i18n="paint.seoTitle"></h2>
+      <p class="hint" data-i18n="paint.intro"></p>
+      <form id="paint-scramble" class="row goal-form">
+        <label class="library-field"><span class="hint" data-i18n="paint.scrambleLabel"></span><input id="paint-scramble-input" autocomplete="off" autocapitalize="characters" spellcheck="false" required /></label>
+        <button class="primary" data-i18n="paint.scrambleGo"></button>
+      </form>
+      <div id="paint-palette" class="paint-palette" role="group" data-i18n-aria-label="paint.palette"></div>
+      <div id="paint-net" class="paint-net" role="group" data-i18n-aria-label="paint.net" aria-describedby="paint-keys"></div>
+      <p id="paint-keys" class="hint" data-i18n="paint.keysHint"></p>
+      <div class="row">
+        <button id="paint-solve" class="primary" data-i18n="paint.solve"></button>
+        <button id="paint-reset" data-i18n="paint.reset"></button>
+        <button id="paint-clear" data-i18n="paint.clear"></button>
+      </div>
+      <div id="paint-status" role="status"></div>
+      <section id="paint-solution" class="cube-block" aria-labelledby="paint-solution-title" hidden>
+        <h3 id="paint-solution-title" tabindex="-1" data-i18n="paint.solution"></h3>
+        <div class="row paint-modes" role="group" data-i18n-aria-label="paint.modes">
+          <button id="paint-mode-short" type="button" aria-pressed="true" data-i18n="paint.shortest"></button>
+          <button id="paint-mode-guided" type="button" aria-pressed="false" data-i18n="paint.guided"></button>
+        </div>
+        <p class="hint"><span id="paint-note"></span> <a id="paint-learn" href="/academia" data-i18n="paint.learn"></a></p>
+        <div id="paint-player"></div>
+        <div id="paint-live" aria-live="polite">
+          <p id="paint-progress" class="hint"></p>
+          <p><span id="paint-move"></span><span id="paint-desc"></span></p>
+        </div>
+        <div id="paint-steps"></div>
+        <div class="row">
+          <button id="paint-prev" data-i18n="paint.prev"></button>
+          <button id="paint-next" class="primary" data-i18n="paint.next"></button>
+          <button id="paint-all" data-i18n="paint.all"></button>
+        </div>
+      </section>
+      <section class="tool-about" aria-labelledby="paint-about-title">
+        <h3 id="paint-about-title" data-i18n="paint.aboutTitle"></h3>
+        <ul>
+          <li data-i18n="paint.aboutPaint"></li>
+          <li data-i18n="paint.aboutCheck"></li>
+          <li data-i18n="paint.aboutSolution"></li>
+          <li data-i18n="paint.aboutAnim"></li>
+          <li data-i18n="paint.aboutFree"></li>
+        </ul>
+        <p><a href="/como-resolver-el-cubo-de-rubik" data-i18n="paint.aboutLearn"></a> · <a href="/" data-i18n="solve.seoTitle"></a></p>
+      </section>
+    </section>
+    <section id="mod-academy" data-i18n-aria-label="menu.academy"></section>
+    <section id="mod-progress" class="cube-screen" data-i18n-aria-label="nav.progress"></section>
+    <section id="mod-challenges" class="cube-screen" data-i18n-aria-label="challenges.title"></section>
+    <!-- Acerca de (/acerca): static, shown by body[data-module="about"] (CSS), so a deep link has it on the first paint -->
+    <section id="mod-about" class="cube-screen" aria-labelledby="about-title">
+      <h2 id="about-title" data-i18n="about.title"></h2>
+      <p data-i18n="about.intro"></p>
+      <p class="lang-switch" role="group" aria-labelledby="about-lang"><span id="about-lang" data-i18n="lang.label"></span> <button type="button" data-lang="es" lang="es" aria-label="Español">ES</button> · <button type="button" data-lang="en" lang="en" aria-label="English">EN</button> · <button type="button" data-lang="pt" lang="pt" aria-label="Português">PT</button></p>
+      <p class="lang-switch" role="group" aria-labelledby="about-text"><span id="about-text" data-i18n="text.label"></span> <button type="button" data-text="" data-i18n-aria-label="text.normal">A</button> · <button type="button" data-text="l" data-i18n-aria-label="text.large">A+</button> · <button type="button" data-text="xl" data-i18n-aria-label="text.xlarge">A++</button></p>
+      <ul class="about-points">
+        <li data-i18n="about.pointFree"></li>
+        <li data-i18n="about.pointLocal"></li>
+        <li data-i18n="about.pointCube"></li>
+        <li data-i18n="about.pointOffline"></li>
+      </ul>
+      <h3 data-i18n="about.faq"></h3>
+      <details><summary data-i18n="about.qFree"></summary><p data-i18n="about.aFree"></p></details>
+      <details><summary data-i18n="about.qAccount"></summary><p data-i18n="about.aAccount"></p></details>
+      <details><summary data-i18n="about.qCube"></summary><p data-i18n="about.aCube"></p></details>
+      <details><summary data-i18n="about.qIphone"></summary><p data-i18n="about.aIphone"></p><p><a href="/cubo" data-i18n="about.aIphoneLink"></a></p></details>
+      <details><summary data-i18n="about.qData"></summary><p data-i18n="about.aData"></p><p><a href="/progreso" data-i18n="about.aDataLink"></a></p></details>
+      <details><summary data-i18n="about.qPrivacy"></summary><p data-i18n="about.aPrivacy"></p></details>
+      <details><summary data-i18n="about.qOffline"></summary><p data-i18n="about.aOffline"></p></details>
+      <details><summary data-i18n="about.qWho"></summary><p data-i18n="about.aWho"></p></details>
+      <details><summary data-i18n="about.qWca"></summary><p data-i18n="about.aWca"></p></details>
+      <details><summary data-i18n="about.qOpen"></summary><p data-i18n="about.aOpen"></p><p><a href="https://github.com/sancospi/twistlab" target="_blank" rel="noopener" data-i18n="about.aOpenLink"></a></p></details>
+      <details><summary data-i18n="about.qSupport"></summary><p data-i18n="support.text"></p><p><a href="https://github.com/sponsors/sancospi" target="_blank" rel="noopener" data-i18n="support.github"></a></p></details>
+    </section>
+    <!-- a case's page (caseView.ts): the head goes in #mod-academy; the rest lives here, so its 3D cube is never re-attached -->
+    <section id="case" class="case-page" hidden>
+      <div class="case-visual"><div id="case-diagram" class="case-diagram"></div><div id="case-anim"></div><div id="case-player" class="case-player" role="group" data-i18n-aria-label="anim.label" hidden></div></div>
+      <div id="case-body" class="case-body"></div>
+    </section>
+    <!-- the lesson player (lessonView.ts): outside #mod-academy, which is rebuilt per page, so its 3D cube is never re-attached -->
+    <section id="lesson" class="lesson" aria-labelledby="lesson-title" hidden>
+      <div class="lesson-card">
+        <h2 id="lesson-title"></h2>
+        <progress id="lesson-progress" data-i18n-aria-label="lesson.progress"></progress>
+        <p id="lesson-count" class="hint"></p>
+        <div id="lesson-text" class="lesson-text" tabindex="-1" aria-describedby="lesson-count"></div>
+        <div id="lesson-player" class="lesson-player" hidden></div>
+        <div id="lesson-body" class="lesson-body"></div>
+        <p id="lesson-feedback" class="lesson-feedback" role="status"></p>
+        <div class="row"><button id="lesson-next" type="button" class="primary" data-i18n="lesson.continue"></button></div>
+      </div>
+    </section>
+    <section id="guide" hidden aria-live="polite">
+      <div class="guide-head"><span><strong id="guide-title"></strong> · <span id="guide-progress"></span></span><button id="guide-stop" data-i18n="guide.stop"></button></div>
+      <div id="guide-next"></div>
+      <div id="guide-desc"></div>
+      <div id="guide-steps"></div>
+      <p class="hint" data-i18n="guide.holdHint"></p>
+    </section>
+    <div id="moves"></div>
+  </main>
+  <!-- the 3D cube (main.ts appends its player) with the view arrows in its corner; after the panel so the arrows tab after it -->
+  <div id="cube">
+    <div class="view" role="group" data-i18n-aria-label="view.label">
+      <button data-turn="up" data-i18n-aria-label="view.up" data-i18n-title="view.upTitle">↑</button>
+      <button data-turn="left" data-i18n-aria-label="view.left" data-i18n-title="view.leftTitle">←</button>
+      <button data-turn="reset" data-i18n-aria-label="view.reset" data-i18n-title="view.resetTitle">⟲</button>
+      <button data-turn="right" data-i18n-aria-label="view.right" data-i18n-title="view.rightTitle">→</button>
+      <button data-turn="down" data-i18n-aria-label="view.down" data-i18n-title="view.downTitle">↓</button>
+    </div>
+  </div>
+  <div id="stage" class="stage" hidden>
+    <button id="stage-cancel" class="stage-cancel" type="button" title="Esc" data-i18n-aria-label="timer.cancel" hidden>×</button>
+    <div id="big" class="big" role="timer">15</div>
+    <p id="stage-hint" class="stage-hint"></p>
+    <p id="stage-round" class="stage-hint"></p>
+    <p id="stage-call" class="sr-only" role="status"></p>
+    <div id="penalties" class="row" role="group" data-i18n-aria-label="penalty.label" hidden>
+      <button data-pen="0" title="Ctrl+1" data-i18n="penalty.ok"></button>
+      <button data-pen="2000" title="Ctrl+2">+2</button>
+      <button data-pen="DNF" title="Ctrl+3">DNF</button>
+      <button id="delete-last" title="Ctrl+Z" data-i18n="results.delete"></button>
+      <button id="duel-share" data-i18n="duel.share" data-i18n-title="duel.shareLabel"></button>
+      <button id="stage-challenges" class="primary" hidden data-i18n="challenge.toChallenges"></button>
+    </div>
+    <p id="duel-status" class="stage-hint" role="status"></p>
+  </div>
+  <dialog id="solve-opts" class="sheet" aria-labelledby="solve-opts-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="solve-opts-title" data-i18n="solve.options"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div class="row timer-opts">
+      <label><input type="checkbox" id="calls-visual" /> <span data-i18n="timer.callsVisual"></span></label>
+      <label><input type="checkbox" id="calls-voice" /> <span data-i18n="timer.callsVoice"></span></label>
+    </div>
+    <section class="cube-block clock-opts" aria-labelledby="clock-opts-title">
+      <h3 id="clock-opts-title" data-i18n="opts.clock"></h3>
+      <label><span data-i18n="opts.hold"></span> <select id="opt-hold"></select></label>
+      <label><span data-i18n="opts.precision"></span> <select id="opt-precision"></select></label>
+      <label><span data-i18n="opts.phases"></span> <select id="opt-phases"></select></label>
+      <label><span data-i18n="opts.entry"></span> <select id="opt-entry"></select></label>
+      <p class="hint" data-i18n="opts.phasesHint"></p>
+      <details class="keys-help">
+        <summary data-i18n="opts.keys"></summary>
+        <dl>
+          <dt data-i18n="opts.spaceKey"></dt><dd data-i18n="opts.keySpace"></dd>
+          <dt>Esc</dt><dd data-i18n="opts.keyEsc"></dd>
+          <dt>N</dt><dd data-i18n="solve.newScramble"></dd>
+          <dt>Ctrl+1 · Ctrl+2 · Ctrl+3</dt><dd data-i18n="opts.keyPenalty"></dd>
+          <dt>Ctrl+Z</dt><dd data-i18n="opts.keyDelete"></dd>
+        </dl>
+        <p class="hint" data-i18n="opts.keysHint"></p>
+      </details>
+    </section>
+    <section class="cube-block round" aria-labelledby="round-opts-title">
+      <h3 id="round-opts-title" data-i18n="round.title"></h3>
+      <div class="row timer-opts">
+        <label><span data-i18n="round.cutoff"></span> <input id="round-cutoff" placeholder="opcional" type="number" min="0" step="any" inputmode="decimal" /></label>
+        <label><span data-i18n="round.limit"></span> <input id="round-limit" placeholder="opcional" type="number" min="0" step="any" inputmode="decimal" /></label>
+      </div>
+      <p id="round-hint" class="hint"></p>
+      <ul id="round-list" class="round-list"></ul>
+    </section>
+    <section class="cube-block">
+      <h3 data-i18n="import.title"></h3>
+      <p class="hint" data-i18n="import.hint"></p>
+      <div class="row"><button id="import-choose" type="button" data-i18n="import.choose"></button></div>
+      <input id="import-file" type="file" accept=".txt,.json,.csv,text/plain,application/json,text/csv" hidden />
+      <p id="import-status" role="status"></p>
+    </section>
+  </dialog>
+  <dialog id="round-dialog" class="sheet" aria-labelledby="round-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="round-title"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div id="round-body" class="stats-body"></div>
+  </dialog>
+  <dialog id="daily-dialog" class="sheet" aria-labelledby="daily-dialog-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="daily-dialog-title" data-i18n="daily.title"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div id="daily-body" class="stats-body"></div>
+  </dialog>
+  <dialog id="support-dialog" class="sheet" aria-labelledby="support-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="support-title" data-i18n="support.title"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div class="stats-body">
+      <p data-i18n="support.text"></p>
+      <!-- one link per way to give; Ko-fi goes here too -->
+      <div class="row"><a class="button primary" href="https://github.com/sponsors/sancospi" target="_blank" rel="noopener" data-i18n="support.github"></a></div>
+      <p class="hint" data-i18n="support.githubHint"></p>
+    </div>
+  </dialog>
+  <dialog id="cube-dialog" class="sheet" aria-labelledby="cube-dialog-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="cube-dialog-title" data-i18n="cube.connection"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+  </dialog>
+  <dialog id="net-dialog" class="sheet" aria-labelledby="net-dialog-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="net-dialog-title" data-i18n="solve.scramble"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div id="net-big" class="net-big" aria-hidden="true"></div>
+    <div id="net-scramble" class="scramble"></div>
+  </dialog>
+  <dialog id="solve-detail" class="sheet" aria-labelledby="solve-detail-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="solve-detail-title" class="detail-time"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div id="solve-detail-body" class="stats-body"></div>
+  </dialog>
+  <dialog id="stats-dialog" class="sheet" aria-labelledby="stats-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="stats-title" data-i18n="stats.title"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div id="stats-body" class="stats-body"></div>
+  </dialog>
+  <dialog id="practice" class="sheet" aria-labelledby="practice-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="practice-title"></h2>
+      <button id="practice-help-toggle" type="button" class="help-toggle" aria-expanded="false" aria-controls="practice-help" data-i18n-aria-label="practice.helpLabel" data-i18n-title="practice.helpLabel">?</button>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <p id="practice-help" class="practice-help" hidden></p>
+    <div id="practice-prep" class="practice-view">
+      <div class="practice-head">
+        <div id="practice-diagram" class="practice-diagram"></div>
+        <div class="practice-facts">
+          <p><strong data-i18n="practice.recognition"></strong> · <span id="practice-recognition"></span></p>
+          <p id="practice-prob" class="hint" hidden></p>
+          <details id="practice-more">
+            <summary data-i18n="practice.more"></summary>
+            <p id="practice-note" class="hint"></p>
+            <a id="practice-scdb" target="_blank" rel="noopener" data-i18n="practice.scdb"></a>
+          </details>
+        </div>
+      </div>
+      <div id="practice-tabs" class="row practice-tabs" role="group" data-i18n-aria-label="practice.tabs">
+        <button type="button" data-tab="practice" data-i18n="practice.tab.practice"></button>
+        <button type="button" data-tab="quiz" data-i18n="practice.tab.quiz"></button>
+        <button type="button" data-tab="drill" data-i18n="practice.tab.drill"></button>
+      </div>
+      <p id="practice-lead" class="hint"></p>
+      <div id="practice-chosen" class="practice-chosen"></div>
+      <details id="practice-change" class="practice-change">
+        <summary id="practice-change-label"></summary>
+        <fieldset id="practice-algs" class="algs"></fieldset>
+      </details>
+      <button id="practice-start" type="button" class="primary practice-start"></button>
+    </div>
+    <div id="practice-focus" class="practice-view" hidden>
+      <div class="row practice-bar">
+        <button id="practice-back" type="button" class="small" data-i18n="practice.back"></button>
+        <span id="practice-mode" class="hint"></span>
+        <button id="practice-reveal" type="button" class="small"></button>
+      </div>
+      <div id="practice-card" class="practice-card" tabindex="-1">
+        <ol id="practice-steps" class="steps" data-i18n-aria-label="practice.steps">
+          <li id="practice-step-scramble" data-i18n="practice.stepScramble"></li>
+          <li id="practice-step-solve" data-i18n="practice.stepSolve"></li>
+        </ol>
+        <p id="practice-card-top" class="card-top"></p>
+        <div id="practice-card-scramble" class="card-scramble">
+          <div id="practice-card-diagram" class="card-diagram"></div>
+          <div><code id="practice-setup" class="card-moves"></code><p id="practice-setup-note"></p></div>
+        </div>
+        <div id="practice-rotate" class="rotate"></div>
+        <div id="practice-next" class="next" aria-live="polite"></div>
+        <button id="practice-clock" type="button" class="practice-clock" aria-describedby="practice-card-hint">0.00</button>
+        <p id="practice-delta" class="delta"></p>
+        <div id="practice-desc" aria-live="polite"></div>
+        <div id="practice-list" class="tokens"></div>
+        <p id="practice-solution" class="card-solution"><span id="practice-alg-label" class="hint"></span> <code id="practice-alg"></code></p>
+        <p id="practice-card-hint" class="hint"></p>
+        <div id="practice-grade" class="row grade">
+          <button id="practice-clean" type="button" class="primary" data-i18n="practice.cleanBtn"></button>
+          <button id="practice-fail" type="button" aria-keyshortcuts="x"><span data-i18n="practice.failBtn"></span><kbd class="key-hint" aria-hidden="true">X</kbd></button>
+        </div>
+        <div class="row"><button id="practice-again" type="button" class="primary" hidden></button></div>
+      </div>
+      <p id="practice-notice" class="hint practice-notice"></p>
+      <div class="row practice-actions">
+        <button id="practice-peek" type="button" data-i18n="practice.peek"></button>
+        <button id="practice-lap-fail" type="button" aria-keyshortcuts="x"><span data-i18n="practice.failBtn"></span><kbd class="key-hint" aria-hidden="true">X</kbd></button>
+        <button id="practice-finish" type="button" data-i18n="practice.finish"></button>
+      </div>
+      <div id="practice-session" class="practice-session"></div>
+      <div id="practice-fingers"></div>
+      <div id="practice-anim" class="row"></div>
+      <div id="practice-player" class="anim-player" role="group" data-i18n-aria-label="anim.label" hidden></div>
+    </div>
+    <div id="practice-tiles" class="practice-tiles"></div>
+    <p id="practice-status" class="sr-only" role="status"></p>
+  </dialog>
+  <dialog id="quiz" class="sheet" aria-labelledby="quiz-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="quiz-title"></h2>
+      <button id="quiz-help-toggle" type="button" class="help-toggle" aria-expanded="false" aria-controls="quiz-help" data-i18n-aria-label="practice.helpLabel" data-i18n-title="practice.helpLabel">?</button>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <p id="quiz-help" class="practice-help" hidden></p>
+    <!-- the explanation's animation: outside #quiz-body, which is rebuilt on every render, so it's never re-attached; above it, so it's seen -->
+    <div id="quiz-player" class="anim-player" role="group" data-i18n-aria-label="anim.label" hidden></div>
+    <div id="quiz-body"></div>
+    <p id="quiz-status" class="sr-only" role="status"></p>
+  </dialog>
+  <dialog id="cross" class="sheet" aria-labelledby="cross-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="cross-title"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div id="cross-player" hidden></div>
+    <div id="cross-body"></div>
+    <p id="cross-status" class="sr-only" role="status"></p>
+  </dialog>
+  <dialog id="cross-viewer" class="sheet" aria-labelledby="cross-viewer-title">
+    <form method="dialog" class="sheet-head">
+      <h2 id="cross-viewer-title"></h2>
+      <button class="close" data-i18n-aria-label="dialog.close" data-i18n-title="dialog.close">×</button>
+    </form>
+    <div id="cross-viewer-player"></div>
+    <p id="cross-viewer-alg"></p>
+  </dialog>
+  <script type="module" src="/src/boot.ts"></script>
+</body>
+</html>

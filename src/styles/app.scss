@@ -1,0 +1,23 @@
+// The app's stylesheet: one file for every screen (boot.ts imports it; the build makes it one hashed, cached .css that
+// every prerendered page links), split by screen in cascade order. Per-screen lazy CSS would paint the prerendered
+// pages unstyled until their code arrived.
+@use 'base';
+@use 'resolver';
+@use 'academy-layout';
+@use 'header';
+@use 'paint';
+@use 'menu';
+@use 'academy';
+@use 'notation';
+@use 'dialogs';
+@use 'practice';
+@use 'quiz';
+@use 'trainers';
+@use 'lessons';
+@use 'case';
+@use 'pages';
+@use 'languages';
+@use 'welcome';
+@use 'analysis';
+@use 'phone-layout';
+@use 'challenges';

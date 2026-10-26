@@ -1,0 +1,23 @@
+# Every push and pull request: types (app, API, tests) and the tests, as the Vercel build runs them before deploying.
+# No secrets, so it's safe for pull requests from forks; nothing here reaches the database.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # as Vercel's project; the tests run TypeScript directly
+          cache: npm
+      - run: npm ci
+      - run: npx tsc
+      - run: npx tsc -p api
+      - run: npx tsc -p tsconfig.test.json
+      - run: npm test

@@ -1,0 +1,239 @@
+// Lessons: an optional way through a guide, one idea per step. Built from the guides' own data (no second copy of
+// the texts): Notación from the glossary's moves, La cruz blanca from crossGuide.ts, Método principiante from
+// beginner.ts. Pure (no DOM): lessonView.ts plays them, view.ts lists them.
+import { glossary, loc, t } from '../i18n.ts';
+import { caseSetup, explainMove } from '../notation.ts';
+import { beginner } from './beginner.ts';
+import { cfopReduced } from './cfop.ts';
+import { bases2x2 } from './bases2x2.ts';
+import { beginner2x2 } from './beginner2x2.ts';
+import { crossGuide, type TextGuide } from './crossGuide.ts';
+import { ortega } from './ortega.ts';
+import { f2lAdvanced } from './f2lAdvanced.ts';
+import { roux } from './roux.ts';
+import { isRecord } from './store.ts';
+import { caseLabel, type Case, type Method, type Phase, type Puzzle, type Stage } from './types.ts';
+
+export type LessonStep =
+  | { kind: 'text'; title?: string; text: string } // text: rich text (rich-text.ts)
+  // the cube at `setup` (from solved, yellow up), then `alg`; doSetup: "on my cube" does the setup first
+  | { kind: 'cube'; title?: string; text: string; setup: string; alg: string; doSetup: boolean; stage?: Stage }
+  | { kind: 'move'; move: string; choices: string[] } // "¿Qué giro hizo el cubo?"
+  | { kind: 'case'; caseId: string; alg: string; stage: Stage; diagram: 'iso' | 'top'; choices: { id: string; label: string }[] }; // "¿Qué caso es?"
+
+export interface Lesson {
+  id: string;
+  title: string;
+  steps: LessonStep[];
+}
+
+export interface Course {
+  id: string; // the guide's URL segment: lessons live at /academia/<id>/leccion/<lesson id>
+  title: string;
+  lessons: Lesson[];
+  puzzle?: Puzzle; // its cube steps' (default 3x3x3)
+}
+
+/** The glossary's moves, by kind (view.ts lists them; the Notación lessons teach them). */
+export const MOVE_GROUPS: { key: string; slug: string; bases: string[] }[] = [
+  { key: 'faces', slug: 'caras', bases: ['U', 'D', 'R', 'L', 'F', 'B'] },
+  { key: 'wide', slug: 'dos-capas', bases: ['r', 'l', 'u', 'd', 'f', 'b'] },
+  { key: 'slices', slug: 'capas-del-medio', bases: ['M', 'E', 'S'] },
+  { key: 'rotations', slug: 'todo-el-cubo', bases: ['x', 'y', 'z'] },
+];
+
+/**
+ * A guide text cut into steps, one idea each: a "## " subheading and everything under it is one step (its title);
+ * outside subheadings, consecutive paragraphs share one, a numbered list or one led in by "…:" stays whole with what
+ * leads into it (its points refer to each other: "sigues desde el punto 1"), and each other list item is a step.
+ */
+export function splitSteps(body: string): { title?: string; text: string }[] {
+  const out: { title?: string; text: string }[] = [];
+  let paragraphs: string[] = [];
+  let whole = false; // paragraphs ends in a list kept whole
+  let section: { title: string; text: string } | null = null;
+  const flush = () => {
+    if (paragraphs.length) out.push({ text: paragraphs.join('\n') });
+    paragraphs = [];
+    whole = false;
+  };
+  for (const raw of body.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    const heading = /^##\s+(.*)$/.exec(line);
+    const item = /^(?:[-•]|\d+[.)])\s+(.*)$/.exec(line);
+    const ledIn = !!paragraphs.at(-1)?.endsWith(':');
+    if (heading) {
+      flush();
+      out.push((section = { title: heading[1], text: '' }));
+    } else if (section) section.text += (section.text ? '\n' : '') + line;
+    else if (item && (whole || ledIn || /^\d/.test(line))) {
+      if (!whole && !ledIn) flush();
+      paragraphs.push(line);
+      whole = true;
+    } else if (item) {
+      flush();
+      out.push({ text: item[1] });
+    } else {
+      if (whole) flush();
+      paragraphs.push(line);
+    }
+  }
+  flush();
+  return out;
+}
+
+// Rough reading/doing time per step, for the "~n min" of the list.
+const SECONDS: Record<LessonStep['kind'], number> = { text: 20, cube: 30, move: 15, case: 15 };
+export const minutes = (l: Lesson): number => Math.max(1, Math.round(l.steps.reduce((s, x) => s + SECONDS[x.kind], 0) / 60));
+
+const text = (s: { title?: string; text: string }): LessonStep => ({ kind: 'text', ...s });
+
+// --- Notación: per kind of move, the note, each move on the cube, then "which move was it?" ---
+
+/** Question i of a group: a move and 4 choices that differ in direction or face (sorted: the order gives nothing away). */
+export function moveQuestion(bases: string[], i: number): LessonStep {
+  const SUFFIXES = ["'", '2', ''];
+  const at = (2 * i + 1) % bases.length;
+  const suffix = SUFFIXES[i % 3];
+  const base = bases[at];
+  const choices = [base, `${base}'`, `${base}2`, bases[(at + 1) % bases.length] + suffix];
+  return { kind: 'move', move: base + suffix, choices: choices.sort() };
+}
+
+function notationLessons(): Lesson[] {
+  return MOVE_GROUPS.map(({ key, slug, bases }) => {
+    // the first move of the group also shows its ′ and 2 versions; the note says it for the rest
+    const moves = [bases[0], `${bases[0]}'`, `${bases[0]}2`, ...bases.slice(1)];
+    return {
+      id: slug,
+      title: glossary(key),
+      steps: [
+        text({ title: glossary(key), text: glossary(`${key}Note`) }),
+        ...moves.map((move): LessonStep => {
+          const { what, how } = explainMove(move);
+          return { kind: 'cube', title: move, text: `**${what}.** ${how}.`, setup: '', alg: move, doSetup: false };
+        }),
+        ...[0, 1, 2].map((i) => moveQuestion(bases, i)),
+      ],
+    };
+  });
+}
+
+// --- La cruz blanca, Bases del 2x2: each lesson's text, then its examples on the cube (the scramble, then the solution) ---
+
+function guideLessons(g: TextGuide): Lesson[] {
+  return g.lessons.map((l) => ({
+    id: l.id,
+    title: loc(l.title),
+    steps: [
+      ...splitSteps(loc(l.body)).map(text),
+      ...(l.examples ?? []).map((x): LessonStep => ({ kind: 'cube', text: loc(x.caption), setup: x.setup, alg: x.solution, doSetup: true })),
+      ...(l.tips ? [text({ title: t('academy.tips'), text: loc(l.tips) })] : []),
+    ],
+  }));
+}
+
+// --- A method (principiante, CFOP reducido): how to hold it, then per phase its goal and method, each case with its
+// algorithm, and "which case is it?". A phase with many cases (CFOP's F2L) gets a lesson per group instead. ---
+
+/** Up to 4 choices for a case among its phase's: all of them, or the case and the 3 after it (in phase order). */
+export function caseChoices(cases: Case[], answer: number): Case[] {
+  if (cases.length <= 4) return cases;
+  const picked = new Set([0, 1, 2, 3].map((k) => (answer + k) % cases.length));
+  return cases.filter((_, i) => picked.has(i));
+}
+
+const MAX_CASES = 8; // more in one phase: a lesson per group, so a lesson stays short
+
+/** `algOf`: the algorithm shown for a case (the user's chosen one, in the app). */
+function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
+  const hold: Lesson = {
+    id: 'sostener',
+    title: t('lesson.hold'),
+    steps: [...splitSteps(loc(m.orientation)), ...splitSteps(m.notation ? loc(m.notation) : '')].map(text),
+  };
+  // goal and tips: a phase taught step by step (types.ts), each one step, the tips after its cases
+  const lesson = (id: string, title: string, intro: string, cases: Case[], diagram: Phase['diagram'], goal = '', tips = ''): Lesson => {
+    const n = cases.length;
+    const asked = [...new Set([n - 1, Math.floor((n - 1) / 2)])].filter((i) => i >= 0); // two spread out, if there are two
+    return {
+      id,
+      title,
+      steps: [
+        ...(goal ? [text({ text: goal })] : []),
+        ...splitSteps(intro).map(text),
+        ...cases.map((c): LessonStep => {
+          const alg = algOf(c);
+          const text = [`**${t('practice.recognition')}:** ${loc(c.recognition)}`, ...(c.note ? [loc(c.note)] : [])].join('\n');
+          return { kind: 'cube', title: caseLabel(c), text, setup: caseSetup(alg).join(' '), alg, doSetup: false, stage: c.stage };
+        }),
+        ...(tips ? [text({ title: t('academy.tips'), text: tips })] : []),
+        ...asked.map((i): LessonStep => ({
+          kind: 'case', caseId: cases[i].id, alg: cases[i].algs[0].alg, stage: cases[i].stage, diagram, // the case's own state: what its recognition reads
+          choices: caseChoices(cases, i).map((c) => ({ id: c.id, label: c.code })),
+        })),
+      ],
+    };
+  };
+  return [hold, ...m.phases.flatMap((phase): Lesson[] => {
+    if (!phase.groups.length && !phase.description) return []; // a phase still being written
+    const desc = phase.description ? loc(phase.description) : '';
+    const cases = phase.groups.flatMap((g) => g.cases);
+    const id = m === beginner ? phase.id.replace(/^prin-/, '') : phase.id; // the beginner's ids predate other methods' lessons
+    const [goal, tips] = [phase.goal ? loc(phase.goal) : '', phase.tips ? loc(phase.tips) : ''];
+    if (cases.length <= MAX_CASES) return [lesson(id, loc(phase.name), desc, cases, phase.diagram, goal, tips)];
+    const last = phase.groups.length - 1; // the goal opens the phase's first lesson, the tips close its last
+    return phase.groups.map((g, i) => lesson(g.id, `${loc(phase.name)} · ${loc(g.name)}`,
+      [...(i ? [] : [desc]), ...(g.description ? [loc(g.description)] : [])].join('\n'), g.cases, phase.diagram,
+      i ? '' : goal, i === last ? tips : ''));
+  })];
+}
+
+/** The lessons of a guide (by its URL segment), or null when it has none (yet). */
+export function courseFor(id: string, algOf: (c: Case) => string = (c) => c.algs[0].alg): Course | null {
+  if (id === 'notacion') return { id, title: t('glossary.title'), lessons: notationLessons() };
+  if (id === crossGuide.id) return { id, title: t('cross.title'), lessons: guideLessons(crossGuide) };
+  if (id === bases2x2.id) return bases2x2.lessons.length ? { id, title: loc(bases2x2.name), lessons: guideLessons(bases2x2), puzzle: '2x2x2' } : null;
+  // the full CFOP and COLL are references: no lessons
+  const m = [beginner, cfopReduced, f2lAdvanced, roux, beginner2x2, ortega].find((x) => x.id === id);
+  if (m) return { id, title: loc(m.name), lessons: methodLessons(m, algOf), ...(m.puzzle ? { puzzle: m.puzzle } : {}) };
+  return null;
+}
+
+// --- Progress: the lessons finished, per course ---
+
+/** Per course, the ids of the finished lessons; anything malformed in storage is dropped. */
+export function parseDone(raw: unknown): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  if (!isRecord(raw)) return out;
+  for (const [course, ids] of Object.entries(raw)) {
+    if (!Array.isArray(ids)) continue;
+    const ok = ids.filter((x): x is string => typeof x === 'string');
+    if (ok.length) out[course] = [...new Set(ok)];
+  }
+  return out;
+}
+
+/** The recommended lesson: the first one not finished yet (null when all are). */
+export const nextLesson = (lessons: Lesson[], done: string[]): Lesson | null => lessons.find((l) => !done.includes(l.id)) ?? null;
+
+// The cross guide's lessons a first-timer needs (what it is, one edge at a time); the rest (inspection, efficiency) is
+// for speed, after the beginner's method
+const CROSS_BASICS = 2;
+
+/** Hoy's next lesson: the first unfinished one of the most recently practised course (`recent`: guide ids, newest
+ *  first), else of a course already started, else of the white cross, then the beginner's method. Null when all done.
+ *  Someone on no other course yet (a first-timer) gets only the cross's basics until the beginner's method is done. */
+export function suggestedLesson(recent: string[], done: Record<string, string[]>, algOf?: (c: Case) => string): { course: Course; lesson: Lesson } | null {
+  const ids = new Set([...recent, ...Object.keys(done), crossGuide.id, beginner.id]);
+  const newcomer = [...ids].every((id) => [crossGuide.id, beginner.id, 'notacion'].includes(id));
+  const beginnerDone = !nextLesson(courseFor(beginner.id, algOf)!.lessons, done[beginner.id] ?? []);
+  for (const id of ids) {
+    const course = courseFor(id, algOf);
+    const lessons = id === crossGuide.id && newcomer && !beginnerDone ? course?.lessons.slice(0, CROSS_BASICS) : course?.lessons;
+    const lesson = course && nextLesson(lessons!, done[id] ?? []);
+    if (lesson) return { course: course!, lesson };
+  }
+  return null;
+}

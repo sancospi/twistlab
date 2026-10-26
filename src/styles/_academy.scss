@@ -1,0 +1,47 @@
+// The Academia's pages: full page, phase pills and navigation, phases taught step by step.
+@use 'tokens' as *;
+
+/* Academia is its own full page under the bar: no 3D cube behind it, the width for the content */
+body[data-module="academy"] #cube, body[data-module="academy"] .view, body[data-module="academy"] #moves { display: none; }
+body[data-module="academy"] .panel { @include full-page; }
+#mod-academy { padding: 20px 24px; }
+.academy-layout { display: grid; gap: 24px; }
+/* Phones: no side navigation, so the phase pills stick under the bar, in one row that scrolls sideways */
+.academy-nav { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; scrollbar-width: none;
+  margin: 0 -24px; padding: 8px 24px; background: var(--bg); border-bottom: 1px solid $raised; }
+.academy-nav a { flex: none; color: var(--fg); text-decoration: none; padding: 4px 10px; border-radius: 8px; background: $raised; font-size: 0.9286rem; white-space: nowrap; }
+.academy-nav a:hover, .academy-nav a:focus-visible { background: #3a4358; }
+.academy-nav a[aria-current="location"] { background: var(--accent); color: $on-accent; font-weight: 600; }
+.academy-nav ul { display: none; }
+.academy-phase, .academy-group { scroll-margin-top: 64px; } /* clear of the sticky pills */
+.academy-body .prose, .academy-body .hint { max-width: 80ch; }
+.academy-groups { display: grid; gap: 22px; align-items: start; } /* a short block keeps its own height beside a tall one */
+/* wide screens: blocks side by side, so a 4-case block doesn't leave the rest of the row empty */
+.academy-group { align-content: start; padding: 12px; border-radius: 10px; background: $card; }
+.howto-figure { display: flex; align-items: center; gap: 12px; margin: 4px 0 8px; } /* /como-resolver-el-cubo-de-rubik: a step's case beside its name */
+.howto-figure svg { flex: none; }
+/* a phase taught step by step: its goal in a box, the first line beside the cube as it ends up and the sequence
+   below at full width (room for it on one line); then the steps, then the folded tips */
+.phase-goal { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px 14px; max-width: 80ch; padding: 12px 14px;
+  border-radius: 10px; background: $card; border-left: 3px solid var(--accent); }
+.phase-goal-figure { display: flex; }
+.phase-goal .prose { display: contents; }
+.phase-goal .prose p { margin: 0; }
+.phase-goal .prose > :not(:first-child) { grid-column: 1 / -1; }
+.phase-goal-text { grid-template-columns: minmax(0, 1fr); } /* no figure: the text alone */
+@media (max-width: 359px) { .phase-goal .alg { white-space: normal; } } /* the narrowest phones: wrap rather than widen the page */
+.academy-tips { max-width: 80ch; }
+@media (min-width: 960px) {
+  .academy-layout { grid-template-columns: 230px minmax(0, 1fr); gap: 36px; }
+  .academy-nav { top: 16px; align-self: start; flex-direction: column; gap: 2px; margin: 0; padding: 0; border: 0; background: none;
+    max-height: calc(100dvh - var(--header-h) - 32px); overflow-x: visible; overflow-y: auto; }
+  .academy-nav a { background: none; padding: 5px 8px; white-space: normal; }
+  .academy-nav a[aria-current="location"] { background: $raised; color: var(--fg); }
+  .academy-phase, .academy-group { scroll-margin-top: 16px; }
+  .academy-nav > a { font-weight: 700; margin-top: 8px; }
+  .academy-nav ul { display: grid; list-style: none; margin: 0; padding: 0 0 0 8px; }
+  .academy-nav li a { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+  .academy-groups { grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 16px; }
+  .cards { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+  .card svg { width: 92px; }
+}

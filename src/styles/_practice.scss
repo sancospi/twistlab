@@ -1,0 +1,95 @@
+// The practice dialog (practice.ts) and the hand clock.
+@use 'tokens' as *;
+
+/* Practice dialog (practice.ts): Preparar (the case, the algorithm, Empezar) and Practicar (the clock card, big) */
+.practice-view { display: grid; gap: 10px; }
+@media (min-width: 601px) { #practice[open] { margin-top: 16px; margin-bottom: auto; } } /* top-anchored: it doesn't jump as the card's state changes its height */
+.sheet-head .help-toggle { margin-left: auto; min-width: 44px; min-height: 44px; border-radius: 50%; font-weight: 700; }
+.sheet-head .help-toggle[aria-expanded="true"] { background: var(--fg); color: var(--bg); }
+.practice-help { padding: 10px 12px; border-radius: 8px; background: $well; color: var(--muted); font-size: 0.9286rem; line-height: 1.5; }
+.practice-head { display: flex; gap: 12px; align-items: flex-start; }
+.practice-head .practice-facts { display: grid; gap: 4px; min-width: 0; }
+.practice-head details { color: var(--muted); }
+.practice-head details > :not(summary) { margin-top: 4px; }
+.practice-head summary { font-size: 0.8571rem; }
+.practice-diagram { flex: none; }
+.practice-diagram svg { width: min(120px, 30vw); height: auto; display: block; }
+.practice-tabs button { flex: 1; }
+.practice-tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+.practice-chosen { display: grid; gap: 2px; padding: 10px 12px; border-radius: 8px; background: $well; outline: 2px solid var(--accent); }
+.practice-change > summary { color: var(--muted); }
+.practice-change[open] > summary { margin-bottom: 8px; }
+.practice-start { min-height: 56px; font-size: 1.2857rem; }
+.practice-tiles { display: grid; grid-template-columns: 1fr 1fr 1.6fr; gap: 6px; }
+.practice-tiles > div { display: grid; gap: 2px; align-content: start; padding: 6px 10px; border-radius: 8px; background: $well; }
+.practice-tiles small { color: var(--muted); font-size: 0.7857rem; }
+.practice-tiles strong { font: 700 1.1429rem ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.streak { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; }
+.streak .dots { display: flex; gap: 2px; }
+.streak i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--muted); }
+.streak i.on { border-color: var(--accent); background: var(--accent); }
+.streak > span:last-child { font: 600 0.8571rem ui-monospace, monospace; color: var(--muted); }
+.streak.done > span:last-child { color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) {
+  .streak.celebrate i { animation: streak-pop .5s ease-out both; }
+  .streak.celebrate i:nth-child(odd) { animation-delay: .08s; }
+}
+@keyframes streak-pop { 50% { transform: scale(1.7); } }
+.practice-bar { align-items: center; justify-content: space-between; flex-wrap: nowrap; }
+.practice-bar button { flex: none; min-height: 44px; }
+.practice-bar #practice-mode { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.practice-bar #practice-reveal { border: 1px solid transparent; }
+.practice-bar #practice-reveal.off { background: none; border: 1px dashed var(--muted); }
+.practice-card { display: grid; gap: 8px; justify-items: center; align-content: center; min-height: min(56dvh, 460px); padding: 16px 12px;
+  border-radius: 12px; background: $raised; text-align: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.practice-card[data-tap] { cursor: pointer; }
+.practice-card:focus { outline: none; } /* focused by script only (the cube's flow): the state's outline still shows */
+.practice-card[data-state="running"] { outline: 2px solid var(--accent); }
+/* The hand clock running (Practicar, the quiz): the card is the whole screen with just the time, so any tap stops it
+   and there's nothing else to hit by mistake. Not Memoria muscular: its buttons end a lap as failed or the series. */
+.practice-card[data-tap][data-state="running"]:not([data-tab="drill"]) { position: fixed; inset: 0; z-index: 1; min-height: 0; border-radius: 0; outline: none; touch-action: none; }
+.practice-card[data-tap][data-state="running"]:not([data-tab="drill"]) > :not(.practice-clock, #practice-card-hint, #quiz-card-hint) { display: none; }
+.practice-card .row:has(> [hidden]:only-child) { display: none; }
+.practice-card .steps { width: 100%; }
+.practice-card .steps li { background: none; } /* on the card's own color: the current step gets the dark pill */
+.practice-card .steps li[aria-current="step"] { background: var(--bg); }
+.practice-card .hint, .practice-card .card-top, .practice-card .card-solution, .practice-card .tokens, .practice-card .steps li { color: #a3a9b8; } /* --muted is under 4.5:1 on the card */
+.card-top { color: var(--muted); font-weight: 600; }
+.card-scramble { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; } /* the figure on top: the scramble gets the card's width */
+.card-diagram svg { width: min(96px, 26vw); height: auto; display: block; }
+.card-moves { display: block; font: 700 clamp(1.5rem, 6.5vw, 2rem)/1.35 ui-monospace, monospace; word-spacing: .15ch; text-wrap: balance; }
+.card-solution { color: var(--muted); }
+.card-solution code { font: 700 1.1429rem ui-monospace, monospace; color: var(--fg); }
+.practice-card .practice-clock { background: none; font-size: clamp(4rem, 19vw, 6.4286rem); line-height: 1.05; padding: 0 8px; }
+.practice-card .practice-clock.small { font-size: 2.2857rem; }
+.practice-card .practice-clock.running { color: var(--accent); }
+.practice-card .delta { font-weight: 600; }
+.delta.faster { color: var(--accent); }
+.delta.slower { color: $warn; }
+.practice-card .grade { width: min(100%, 420px); flex-wrap: nowrap; }
+.practice-card .grade button { flex: 1 1 0; min-width: 0; white-space: nowrap; }
+.key-hint { margin-left: .5em; }
+@media (hover: none) { .key-hint { display: none; } } /* touch: no keyboard to press it on */
+.practice-card .grade button, .practice-card #practice-again { min-height: 52px; font-size: 1.1429rem; }
+.practice-card #practice-again { min-width: 12em; }
+.practice-card button:not(.primary, .practice-clock, .move) { background: #0b0d12; } /* the card is a button's color */
+.practice-actions { justify-content: center; }
+.practice-actions button { min-height: 44px; }
+.practice-actions:not(:has(> :not([hidden]))) { display: none; }
+.practice-session { display: grid; gap: 4px; }
+.session-reps { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.session-reps li { padding: 2px 8px; border-radius: 999px; background: $well; font: 0.8571rem ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.session-reps li.bad { color: $bad; text-decoration: line-through; }
+.practice-clock { font: 700 4rem/1.2 var(--clock); padding: 16px; touch-action: manipulation; }
+.practice-clock.running { color: var(--accent); }
+code { font-family: ui-monospace, monospace; }
+.steps { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.steps li { flex: 1; padding: 6px; border-radius: 8px; background: $well; color: var(--muted); text-align: center; counter-increment: step; }
+.steps li::before { content: counter(step) ". "; }
+.steps li[aria-current="step"] { background: $raised; color: var(--fg); font-weight: 700; }
+.rotate { color: $warn; font-size: 1.2857rem; font-weight: 700; }
+.next { font: 700 3.1429rem/1 ui-monospace, monospace; color: var(--accent); }
+.tokens { font-family: ui-monospace, monospace; color: var(--muted); word-break: break-word; }
+.tokens span { margin-right: .6ch; }
+.tokens .done { opacity: .5; }
+.tokens .current { color: var(--fg); font-weight: 700; text-decoration: underline; }

@@ -1,0 +1,11 @@
+// Colours repeated across the screens (the rest are :root custom properties in _base.scss, which the code reads too)
+$raised: #2a3142; // buttons, chips and lines on the panel
+$well: #0b0d12aa; // blocks set into the panel
+$card: #11141b; // cards
+$warn: #facc15; // yellow: inspection's 8 s, warnings
+$on-accent: #062b14; // text on the green accent
+$bad: #f87171; // red: wrong, failed
+
+// A screen that takes the whole page under the bar (the Academia, Pinta tu cubo, Progreso, Retos, Acerca de): the panel
+// fills it and nothing of the 3D cube shows behind
+@mixin full-page { inset: var(--header-h) 0 0 0; max-width: none; max-height: none; border-radius: 0; padding: 0; gap: 0; background: var(--bg); backdrop-filter: none; align-content: start; }

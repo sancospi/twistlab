@@ -1,0 +1,39 @@
+{
+  "name": "cube",
+  "scripts": {
+    "test": "node --test 'src/**/*.test.ts'",
+    "dev": "vite",
+    "build": "tsc && tsc -p api && tsc -p tsconfig.test.json && vite build",
+    "preview": "vite preview",
+    "db:migrate": "node db/migrate.js && node db/scrambles.js"
+  },
+  "type": "module",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "homepage": "https://twistlab.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sancospi/twistlab.git"
+  },
+  "bugs": "https://github.com/sancospi/twistlab/issues",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "@vercel/analytics": "^2.0.1",
+    "btcube-web": "^2.0.1",
+    "cubing": "^0.66.1",
+    "gan-web-bluetooth": "^3.0.2",
+    "unique-names-generator": "^4.7.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.11",
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@resvg/resvg-js": "^2.6.2",
+    "@types/node": "^26.6.5",
+    "@types/three": "^0.170.0",
+    "@types/web-bluetooth": "^0.0.21",
+    "sass-embedded": "^1.106.1",
+    "three": "^0.170.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4"
+  }
+}

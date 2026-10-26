@@ -1,0 +1,71 @@
+// The white cross, the triggers and the trainers (Reconocer PLL, AUF).
+@use 'tokens' as *;
+
+/* White cross: guide page and trainer */
+.tile-badge { justify-self: start; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: $on-accent; font-size: 0.8571rem; font-weight: 700; }
+.cross-examples { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
+/* Triggers (/academia/gatillos, triggerView.ts): cards in the cross examples' grid */
+.trigger-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
+.trigger-card p, .trigger-card dl { margin: 0; }
+.trigger-card h3 .hint { font-weight: normal; }
+.trigger-alg .alg { font-size: 1.2857rem; }
+.trigger-forms { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 8px; align-items: baseline; }
+.trigger-forms dd { margin: 0; }
+.trigger-drill { display: grid; gap: 6px; justify-items: start; }
+.trigger-drill input { font: inherit; min-height: 44px; width: 5em; }
+.trigger-drill .practice-clock { font-size: 3rem; padding: 8px 16px; }
+/* "Aparece en": per method its name, then its case links as chips, each one big enough to tap */
+.trigger-appears-method { display: grid; gap: 4px; margin-top: 8px; }
+.trigger-appears-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.trigger-appears-links a { padding: 8px 10px; border-radius: 8px; background: $well; color: var(--fg); text-decoration: none; font-size: 0.9286rem; line-height: 1.2; }
+.trigger-appears-links a:hover, .trigger-appears-links a:focus-visible { background: $raised; }
+.trigger-card .row button { min-height: 40px; }
+.cross-examples p { margin: 0; }
+.cross-figure { display: flex; } /* an example's figure, on top of its caption */
+.cross-progress { color: var(--accent); }
+.cross-clock { display: grid; gap: 2px; }
+.cross-clock .next { font-variant-numeric: tabular-nums; outline: none; }
+.cross-solutions { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.cross-pad { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.cross-pad button { padding: 10px 0; font: 700 1.1429rem ui-monospace, monospace; touch-action: manipulation; }
+#cross-body { display: grid; gap: 10px; }
+#cross-player twisty-player, #cross-viewer-player twisty-player { width: 100%; height: min(280px, 40dvh); }
+@media (max-width: 600px) { #cross-player twisty-player { height: 30dvh; } } /* the pad fits below the cube at 360x640 */
+/* Trainers: Reconocer PLL and AUF (pllRecognition.ts, aufTrainer.ts) */
+.academy-trainer { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; max-width: 640px; }
+.academy-trainer h2, .academy-trainer p { margin: 0; }
+.trainer-options { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.trainer-option { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.trainer-option select { font: inherit; min-height: 44px; min-width: 0; flex: 1; }
+.trainer-switch { display: flex; gap: 4px; }
+.trainer-switch button { min-height: 44px; }
+.trainer-switch button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+.trainer-stats { font-variant-numeric: tabular-nums; }
+.trainer-prompt p { margin-top: 4px; }
+.trainer-stage { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; min-height: 210px; padding: 8px; border-radius: 12px; background: $card; }
+.trainer-figure svg { display: block; max-width: 100%; height: auto; }
+.trainer-result { display: grid; gap: 4px; justify-items: center; max-width: 220px; text-align: center; }
+.trainer-result:empty { display: none; }
+.trainer-feedback { min-height: 1.5em; }
+.trainer-answers { display: grid; gap: 8px; }
+.trainer-group { display: grid; gap: 4px; }
+.trainer-buttons { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; }
+.trainer-buttons button { min-height: 44px; padding: 8px 4px; font: 700 1.0714rem ui-monospace, monospace; touch-action: manipulation; }
+.trainer-aufs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.trainer-aufs button { min-height: 52px; }
+.trainer-buttons button.right { background: var(--accent); color: $on-accent; }
+.trainer-buttons button.wrong { background: $bad; color: #2b0606; }
+.trainer-col { display: grid; gap: 10px; align-content: start; }
+.trainer-switch .hint { align-self: center; margin-right: 4px; }
+.lookahead-stage { display: grid; gap: 10px; }
+.lookahead-stage p { overflow-wrap: anywhere; }
+.lookahead-next { font-weight: 700; }
+.lookahead-run { display: flex; gap: 12px; align-items: center; font: 700 2rem ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.beat { width: 24px; height: 24px; border-radius: 50%; background: #2a2f3a; flex: none; }
+.beat.on { background: var(--accent); }
+.lookahead-result { font-weight: 700; }
+/* Reconocer PLL on a wide screen: the figure beside the answers, so a round fits without scrolling */
+@media (min-width: 900px) {
+  .academy-trainer.trainer-wide { max-width: 960px; }
+  .trainer-play { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+}

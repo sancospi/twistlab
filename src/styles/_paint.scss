@@ -1,0 +1,40 @@
+// Pinta tu cubo (/cubo/pintar).
+@use 'tokens' as *;
+
+/* Pinta tu cubo (/cubo/pintar): a full page like the Academia. The net: a 4x3 grid of faces, each 3x3 sticker buttons */
+body[data-paint] #cube, body[data-paint] .view, body[data-paint] #moves, body[data-paint] #guide { display: none; }
+body[data-paint] .panel { @include full-page; }
+#mod-paint { display: grid; gap: 12px; max-width: 640px; padding: 20px 24px; }
+#mod-paint h2 { margin: 0; font-size: 1.2857rem; }
+#mod-paint p, #mod-paint .crumbs { margin: 0; }
+.paint-palette { display: flex; flex-wrap: wrap; gap: 6px; }
+.paint-palette button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; text-transform: capitalize; }
+.paint-palette button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+.paint-swatch { width: 16px; height: 16px; border-radius: 4px; box-shadow: inset 0 0 0 1px #0006; }
+.paint-net { display: grid; grid-template-columns: repeat(4, minmax(0, 132px)); gap: 4px; }
+/* reserved until paint-view.ts fills them: two rows of colours (three on small phones), a net three square faces high */
+.paint-palette:empty { min-height: calc(2.8rem + 30px); }
+@media (max-width: 399px) { .paint-palette:empty { min-height: calc(4.2rem + 48px); } }
+.paint-net:empty { height: calc(3 * min(132px, (100vw - 44px) / 4) + 8px); }
+.paint-face { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 1px; border-radius: 6px; background: #000; } /* 360px: stickers stay over 24px */
+.paint-sticker { aspect-ratio: 1; min-width: 0; padding: 0; border-radius: 4px; touch-action: manipulation; }
+.paint-sticker.blank { background: repeating-linear-gradient(45deg, $raised 0 4px, #1b2030 4px 8px); }
+.paint-sticker[aria-disabled="true"] { cursor: default; box-shadow: inset 0 0 0 3px #0006; }
+.paint-sticker[aria-disabled="true"]::after { content: ''; display: block; width: 30%; aspect-ratio: 1; margin: auto; border-radius: 50%; background: #0008; } /* fixed centre */
+.paint-sticker.bad { outline: 3px solid #fff; outline-offset: -3px; box-shadow: inset 0 0 0 6px #000; } /* white + black ring: shows on every colour */
+.paint-sticker:focus-visible { outline: 3px solid #fff; box-shadow: 0 0 0 5px #000; position: relative; z-index: 1; } /* same in any theme */
+#paint-status ul { margin: 4px 0 0; padding-left: 1.2em; }
+#paint-player twisty-player { width: 100%; height: min(280px, 40dvh); }
+#paint-move { font: 700 2.2857rem/1 ui-monospace, monospace; color: var(--accent); margin-right: 8px; }
+#paint-steps { word-break: break-word; }
+.paint-modes button[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+.bsolve-stage h4 { margin: 8px 0 4px; font-size: 1rem; }
+.bsolve-stage h4 .hint { font-weight: 400; }
+.bsolve-stage ol { display: grid; gap: 6px; margin: 0; padding-left: 1.6em; }
+.bsolve-stage li[aria-current] { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.bsolve-stage li.done { opacity: .75; }
+.bsolve-stage li p { margin: 0 0 2px; }
+.alg .move.setup { color: var(--muted); font-style: italic; }
+.alg .nowrap { white-space: nowrap; } /* a parenthesis and its move never split, nor a short trigger: lines break between groups */
+.tile-strip.tile-net svg { flex: 0 1 120px; } /* the Academia tile: one net, not a strip */
+@media (max-width: 600px) { #mod-paint { padding: 16px; } }

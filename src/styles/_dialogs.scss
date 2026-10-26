@@ -1,0 +1,26 @@
+// Dialogs: a centered sheet, full screen on phones.
+@use 'tokens' as *;
+
+/* Dialogs: centered sheet, full screen on phones */
+.sheet { width: min(640px, 100vw - 32px); max-width: none; max-height: calc(100dvh - 32px); overflow-y: auto; padding: 16px; border: 0; border-radius: 12px; background: #151924; color: var(--fg); }
+.sheet[open] { display: grid; gap: 10px; align-content: start; }
+.sheet::backdrop { background: #000b; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sheet-head h2 { margin: 0; font-size: 1.2857rem; }
+.sheet p { margin: 0; }
+.sheet a { color: var(--accent); }
+.close { padding: 4px 12px; font-size: 1.2857rem; min-width: 44px; min-height: 44px; }
+@media (max-width: 600px) { .sheet { width: 100vw; height: 100dvh; max-height: none; margin: 0; border-radius: 0; } }
+.algs { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; }
+.algs legend { margin-bottom: 6px; padding: 0; color: var(--muted); }
+.alg-option { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; padding: 8px; border-radius: 8px; background: $well; cursor: pointer; }
+.alg-option input { grid-row: span 3; margin: 2px 0 0; }
+.alg-option:has(input:checked) { outline: 2px solid var(--accent); }
+.alg-option code { font: 500 0.8571rem/1.4 ui-monospace, monospace; color: var(--muted); }
+.alg-option .hint { font-size: 0.7857rem; }
+.alg-option:has(input:checked) code { font: 700 1.2143rem/1.4 ui-monospace, monospace; color: var(--fg); } /* the selected one stands out */
+.alg-option:has(input:checked) .hint { font-size: 0.8571rem; }
+:is(.algs, .more-algs > div) > button { justify-self: end; margin-top: -4px; }
+.custom-alg { display: grid; gap: 4px; }
+.custom-alg input { flex: 1; min-width: 0; padding: 8px; border: 0; border-radius: 8px; background: $raised; color: var(--fg); font: 1.1429rem ui-monospace, monospace; } /* 16px: no zoom on focus in iOS */
+.anim-player twisty-player { width: 100%; height: 260px; }

@@ -1,0 +1,27 @@
+// Registry of every method the academy teaches, and lookups across them.
+import type { Case, Method } from './types.ts';
+import { beginner } from './beginner.ts';
+import { cfopReduced } from './cfop.ts';
+import { cfopFull } from './cfopFull.ts';
+import { beginner2x2 } from './beginner2x2.ts';
+import { ortega } from './ortega.ts';
+import { f2lAdvanced } from './f2lAdvanced.ts';
+import { coll } from './coll.ts';
+import { roux } from './roux.ts';
+
+export { scdbUrl } from './scdb.ts';
+
+/** In the order of the Academia home's tiles (grouped by puzzle there). */
+export const METHODS: Method[] = [beginner, cfopReduced, cfopFull, f2lAdvanced, coll, roux, beginner2x2, ortega];
+
+export function allCases(method: Method): Case[] {
+  return method.phases.flatMap((p) => p.groups.flatMap((g) => g.cases));
+}
+
+export function findCase(id: string): Case | undefined {
+  for (const m of METHODS) {
+    const c = allCases(m).find((c) => c.id === id);
+    if (c) return c;
+  }
+  return undefined;
+}

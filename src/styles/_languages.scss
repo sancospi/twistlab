@@ -1,0 +1,15 @@
+// ES · EN · PT, and pages waiting for their language.
+
+/* ES · EN (boot.ts): in the ☰ menu's foot and on /acerca. English pages wait hidden for their texts (inline script) */
+.i18n-wait body { visibility: hidden; animation: i18n-show 0s 3s forwards; }
+@keyframes i18n-show { to { visibility: visible; } }
+/* src/seo.ts's prerendered content in Spanish (app.html, offline): hidden for other languages until the app renders over it, or after 10 s */
+html:not([lang="es"]) [data-prerendered][lang="es"] { visibility: hidden; animation: i18n-show 0s 10s forwards; }
+.lang-switch { color: var(--muted); }
+.lang-switch button { padding: 4px 8px; background: none; color: var(--muted); }
+.lang-switch button[aria-pressed="true"] { color: var(--fg); font-weight: 600; }
+.header-menu .lang-switch { display: none; margin: 0; }
+@media (max-width: 1199px) { .header-menu:popover-open .lang-switch { display: block; font-size: 0.9286rem; } }
+.menu-about { display: none; } /* wide screens: the bar has no room; the Resolver and the Academia link it instead */
+@media (max-width: 1199px) { .header-menu:popover-open .menu-about { display: block; padding: 4px 12px; color: var(--muted); font-size: 0.9286rem; } }
+@media (max-width: 600px) { body[data-module="about"] .panel { bottom: var(--tabbar-h); } #mod-about { padding: 16px; } }
