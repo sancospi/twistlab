@@ -18,7 +18,7 @@
 .term-glue { white-space: nowrap; } /* a term and the punctuation right after it (rich-text-view.ts) */
 .tip-term strong { font-family: inherit; font-size: 1rem; }
 .tip-term span:last-of-type { color: var(--muted); }
-.tip-term a { justify-self: start; margin-top: 4px; color: var(--accent); }
+.tip-term a { justify-self: start; margin-top: 4px; }
 .more-algs > div { display: grid; gap: 8px; margin-top: 8px; }
 .glossary { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
 .glossary-entry { display: grid; gap: 2px; padding: 8px; border-radius: 8px; background: $well; font-size: 0.9286rem; }

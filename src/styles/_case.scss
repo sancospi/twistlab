@@ -22,7 +22,6 @@ body:not([data-module="academy"]) #case { display: none; }
 .case-section { display: grid; gap: 8px; }
 .case-section h3 { margin: 0; font-size: 1.0714rem; }
 .case-section p { margin: 0; }
-.case-section a { color: var(--accent); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .chip { display: inline-block; padding: 4px 10px; border-radius: 999px; background: $raised; color: var(--fg); font-size: 0.8571rem; text-decoration: none; }
 a.chip { color: var(--fg); text-decoration: underline dotted #ffffff60; text-underline-offset: .2em; }
