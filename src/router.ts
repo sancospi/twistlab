@@ -164,7 +164,8 @@ export function openSheet(d: HTMLDialogElement): void {
   if (d.open) return; // e.g. another example in the open 3D viewer
   sheets = [...sheets.filter((x) => x !== d), d];
   const depth = openSheets().length + 1;
-  if (sheetDepth() < depth) history.pushState({ ...(history.state ?? {}), sheet: depth }, '');
+  // its own state: with the page's `from`, a link in the sheet back to that page would be a Back that only closes it
+  if (sheetDepth() < depth) history.pushState({ sheet: depth }, '');
   d.showModal();
   d.addEventListener('close', () => {
     clearTimeout(settling);
@@ -173,7 +174,8 @@ export function openSheet(d: HTMLDialogElement): void {
   }, { once: true });
 }
 
-/** Back/forward: the sheets above the entry's depth close; an entry whose sheet is gone (Forward to it) is skipped. */
+/** Back/forward: the sheets above the entry's depth close; an entry whose sheet is gone (Forward to it) is skipped.
+ *  ponytail: skipped backwards, so after a link out of an open sheet, Forward can't get past its entry. */
 function syncSheets() {
   const depth = sheetDepth();
   openSheets().slice(depth).forEach((d) => d.close());

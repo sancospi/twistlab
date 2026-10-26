@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { guidePage, guideSegment, localHref, openSheet, parseRoute, routePath, startRouter, type Route } from './router.ts';
+import { guidePage, guideSegment, localHref, navigate, openSheet, parseRoute, routePath, startRouter, type Route } from './router.ts';
 import { langPath } from './i18n.ts';
 
 test('routes: each screen has its path, and paths round-trip', () => {
@@ -184,4 +184,9 @@ test('sheets: Back closes the open sheet and stays on the page; X leaves no hist
   await settle();
   assert.equal(at, 0);
   assert.equal(routes, 1);
+
+  entries[at] = { from: '/academia/cfop-completo' }; // the case page was opened from its method's
+  openSheet(practice);
+  navigate('/academia/cfop-completo'); // a link in the sheet to that page: followed, not taken for Back
+  assert.deepEqual(history.state, { from: '/academia/cfop-completo/caso/cfopc-oll-27' });
 });
