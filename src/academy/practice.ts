@@ -258,7 +258,7 @@ function start(undo?: string) {
     return focus('practice-card'); // inside the dialog (not ×, where Space would close it); the cube drives it
   }
   render();
-  focus('practice-clock'); // Space then starts the clock natively
+  refocus();
 }
 
 /** The figures (the chosen algorithm's case), the scramble, the algorithm and its fingers. */
@@ -385,10 +385,10 @@ export function fingersView(tokens: string[]): HTMLDetailsElement {
 
 /** Focus without scrolling: on a phone the sheet would jump to the element, past the title and the bar. */
 const focus = (id: string) => $(id).focus({ preventScroll: true });
-/** After a button: the clock keeps the focus, so Space is the clock again (not that button once more); stopped, Limpio;
- *  with the cube, after a rep, Otra vez. */
+/** After a button: the clock keeps the focus, so Space is the clock again (not that button once more), or the card
+ *  while the clock is hidden (Space on it is the clock too); stopped, Limpio; with the cube, after a rep, Otra vez. */
 const refocus = () => {
-  if (!linked()) focus(hand === 'stopped' ? 'practice-clean' : 'practice-clock');
+  if (!linked()) focus(hand === 'stopped' ? 'practice-clean' : $('practice-clock').hidden ? 'practice-card' : 'practice-clock');
   else if (tab === 'practice' && mode === 'result') focus('practice-again');
 };
 $('practice-again').onclick = () => {
@@ -705,9 +705,10 @@ function renderCard() {
   card.dataset.tab = tab; // Memoria muscular keeps its card while running (index.html)
   card.classList.remove('undo'); // renderSolve marks a correction under way
   card.toggleAttribute('data-tap', !cubeOn && hand !== 'stopped');
+  card.tabIndex = !cubeOn && tab === 'practice' && hand === 'ready' ? 0 : -1; // the clock hidden (renderHand): Tab reaches the card instead
   // everything off, then what the state shows
   batch = new Map();
-  for (const id of ['practice-steps', 'practice-card-scramble', 'practice-rotate', 'practice-next', 'practice-delta', 'practice-desc',
+  for (const id of ['practice-steps', 'practice-card-diagram', 'practice-card-scramble', 'practice-rotate', 'practice-next', 'practice-delta', 'practice-desc',
     'practice-list', 'practice-solution', 'practice-grade', 'practice-again', 'practice-peek', 'practice-lap-fail', 'practice-finish']) show(id, false);
   fingerNow.hidden = true; // renderSolve shows it
   $('practice-delta').className = 'delta';
@@ -732,11 +733,12 @@ function renderHand(shown: boolean) {
   const clock = $('practice-clock');
   const ready = hand === 'ready';
   if (hand !== 'running') clock.textContent = formatTime(hand === 'stopped' ? stoppedMs : 0);
-  clock.classList.toggle('small', practice && ready);
+  show('practice-clock', !(practice && ready)); // an empty 0.00 between the scramble and the solution: the card is the clock
+  show('practice-card-diagram', ready || !practice); // what the scramble leads to; the case Memoria muscular drills
   show('practice-card-scramble', practice && ready);
   show('practice-solution', shown);
   text('practice-card-top', practice ? (ready ? t('practice.setup') : hand === 'running' && !shown ? t('practice.memory') : '')
-    : hand === 'running' ? t('practice.lap', { n: series.length + 1 }) : '');
+    : hand === 'running' ? t('practice.lap', { n: series.length + 1 }) : '\u00a0'); // ponytail: a blank line keeps the lap's place, so the clock doesn't move
   if (practice && ready && lastRep) {
     deltaView(comparison, ` · ${t(lastRep.clean ? 'practice.clean' : 'practice.notClean')}`); // the one just graded
   } else if (hand === 'stopped') {
@@ -791,6 +793,7 @@ function renderCube(shown: boolean) {
   text('practice-card-hint', mode === 'result' ? t('practice.card.nextTurn') : '');
   if (mode === 'scramble') {
     show('practice-clock', false);
+    show('practice-card-diagram', true);
     return renderScramble();
   }
   if (mode === 'solve') {

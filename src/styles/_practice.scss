@@ -33,7 +33,10 @@
 .practice-card { display: grid; gap: 8px; justify-items: center; align-content: center; min-height: min(56dvh, 460px); padding: 16px 12px;
   border-radius: 12px; background: $raised; text-align: center; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .practice-card[data-tap] { cursor: pointer; }
-.practice-card:focus { outline: none; } /* focused by script only (the cube's flow): the state's outline still shows */
+/* Content from the top where the clock or the steps would otherwise move as the lines under them come and go: the
+   cube's Practicar (its steps) and Memoria muscular (its laps) */
+.practice-card:has(> .steps:not([hidden])), .practice-card[data-tab="drill"] { align-content: start; }
+.practice-card:focus:not([tabindex="0"]:focus-visible) { outline: none; } /* focused by script (the cube's flow, the clock's turns): the state's outline still shows; Tab reaches it only as Practicar's clock, ready */
 .practice-card[data-state="running"] { outline: 2px solid var(--accent); }
 /* The hand clock running (Practicar, the quiz): the card is the whole screen with just the time (and Practicar's
    solution while it's on, to read while solving, or De memoria), so any tap stops it and there's nothing else to hit by
@@ -47,7 +50,7 @@
 .practice-card .steps li[aria-current="step"] { background: var(--bg); }
 .practice-card .hint, .practice-card .card-top, .practice-card .card-solution, .practice-card .tokens, .practice-card .steps li { color: #a3a9b8; } /* --muted is under 4.5:1 on the card */
 .card-top { color: var(--muted); font-weight: 600; }
-.card-scramble { display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center; } /* the figure on top: the scramble gets the card's width */
+.card-scramble { display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; } /* the scramble, its note under it */
 .card-diagram svg { width: min(96px, 26vw); height: auto; display: block; }
 .card-moves { display: block; font: 700 clamp(1.5rem, 6.5vw, 2rem)/1.35 var(--mono); word-spacing: .15ch; text-wrap: balance; }
 .card-solution { color: var(--muted); }
