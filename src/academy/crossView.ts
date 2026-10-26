@@ -1,6 +1,6 @@
 // A guide page (the white cross, the 2x2's basics): intro (the cross: with the button that opens its trainer, a
-// modal), then the lessons, each example with its figure, tappable moves and a 3D replay. view.ts adds the crumbs and
-// the side navigation.
+// modal; then the solved cube beside its first line), then the lessons, each example with its figure, tappable moves
+// and a 3D replay. view.ts adds the crumbs and the side navigation.
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { prose, richText } from '../rich-text-view.ts';
 import { algView } from '../notation-view.ts';
@@ -17,10 +17,14 @@ import { el } from '../el.ts';
 /** The page's sections, each an `.academy-phase` with an id and an h2 (for the side navigation). */
 export function guideSections(kpuzzle: KPuzzle, g: TextGuide = crossGuide, puzzle: Puzzle = '3x3x3'): HTMLElement[] {
   const anchor = (id: string) => `${g.id}-${id}`;
+  const [first, ...rest] = loc(g.intro).split('\n');
   const intro = el('section', { className: 'academy-phase', id: anchor('intro') },
     el('h2', { className: 'page-title', textContent: loc(g.name) }),
     ...(g === crossGuide ? [trainerButton()] : []),
-    prose(loc(g.intro), 'prose', 'h3'));
+    // what the guide leaves done, drawn first (as a method phase's goal): the solved cube beside the intro's first line
+    el('div', { className: 'phase-goal' }, el('div', { className: 'phase-goal-figure', ariaHidden: 'true', innerHTML: stateSVG('', puzzle, kpuzzle) }),
+      prose(first, 'prose', 'h3')),
+    prose(rest.join('\n'), 'prose', 'h3'));
   return [intro, ...g.lessons.map((l) => lessonView(l, anchor(l.id), puzzle, kpuzzle))];
 }
 
@@ -28,13 +32,16 @@ export function guideSections(kpuzzle: KPuzzle, g: TextGuide = crossGuide, puzzl
 export const trainerButton = (): HTMLElement =>
   el('div', { className: 'row' }, el('button', { type: 'button', className: 'primary', textContent: t('cross.open'), onclick: () => void openCrossTrainer() }));
 
-/** An example's state after its scramble: the 3x3 unfolded, with the cross's edges and the centers in color (they can be
- *  on any face); the 2x2 as the beginner's first layer, its corner at the front-right. The caption describes it. */
-function exampleFigure(x: CrossExample, puzzle: Puzzle, kpuzzle: KPuzzle): HTMLElement {
-  const facelets = patternToFacelets(kpuzzle.defaultPattern().applyAlg(centerMoves(x.setup, IDENTITY).join(' ')));
-  const svg = puzzle === '2x2x2' ? caseDiagram('iso', '2x2-first-layer', facelets, { size: 84 }) : netSVG(facelets, { size: 168 }, 'cross');
-  return el('div', { className: 'cross-figure', ariaHidden: 'true', innerHTML: svg });
+/** The cube after `setup` (from solved): the 3x3 unfolded, with the cross's edges and the centers in color (they can be
+ *  on any face); the 2x2 as the beginner's first layer, its corner at the front-right. */
+function stateSVG(setup: string, puzzle: Puzzle, kpuzzle: KPuzzle): string {
+  const facelets = patternToFacelets(kpuzzle.defaultPattern().applyAlg(centerMoves(setup, IDENTITY).join(' ')));
+  return puzzle === '2x2x2' ? caseDiagram('iso', '2x2-first-layer', facelets, { size: 84 }) : netSVG(facelets, { size: 168 }, 'cross');
 }
+
+/** An example's state after its scramble (its caption describes it). */
+const exampleFigure = (x: CrossExample, puzzle: Puzzle, kpuzzle: KPuzzle): HTMLElement =>
+  el('div', { className: 'cross-figure', ariaHidden: 'true', innerHTML: stateSVG(x.setup, puzzle, kpuzzle) });
 
 function lessonView(l: CrossLesson, id: string, puzzle: Puzzle, kpuzzle: KPuzzle): HTMLElement {
   return el('section', { className: 'academy-phase', id },
