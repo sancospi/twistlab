@@ -140,12 +140,18 @@ function go(back = false) {
 }
 
 /** Goes to an app path (pushes history), e.g. from code rather than a link. The page being left keeps its scroll in
- *  its history entry, for Back. A link to the page we just came from (a crumb) is Back itself: same scroll as left. */
-export function navigate(path: string): void {
+ *  its history entry, for Back. A link to the page we just came from (a crumb) is Back itself: same scroll as left.
+ *  `replace`: the new page takes this one's entry and where it came from (a lesson's "Siguiente": the chain of lessons
+ *  is one step above the guide, not one per lesson). */
+export function navigate(path: string, replace = false): void {
   path = localHref(path, lang);
-  if ((history.state as { from?: unknown } | null)?.from === path) return history.back();
-  history.replaceState({ ...(history.state ?? {}), scroll: readScroll() }, '');
-  history.pushState({ from: location.pathname + location.search }, '', path);
+  const from = (history.state as { from?: unknown } | null)?.from;
+  if (from === path) return history.back();
+  if (replace) history.replaceState({ from }, '', path);
+  else {
+    history.replaceState({ ...(history.state ?? {}), scroll: readScroll() }, '');
+    history.pushState({ from: location.pathname + location.search }, '', path);
+  }
   go();
 }
 

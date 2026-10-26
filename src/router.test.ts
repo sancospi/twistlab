@@ -190,3 +190,10 @@ test('sheets: Back closes the open sheet and stays on the page; X leaves no hist
   navigate('/academia/cfop-completo'); // a link in the sheet to that page: followed, not taken for Back
   assert.deepEqual(history.state, { from: '/academia/cfop-completo/caso/cfopc-oll-27' });
 });
+
+test('navigate: `replace` takes the entry and keeps where it came from (a lesson\'s Siguiente: one Back to the guide)', () => {
+  history.replaceState({ from: '/academia/cruz', step: 9 }, ''); // the sheets test's fake history, at a finished lesson
+  const n = history.length;
+  navigate('/academia/cruz/leccion/dos', true);
+  assert.deepEqual([history.state, history.length], [{ from: '/academia/cruz' }, n]);
+});

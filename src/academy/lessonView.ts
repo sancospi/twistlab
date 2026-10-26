@@ -383,7 +383,7 @@ function finish() {
     ...(answers.size ? [el('p', { textContent: t('lesson.score', { right, n: answers.size }) })] : []));
   const back = el('button', { type: 'button', textContent: t('lesson.back'), onclick: () => navigate(guidePath(course.id)) });
   body.replaceChildren(el('div', { className: 'row' },
-    ...(after ? [el('button', { type: 'button', className: 'primary', textContent: t('lesson.nextLesson', { title: after.title }), onclick: () => navigate(lessonPath(course.id, after.id)) })] : []),
+    ...(after ? [el('button', { type: 'button', className: 'primary', textContent: t('lesson.nextLesson', { title: after.title }), onclick: () => navigate(lessonPath(course.id, after.id), true) })] : []), // Volver: still one Back to the guide
     back));
   if (!after) back.classList.add('primary');
 }
