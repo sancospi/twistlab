@@ -73,7 +73,7 @@ body[data-module="academy"] .panel { @include full-page; }
 .academy-body { display: grid; gap: 18px; }
 .academy-phase { display: grid; gap: 10px; }
 .academy-phase h2 { margin: 6px 0 0; font-size: 1.2143rem; }
-.academy-phase h2.page-title { margin: 0; font-size: 1.5rem; } /* a guide's own title (its first section), as big as the home's */
+h2.page-title { margin: 0; font-size: 1.5rem; } /* a guide's own title (a method's, its lessons'), as big as the home's */
 .academy-about h3 { margin: 8px 0 0; font-size: 1rem; }
 .academy-group { display: grid; gap: 6px; }
 .academy-group h3 { margin: 0; font-size: 1rem; }
@@ -85,6 +85,5 @@ body[data-module="academy"] .panel { @include full-page; }
 .card code { font-size: 0.7857rem; color: var(--muted); word-break: break-word; }
 .card .hint { font-size: 0.7857rem; }
 a.card { color: var(--fg); text-decoration: none; border-radius: 8px; }
-.academy-train { display: grid; gap: 4px; }
-.academy-train .row { align-items: center; }
+.academy-train { align-items: center; }
 .tile-due { color: $warn; font-size: 0.8571rem; }

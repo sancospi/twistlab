@@ -43,7 +43,8 @@ function markDone(course: string, id: string) {
 
 // --- The list (view.ts shows it in place of the guide) ---
 
-export function lessonList(c: Course): HTMLElement {
+/** The guide's lessons under its title (and `intro`, what the guide puts first), the next one to do on top. */
+export function lessonList(c: Course, ...intro: Node[]): HTMLElement {
   const done = doneIn(c.id);
   const rec = nextLesson(c.lessons, done);
   const items = c.lessons.map((l, i) => {
@@ -56,13 +57,20 @@ export function lessonList(c: Course): HTMLElement {
         el('span', { className: 'hint', textContent: `${t('lesson.minutes', { n: minutes(l) })} · ${tp('lesson.steps', l.steps.length)}` })),
       ...(status ? [el('span', { className: 'lesson-status', textContent: status })] : [])));
   });
-  const start = rec
-    ? el('div', { className: 'row' }, el('a', { className: 'button primary', href: lessonPath(c.id, rec.id), textContent: t(done.length ? 'lesson.resume' : 'lesson.start', { title: rec.title }) }))
-    : el('p', { className: 'hint', textContent: t('lesson.allDone') });
   return el('section', { className: 'lesson-list' },
+    el('h2', { className: 'page-title', textContent: c.title }),
+    ...intro,
     el('p', { className: 'hint', textContent: t('lesson.listIntro') }),
-    start,
+    lessonStart(c) ?? el('p', { className: 'hint', textContent: t('lesson.allDone') }),
     el('ol', { ariaLabel: t('lesson.lessons') }, ...items));
+}
+
+/** "Empezar: …" or "Seguir: …", the next lesson to do; null once they are all done. The guide's way in, in either view. */
+export function lessonStart(c: Course): HTMLElement | null {
+  const done = doneIn(c.id);
+  const rec = nextLesson(c.lessons, done);
+  return rec && el('div', { className: 'row' },
+    el('a', { className: 'button primary', href: lessonPath(c.id, rec.id), textContent: t(done.length ? 'lesson.resume' : 'lesson.start', { title: rec.title }) }));
 }
 
 // --- The player ---

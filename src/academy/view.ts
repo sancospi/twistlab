@@ -1,7 +1,8 @@
 // Academia: a home of tiles (the white cross first, one per method, plus Notación and Gatillos), then each on its own route.
-// A method page starts with the Quiz of the whole method (and how many cases are due today), then shows its phases
-// and groups, each case as a card that opens its page (caseView.ts: Practicar, Quiz, Memoria muscular), with Quiz
-// buttons per group and phase, plus the plan's own quizzes: the same Quiz, only the scope changes.
+// A method page starts with its name, what it is and the step before it, then its next lesson (the way in) and the Quiz
+// of the whole method (and how many cases are due today); then its phases and groups, each case as a card that opens
+// its page (caseView.ts: Practicar, Quiz, Memoria muscular), with Quiz buttons per group and phase, plus the plan's own
+// quizzes: the same Quiz, only the scope changes.
 import { prose } from '../rich-text-view.ts';
 import { TERMS } from '../terms.ts';
 import { cube3x3x3 } from 'cubing/puzzles';
@@ -20,7 +21,7 @@ import { bases2x2 } from './bases2x2.ts';
 import { triggerGuide } from './triggers.ts';
 import { triggersView } from './triggerView.ts';
 import { courseFor, MOVE_GROUPS, type Course } from './lessons.ts';
-import { lessonList, playLesson, stopLesson } from './lessonView.ts';
+import { lessonList, lessonStart, playLesson, stopLesson } from './lessonView.ts';
 import { libraryView, showCase, stopCase } from './caseView.ts';
 import { caseDiagram, netSVG, twoSidesSVG } from './diagram.ts';
 import { pllRecognitionView, stopPllRecognition } from './pllRecognition.ts';
@@ -107,7 +108,7 @@ export async function showAcademy(root: HTMLElement, page: AcademyPage): Promise
     if (!cross) root.dataset.puzzle = '2x2x2';
     const title = cross ? t('cross.title') : loc(bases2x2.name);
     if (asLessons) {
-      root.replaceChildren(...head(title), ...(cross ? [trainerButton()] : []), lessonList(course));
+      root.replaceChildren(...head(title), lessonList(course, ...(cross ? [trainerButton()] : [])));
       return inAcademy(title);
     }
     sectioned(root, head(title), t(cross ? 'cross.nav' : 'bases2x2.nav'), cross ? guideSections(kpuzzle) : guideSections(kpuzzle, bases2x2, '2x2x2'));
@@ -120,10 +121,10 @@ export async function showAcademy(root: HTMLElement, page: AcademyPage): Promise
   }
   if (m.puzzle) root.dataset.puzzle = m.puzzle;
   if (asLessons) {
-    root.replaceChildren(...head(loc(m.name)), ...methodTop(m), lessonList(course));
+    root.replaceChildren(...head(loc(m.name)), lessonList(course, ...methodTop(m))); // the lessons are the way in: no Quiz on top
     return inAcademy(loc(m.name));
   }
-  sectioned(root, head(loc(m.name)), t('academy.nav'), methodView(m), navView(m));
+  sectioned(root, head(loc(m.name)), t('academy.nav'), methodView(m, course), navView(m));
   return inAcademy(loc(m.name));
 }
 
@@ -338,15 +339,16 @@ const text = (s: string, className = '') => el('p', { textContent: s, className 
 
 const dueCount = (cases: Case[]) => cases.filter((c) => isDue(learningFor(c.id), Date.now())).length;
 
-/** The Quiz of the whole method (which cases: chosen in its setup), and how many are due today (refreshed when it closes). */
+/** The Quiz of the whole method (which cases: chosen in its setup), and how many are due today (refreshed when it
+ *  closes). A small button: the way in is the lessons, a quiz comes once something is learnt. */
 function trainView(m: Method): HTMLElement {
   const cases = allCases(m);
   const due = el('span', { className: 'tile-due' });
   const fill = () => (due.textContent = dueCount(cases) ? tp('srs.due', dueCount(cases)) : '');
   fill();
-  const train = el('button', { type: 'button', className: 'primary', textContent: t('srs.train') });
+  const train = el('button', { type: 'button', className: 'small', textContent: t('srs.train') });
   train.onclick = () => void openQuiz({ kind: 'cases', id: m.id, cases, title: loc(m.name) }, fill);
-  return el('div', { className: 'academy-train' }, el('div', { className: 'row' }, train, due), text(t('srs.trainHint'), 'hint'));
+  return el('div', { className: 'row academy-train' }, train, due);
 }
 
 /** Opens the quiz; shows the scope's last accuracy, refreshed when the quiz closes. */
@@ -363,21 +365,23 @@ function quizButton(label: string, scope: QuizScope, ariaLabel?: string) {
   return b;
 }
 
-function methodView(m: Method): Node[] {
+function methodView(m: Method, course: Course | null): Node[] {
   // what the method is and how to hold the cube; its notation and its calendar folded apart (each one long enough on
   // its own: together, up to 700 words in one fold)
   const fold = (summary: string, ...body: Node[]) => el('details', { className: 'academy-about' }, el('summary', { textContent: summary }), ...body);
   const about = fold(t('academy.about'), prose(loc(m.description)), el('h3', { textContent: t('academy.orientation') }), prose(loc(m.orientation)));
-  return [...methodTop(m), about,
+  const start = course && lessonStart(course);
+  return [el('h2', { className: 'page-title', textContent: loc(m.name) }), ...methodTop(m),
+    ...(start ? [start] : []), ...(allCases(m).length ? [trainView(m)] : []), about,
     ...(m.notation ? [fold(t('academy.notation'), prose(loc(m.notation)))] : []),
     ...(m.schedule ? [fold(t('academy.schedule'), prose(loc(m.schedule)))] : []),
     ...m.phases.map(phaseView)];
 }
 
-/** The method's trainer and the link to the cross that comes before it (the beginner's: also its article, the whole
- *  method in one page): on top of the guide and of its lessons. */
+/** Under the method's title, in the guide and over its lessons: what it is, and the link to the step before it (the
+ *  beginner's: also its article, the whole method in one page). */
 const methodTop = (m: Method): HTMLElement[] => [
-  ...(allCases(m).length ? [trainView(m)] : []),
+  text(loc(m.summary ?? m.description), 'hint'),
   el('p', { className: 'hint' }, m.before ? el('a', { href: m.before.path, textContent: loc(m.before.label) })
     : m.puzzle === '2x2x2' ? el('a', { href: academyLink({ kind: 'bases2x2' }), textContent: t('bases2x2.before') })
     : el('a', { href: academyLink({ kind: 'cross' }), textContent: t('cross.before') }),
@@ -390,15 +394,16 @@ function phaseView(phase: Phase): HTMLElement {
   // fills them once the page is idle, into a line its cards already hold
   const odds: (() => void)[] = [];
   idle(() => odds.forEach((fill) => fill()));
-  // Two kinds of quiz, kept apart: generated (random states of every case, as many as you like) and the plan's own
-  const set = (label: string, hint: string, ...buttons: HTMLElement[]) =>
-    el('div', { className: 'quiz-set', role: 'group', ariaLabel: label }, el('span', { className: 'quiz-set-label', textContent: label, title: hint }), ...buttons);
-  const quizzes = !cases.length ? [] : [el('div', { className: 'quiz-sets' },
-    set(t('academy.quizGenerated'), t('academy.quizGeneratedHint'),
-      quizButton(t('academy.quizPhase'), { kind: 'cases', id: phase.id, cases, title: loc(phase.name) }, t('academy.quizOf', { name: loc(phase.name) })),
-      ...lastLayerButton(phase)),
-    ...(phase.quizzes.length ? [set(t('academy.quizOfficial'), t('academy.quizOfficialHint'),
-      ...phase.quizzes.map((quiz) => quizButton(loc(quiz.name), { kind: 'official', quiz, phase })))] : []))]; // none without cases
+  // Two kinds of quiz, kept apart: generated (random states of every case, as many as you like) and the plan's own. A
+  // phase of one group has no Quiz of its own: its group's is the same one.
+  const set = (label: string, buttons: HTMLElement[]) => (buttons.length
+    ? [el('div', { className: 'quiz-set', role: 'group', ariaLabel: label }, el('span', { className: 'quiz-set-label', textContent: label }), ...buttons)] : []);
+  const sets = [
+    ...set(t('academy.quizGenerated'), [
+      ...(phase.groups.length > 1 ? [quizButton(t('academy.quizPhase'), { kind: 'cases', id: phase.id, cases, title: loc(phase.name) }, t('academy.quizOf', { name: loc(phase.name) }))] : []),
+      ...lastLayerButton(phase)]),
+    ...set(t('academy.quizOfficial'), phase.quizzes.map((quiz) => quizButton(loc(quiz.name), { kind: 'official', quiz, phase })))];
+  const quizzes = cases.length && sets.length ? [el('div', { className: 'quiz-sets' }, ...sets)] : []; // none without cases
   return el('section', { className: 'academy-phase', id: anchor(phase.id) },
     el('h2', { textContent: loc(phase.name) }),
     ...(phase.goal ? [goalView(phase)] : []),
