@@ -73,6 +73,9 @@
 .practice-actions { justify-content: center; }
 .practice-actions button { min-height: 44px; }
 .practice-actions:not(:has(> :not([hidden]))) { display: none; }
+/* Memoria muscular: Fallé (a lap) wide, Terminar serie (all of them) apart and quieter, so one isn't hit for the other */
+#practice-lap-fail { flex: 1 1 auto; }
+#practice-finish { margin-left: auto; background: none; border: 1px solid $raised; }
 .practice-session { display: grid; gap: 4px; }
 .session-reps { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .session-reps li { padding: 2px 8px; border-radius: 999px; background: $well; font: 0.8571rem var(--mono); font-variant-numeric: tabular-nums; }
