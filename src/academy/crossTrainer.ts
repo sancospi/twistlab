@@ -445,7 +445,7 @@ function renderSetup(): Node[] {
     el('label', { className: 'academy-method' }, hint, t('cross.showOptimal')),
     p(t('cross.showOptimalHint'), 'hint'),
     (modeLine = p(modeText(), 'hint')),
-    el('div', { className: 'row' }, button(t('cross.start'), start, 'primary')),
+    el('div', { className: 'row cross-start' }, button(t('cross.start'), start, 'primary')),
   ];
 }
 
