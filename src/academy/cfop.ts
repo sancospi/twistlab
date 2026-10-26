@@ -265,7 +265,8 @@ export const cfopReduced: Method = {
           '2. Gira el cubo entero para tener su ranura adelante a la derecha.',
           '3. Con `U`, pon la esquina arriba, encima de la ranura (si ya está en la ranura, déjala).',
           '4. Busca entre los casos de esta fase el que se ve igual y haz su algoritmo.',
-          'Repite con los 4 pares. El primer día, haz cada mezcla y marca los casos que ya dominas: entrena solo los que falten.',
+          '## Los 4 pares',
+          'Repite con los 4 pares. El primer día, haz cada preparación y marca los casos que ya dominas: entrena solo los que falten.',
         ].join('\n'),
       ),
       tips: es(

@@ -127,7 +127,7 @@ export const crossGuide: CrossGuide = {
       title: tr('Casos de una arista', 'One-edge cases', 'Casos de uma aresta'),
       body: tr(
         [
-          'Busca una arista blanca y mira dónde está y hacia dónde mira el blanco:',
+          'Busca una arista blanca y mira dónde está y hacia dónde mira el blanco.',
           '- **Arriba, blanco arriba** (1 o 2 giros): gira `U` hasta dejarla sobre su centro y bájala con media vuelta: `F2`, `R2`, `B2` o `L2`.',
           '- **Arriba, blanco de lado** (3 o 4 giros): está volteada. Bájala a la capa del medio con un cuarto de vuelta y métela con un cuarto de vuelta de la cara de al lado.',
           '- **En la capa del medio:** un cuarto de vuelta la baja.',
@@ -135,7 +135,7 @@ export const crossGuide: CrossGuide = {
           '**Regla de oro:** `U` nunca toca la cruz. Úsalo para llevar una arista sobre su centro antes de bajarla.',
         ].join('\n'),
         [
-          'Find a white edge and look at where it is and where the white faces:',
+          'Find a white edge and look at where it is and where the white faces.',
           '- **Top, white facing up** (1 or 2 moves): turn `U` until it is above its center and bring it down with a half turn: `F2`, `R2`, `B2` or `L2`.',
           '- **Top, white on the side** (3 or 4 moves): it is flipped. Take it to the middle layer with a quarter turn and insert it with a quarter turn of the adjacent face.',
           '- **In the middle layer:** one quarter turn brings it down.',
@@ -143,7 +143,7 @@ export const crossGuide: CrossGuide = {
           '**Golden rule:** `U` never touches the cross. Use it to bring an edge above its center before bringing it down.',
         ].join('\n'),
         [
-          'Procure uma aresta branca e veja onde ela está e para onde o branco olha:',
+          'Procure uma aresta branca e veja onde ela está e para onde o branco olha.',
           '- **Em cima, branco para cima** (1 ou 2 movimentos): gire `U` até deixá-la sobre o seu centro e desça-a com meia volta: `F2`, `R2`, `B2` ou `L2`.',
           '- **Em cima, branco para o lado** (3 ou 4 movimentos): ela está virada. Desça-a para a camada do meio com um quarto de volta e encaixe-a com um quarto de volta da face ao lado.',
           '- **Na camada do meio:** um quarto de volta a desce.',

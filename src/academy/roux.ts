@@ -451,6 +451,7 @@ export const roux: Method = {
         '2. **Arista DL:** llévala abajo a la izquierda, junto al centro rojo, con el blanco abajo.',
         '3. **Par de atrás:** junta la esquina blanca-roja-azul con la arista roja-azul y mete el par atrás. Queda un cuadrado de 1×2×2.',
         '4. **Par de adelante:** igual, con la blanca-roja-verde y la roja-verde, al frente. Los casos de abajo son este último par.',
+        '## Los pares',
         'Para juntar los pares usa la derecha (`R`, `r`, `M` y `U`): aún está libre. `F` o `B` meten un par de una vez si su ranura está libre.',
       ], [
         '## How to do it',
@@ -458,6 +459,7 @@ export const roux: Method = {
         '2. **DL edge:** bring it to the bottom left, next to the red center, with white facing down.',
         '3. **Back pair:** join the white-red-blue corner with the red-blue edge and put them in at the back. That makes a 1×2×2 square.',
         '4. **Front pair:** the same, with the white-red-green corner and the red-green edge, in front. The cases below are this last pair.',
+        '## The pairs',
         'To join the pairs, use the right side (`R`, `r`, `M` and `U`): it is still free. `F` or `B` put a pair in at once if its slot is empty.',
       ], [
         '## Como fazer',
@@ -465,6 +467,7 @@ export const roux: Method = {
         '2. **Aresta DL:** leve-a para baixo à esquerda, junto ao centro vermelho, com o branco para baixo.',
         '3. **Par de trás:** junte a quina branca-vermelha-azul com a aresta vermelha-azul e coloque o par atrás. Fica um quadrado de 1×2×2.',
         '4. **Par da frente:** igual, com a branca-vermelha-verde e a vermelha-verde, na frente. Os casos abaixo são este último par.',
+        '## Os pares',
         'Para juntar os pares, use o lado direito (`R`, `r`, `M` e `U`): ele ainda está livre. `F` ou `B` colocam um par de uma vez se o slot dele estiver livre.',
       ]),
       tips: doc([

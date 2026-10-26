@@ -181,6 +181,7 @@ export const beginner2x2: Method = {
         '2. Busca arriba otra esquina con blanco y gira `U` hasta dejarla encima de su sitio: junto a la de abajo que comparte uno de sus colores, con ese color del mismo lado.',
         '3. Gira el cubo entero (blanco abajo) para tenerla adelante a la derecha.',
         '4. Haz el gatillo hasta que baje con el blanco abajo: **1 vez** si el blanco mira a la derecha, **3** si mira arriba, **5** si mira al frente.',
+        '## Hasta tener las 4',
         'Repite hasta tener las 4. Por ejemplo, la blanco-verde-naranja va entre la blanco-verde-roja y la blanco-naranja-azul.',
       ]),
       tips: doc([
