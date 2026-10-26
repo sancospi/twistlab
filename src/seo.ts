@@ -14,14 +14,14 @@ import { crossGuide, type TextGuide } from './academy/crossGuide.ts';
 import { beginner } from './academy/beginner.ts';
 import { figureSvg, howToSolve } from './academy/howToSolve.ts';
 import { smartCubes } from './academy/smartCubes.ts';
-import { caseState } from './academy/cube.ts';
+import { caseState, goalSVG, stateSVG } from './academy/cube.ts';
 import { caseDiagram } from './academy/diagram.ts';
 import { patternToFacelets } from './facelets.ts';
 import { IDENTITY } from './notation.ts';
 import { parseBlocks, type Inline } from './rich-text.ts';
 import { esc } from './stats.ts';
 import { caseProbability, formatProbability } from './academy/probability.ts';
-import { caseLabel, type Case, type Method, type Phase } from './academy/types.ts';
+import { caseLabel, type Case, type Method, type Phase, type Puzzle } from './academy/types.ts';
 
 export const ORIGIN = 'https://twistlab.app';
 
@@ -53,10 +53,14 @@ const figure = (phase: Phase, c: Case, kpuzzle: KPuzzle) =>
 // a method's: the first case of each phase, as its Academia tile
 const methodFigures = (m: Method, kpuzzle: KPuzzle) => m.phases.flatMap((p) => p.groups.flatMap((g) => g.cases).slice(0, 1).map((c) => figure(p, c, kpuzzle)));
 
-/** Rich text (rich-text.ts) as HTML: paragraphs, lists, subheadings, bold and moves. */
+/** Rich text (rich-text.ts) as HTML, a string per block: paragraphs, lists, subheadings (`h`, as the app's), bold, moves. */
 const inline = (xs: Inline[]) => xs.map((x) => (x.kind === 'strong' ? `<strong>${esc(x.text)}</strong>` : x.kind === 'alg' ? `<code>${esc(x.text)}</code>` : esc(x.text))).join('');
-const rich = (s: string) => parseBlocks(s).map((b) => ('items' in b ? `<${b.kind}>${b.items.map((i) => `<li>${inline(i)}</li>`).join('')}</${b.kind}>`
-  : b.kind === 'h' ? `<h3>${inline(b.inline)}</h3>` : `<p>${inline(b.inline)}</p>`)).join('');
+const blocks = (s: string, h: 'h3' | 'h4' = 'h3') => parseBlocks(s).map((b) => ('items' in b ? `<${b.kind}>${b.items.map((i) => `<li>${inline(i)}</li>`).join('')}</${b.kind}>`
+  : b.kind === 'h' ? `<${h}>${inline(b.inline)}</${h}>` : `<p>${inline(b.inline)}</p>`));
+const rich = (s: string, h: 'h3' | 'h4' = 'h3') => blocks(s, h).join('');
+/** A goal box as the app's (view.ts's goalView, crossView.ts's intro): `figure` beside the text's first line. */
+const goalBox = (figure: string | null, text: string[]) => `<div class="phase-goal${figure ? '' : ' phase-goal-text'}">`
+  + `${figure ? `<div class="phase-goal-figure" aria-hidden="true">${figure}</div>` : ''}<div class="prose">${text.join('')}</div></div>`;
 
 function casePage(m: Method, c: Case, kpuzzle: KPuzzle): SeoPage {
   const phase = m.phases.find((p) => p.groups.some((g) => g.cases.includes(c)))!;
@@ -87,6 +91,12 @@ function casePage(m: Method, c: Case, kpuzzle: KPuzzle): SeoPage {
 const casesByPhase = (m: Method, heading: 'h3' | 'h4') => m.phases.filter((p) => p.groups.some((g) => g.cases.length))
   .map((p) => `<${heading}>${esc(loc(p.name))}</${heading}>${list(p.groups.flatMap((g) => g.cases).map((c) => caseLink(m, c)))}`).join('');
 
+/** A phase as the app draws it (view.ts's phaseView): its goal and description, then its cases as links. */
+const phaseHtml = (m: Method, p: Phase, kpuzzle: KPuzzle) => `<section class="academy-phase"><h2>${esc(loc(p.name))}</h2>`
+  + (p.goal ? goalBox(p.goalFigure === false ? null : goalSVG(p, kpuzzle), blocks(loc(p.goal), 'h4')) : '')
+  + (p.description ? `<div class="prose${p.goal ? '' : ' hint'}">${rich(loc(p.description), 'h4')}</div>` : '')
+  + (p.groups.some((g) => g.cases.length) ? list(p.groups.flatMap((g) => g.cases).map((c) => caseLink(m, c))) : '') + '</section>';
+
 function methodPage(m: Method, kpuzzle: KPuzzle): SeoPage {
   const description = plain(loc(m.summary ?? m.description).split('\n')[0]);
   const path = academy({ kind: 'method', id: m.id });
@@ -96,20 +106,27 @@ function methodPage(m: Method, kpuzzle: KPuzzle): SeoPage {
     description,
     trail: inAcademyTrail(loc(m.name), path),
     og: { figures: methodFigures(m, kpuzzle), kicker: `${t('menu.academy')} · ${tp('academy.tileCases', allCases(m).length)}`, heading: loc(m.name) },
-    body: `<h2>${esc(loc(m.name))}</h2><p>${esc(description)}</p>${casesByPhase(m, 'h3')}`,
+    // the page as the app draws it (view.ts: its title, summary and phases, in the same boxes), so the app drawing over
+    // it paints no larger element: the LCP stays the first paint, as the Academia home's
+    body: `<div class="academy-body"><h2 class="page-title">${esc(loc(m.name))}</h2><p class="hint">${esc(loc(m.summary ?? m.description))}</p>`
+      + `${m.phases.map((p) => phaseHtml(m, p, kpuzzle)).join('')}</div>`,
   };
 }
 
 /** A guide page (the white cross, the 2x2's basics): its intro and its lessons' titles. `name`: the one the app's title uses. */
-function guidePage(g: TextGuide, page: AcademyPage, name = loc(g.name)): SeoPage {
+function guidePage(g: TextGuide, page: AcademyPage, puzzle: Puzzle, kpuzzle: KPuzzle, name = loc(g.name)): SeoPage {
+  const [first, ...rest] = blocks(loc(g.intro));
   return {
     path: academy(page),
     title: academyTitle(name),
     description: plain(loc(g.summary)),
     trail: inAcademyTrail(name, academy(page)),
     article: true,
-    body: `<h2>${esc(loc(g.name))}</h2>${loc(g.intro).split('\n').map((x) => `<p>${esc(plain(x))}</p>`).join('')}`
-      + (g.lessons.length ? list(g.lessons.map((l) => esc(loc(l.title)))) : ''),
+    // its intro as the app draws it (crossView.ts: the title, the guide's cube beside the first paragraph, the rest), so
+    // the app drawing over it paints no larger element; then the lessons' titles
+    body: `<div class="academy-body"><section class="academy-phase"><h2 class="page-title">${esc(loc(g.name))}</h2>`
+      + `${goalBox(stateSVG('', puzzle, kpuzzle), [first])}<div class="prose">${rest.join('')}</div></section>`
+      + `${g.lessons.length ? list(g.lessons.map((l) => esc(loc(l.title)))) : ''}</div>`,
   };
 }
 
@@ -216,7 +233,7 @@ export function seoPages(kpuzzle: KPuzzle): SeoPage[] {
     // the timer: a search landing page of its own, titled as a timer with an academy, the app's name in its crumb
     { ...screen({ mod: 'solve' }, t('solve.seoTitle'), t('solve.seoDescription')), title: pageTitle(t('seo.homeTitle')), trail: [home()] },
     howToPage(kpuzzle), smartCubesPage(), academyHome(), libraryPage(),
-    guidePage(crossGuide, { kind: 'cross' }, t('cross.title')), guidePage(bases2x2, { kind: 'bases2x2' }), triggersPage(kpuzzle),
+    guidePage(crossGuide, { kind: 'cross' }, '3x3x3', kpuzzle, t('cross.title')), guidePage(bases2x2, { kind: 'bases2x2' }, '2x2x2', kpuzzle), triggersPage(kpuzzle),
     { path: notation, title: academyTitle(t('glossary.title')), description: t('glossary.tileSummary'), trail: inAcademyTrail(t('glossary.title'), notation),
       body: `<h2>${esc(t('glossary.title'))}</h2><p>${esc(t('glossary.tileSummary'))}</p>` },
     ...TRAINERS.map(trainerPage), ...METHODS.flatMap((m) => [methodPage(m, kpuzzle), ...allCases(m).map((c) => casePage(m, c, kpuzzle))]),

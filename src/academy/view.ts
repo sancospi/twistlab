@@ -15,7 +15,7 @@ import { explainMove } from '../notation.ts';
 import { algView } from '../notation-view.ts';
 import { glossary, inAcademy, loc, percent, t, tp } from '../i18n.ts';
 import { goBack, guidePage, guideSegment, routePath, type AcademyPage, type GuidePage, type Trainer } from '../router.ts';
-import { LL_STEPS, caseState } from './cube.ts';
+import { LL_STEPS, caseState, goalSVG } from './cube.ts';
 import { crossGuide } from './crossGuide.ts';
 import { guideSections, trainerButton } from './crossView.ts';
 import { bases2x2 } from './bases2x2.ts';
@@ -437,14 +437,10 @@ function phaseView(phase: Phase): HTMLElement {
     el('div', { className: 'academy-groups' }, ...phase.groups.map((g) => groupView(phase, g, odds))));
 }
 
-/** A phase's goal: what it leaves done, beside the cube as it ends up, masked as its last cases (what the phase ends at:
- *  2-look OLL's corners, not its cross); what doesn't matter yet, grey. */
+/** A phase's goal: what it leaves done, beside the cube as it ends up (goalSVG). seo.ts prerenders it alike. */
 function goalView(phase: Phase): HTMLElement {
   if (phase.goalFigure === false) return el('div', { className: 'phase-goal phase-goal-text' }, prose(loc(phase.goal!)));
-  const shown = allCases(METHODS.find((x) => x.phases.includes(phase))!).find((c) => c.id === phase.goalFigure);
-  const state = shown ? caseState(kpuzzle, shown.algs[0].alg, IDENTITY) : kpuzzle.defaultPattern();
-  const figure = el('div', { className: 'phase-goal-figure', ariaHidden: 'true' });
-  figure.innerHTML = caseDiagram(phase.diagram, phase.groups.at(-1)!.cases.at(-1)!.stage, patternToFacelets(state), { size: 84 });
+  const figure = el('div', { className: 'phase-goal-figure', ariaHidden: 'true', innerHTML: goalSVG(phase, kpuzzle) });
   return el('div', { className: 'phase-goal' }, figure, prose(loc(phase.goal!)));
 }
 

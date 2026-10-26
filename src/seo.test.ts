@@ -23,8 +23,19 @@ test('a page for every case, every method and the library, each path once and ro
     '/academia', '/academia/cruz', '/academia/notacion', '/cubo', '/cubo/pintar', '/progreso', '/retos', '/acerca', ...METHODS.map((m) => `/academia/${m.id}`)]) assert.ok(paths.includes(p), p);
   for (const p of pages) {
     if (p.path !== '/') assert.notEqual(parseRoute(p.path).mod, 'solve', p.path); // a path the router knows
-    assert.ok(p.title && p.description && /^(<section class="[\w-]+">)?<h2/.test(p.body), p.path); // the Academia's home: in its app box
+    assert.ok(p.title && p.description && /^(<(section|div) class="[\w-]+">)*<h2/.test(p.body), p.path); // the Academia's pages: in their app boxes
   }
+});
+
+// as the app draws them (view.ts, crossView.ts), so its first paint over them paints no larger element (the LCP)
+test('a method page and a guide page start in the app\'s boxes, their texts as rich text', () => {
+  const m = pages.find((x) => x.path === '/academia/cfop-completo')!;
+  assert.match(m.body, /^<div class="academy-body"><h2 class="page-title">CFOP completo<\/h2><p class="hint">/);
+  assert.match(m.body, /<section class="academy-phase"><h2>[^<]+<\/h2><div class="phase-goal"><div class="phase-goal-figure" aria-hidden="true"><svg [^]*?<\/svg><\/div><div class="prose"><p>/);
+  assert.match(m.body, /href="\/academia\/cfop-completo\/caso\/cfopc-oll-27"/); // its cases, for crawlers
+  const g = pages.find((x) => x.path === '/academia/cruz')!;
+  assert.match(g.body, /^<div class="academy-body"><section class="academy-phase"><h2 class="page-title">[^<]+<\/h2><div class="phase-goal"><div class="phase-goal-figure" aria-hidden="true"><svg /);
+  for (const p of [m, g]) assert.doesNotMatch(p.body, /<p>- |\*\*/, p.path); // lists and bold, not markdown
 });
 
 test('a case page: its algorithm, recognition, probability and sibling links', () => {

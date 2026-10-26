@@ -1,13 +1,16 @@
-// Cube states for the academy: where a case starts, whether a stage's goal is met, random quiz states, and which
-// pieces a 3D player shows in color.
+// Cube states for the academy: where a case starts, whether a stage's goal is met, random quiz states, which pieces a
+// 3D player shows in color, and the figures a page draws from a state (a phase's goal, a guide's cube: the app's and
+// seo.ts's prerender).
 // Everything works on KPatterns with fixed centers, so wide moves, slices and rotations are just face turns
 // (via notation.ts) and the last layer is simply "the pieces of the face whose center is yellow".
 import { KPattern, type KPuzzle, type KTransformation } from 'cubing/kpuzzle';
 import { cube2x2x2 } from 'cubing/puzzles';
 import { experimentalSolve2x2x2, experimentalSolve3x3x3IgnoringCenters } from 'cubing/search';
 import { IDENTITY, centerMoves, expand, htm, invertTokens, mapMove, merge, tokenize, type Face, type Frame } from '../notation.ts';
+import { patternToFacelets } from '../facelets.ts';
 import { METHODS, allCases } from './methods.ts';
-import { is2x2, isRoux, type AlgVariant, type Case, type Puzzle, type Stage, type Stage2x2, type StageRoux } from './types.ts';
+import { caseDiagram, netSVG } from './diagram.ts';
+import { is2x2, isRoux, type AlgVariant, type Case, type Phase, type Puzzle, type Stage, type Stage2x2, type StageRoux } from './types.ts';
 
 // cubing.js 3x3x3 orbit slot order; orientation 0 = the piece's U/D (or F/B) sticker on the slot's U/D (F/B) face.
 export const EDGES = 'UF UR UB UL DF DR DB DL FR FL BR BL'.split(' ');
@@ -454,4 +457,19 @@ export function llSteps(p: KPattern, cases: Case[], alg: (c: Case) => string): L
     p = next;
   }
   return steps;
+}
+
+/** A phase's goal figure: what it leaves done (its `goalFigure` case's state, else solved), masked as its last cases
+ *  (what the phase ends at: 2-look OLL's corners, not its cross); what doesn't matter yet, grey. */
+export function goalSVG(phase: Phase, kpuzzle: KPuzzle): string {
+  const shown = allCases(METHODS.find((x) => x.phases.includes(phase))!).find((c) => c.id === phase.goalFigure);
+  const state = shown ? caseState(kpuzzle, shown.algs[0].alg, IDENTITY) : kpuzzle.defaultPattern();
+  return caseDiagram(phase.diagram, phase.groups.at(-1)!.cases.at(-1)!.stage, patternToFacelets(state), { size: 84 });
+}
+
+/** A guide's cube after `setup` (from solved): the 3x3 unfolded, with the cross's edges and the centers in color (they
+ *  can be on any face); the 2x2 as the beginner's first layer, its corner at the front-right. */
+export function stateSVG(setup: string, puzzle: Puzzle, kpuzzle: KPuzzle): string {
+  const facelets = patternToFacelets(kpuzzle.defaultPattern().applyAlg(centerMoves(setup, IDENTITY).join(' ')));
+  return puzzle === '2x2x2' ? caseDiagram('iso', '2x2-first-layer', facelets, { size: 84 }) : netSVG(facelets, { size: 168 }, 'cross');
 }

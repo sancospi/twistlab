@@ -4,14 +4,11 @@
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { prose, richText } from '../rich-text-view.ts';
 import { algView } from '../notation-view.ts';
-import { patternToFacelets } from '../facelets.ts';
-import { IDENTITY, centerMoves } from '../notation.ts';
 import { loc, t } from '../i18n.ts';
 import { crossGuide, type CrossExample, type CrossLesson, type TextGuide } from './crossGuide.ts';
-import { caseDiagram, netSVG } from './diagram.ts';
 import type { Puzzle } from './types.ts';
 import { openCrossTrainer, show3D } from './crossTrainer.ts';
-import { CROSS_MASK, MASKS } from './cube.ts';
+import { CROSS_MASK, MASKS, stateSVG } from './cube.ts';
 import { el } from '../el.ts';
 
 /** The page's sections, each an `.academy-phase` with an id and an h2 (for the side navigation). */
@@ -31,13 +28,6 @@ export function guideSections(kpuzzle: KPuzzle, g: TextGuide = crossGuide, puzzl
 /** Opens the trainer (a modal): in the guide's intro and above its lessons. */
 export const trainerButton = (): HTMLElement =>
   el('div', { className: 'row' }, el('button', { type: 'button', className: 'primary', textContent: t('cross.open'), onclick: () => void openCrossTrainer() }));
-
-/** The cube after `setup` (from solved): the 3x3 unfolded, with the cross's edges and the centers in color (they can be
- *  on any face); the 2x2 as the beginner's first layer, its corner at the front-right. */
-function stateSVG(setup: string, puzzle: Puzzle, kpuzzle: KPuzzle): string {
-  const facelets = patternToFacelets(kpuzzle.defaultPattern().applyAlg(centerMoves(setup, IDENTITY).join(' ')));
-  return puzzle === '2x2x2' ? caseDiagram('iso', '2x2-first-layer', facelets, { size: 84 }) : netSVG(facelets, { size: 168 }, 'cross');
-}
 
 /** An example's state after its scramble (its caption describes it). */
 const exampleFigure = (x: CrossExample, puzzle: Puzzle, kpuzzle: KPuzzle): HTMLElement =>
