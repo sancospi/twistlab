@@ -1106,7 +1106,7 @@ export const es = {
   'seo.academyDescription': 'Aprende a resolver el cubo de Rubik paso a paso, del método principiante a CFOP, Roux y 2x2: el diagrama de cada caso, quiz con repaso espaciado, entrenadores y un cronómetro para medir tu progreso.',
   'seo.cubeDescription': 'Conecta tu cubo inteligente por Bluetooth (GAN, MoYu, QiYi, GiiKER o GoCube), míralo girar en 3D y deja que la app te guíe giro a giro a una mezcla o a resolverlo.',
   // Offline PWA (public/sw.js)
-  'pwa.offline': 'Funciona sin conexión: tras la primera visita, TwistLab se abre aunque no tengas internet. Puedes instalarla desde el menú del navegador (Añadir a pantalla de inicio o Instalar).',
+  'pwa.offline': 'Funciona sin conexión: tras tu segunda visita, TwistLab se abre aunque no tengas internet. Puedes instalarla desde el menú del navegador (Añadir a pantalla de inicio o Instalar).',
   // Acerca de (/acerca: index.html's #mod-about) and the Resolver's first-visit welcome (#welcome)
   'about.menu': 'Acerca de',
   'about.link': 'Acerca de TwistLab',
@@ -1115,7 +1115,7 @@ export const es = {
   'about.pointFree': 'Gratis, sin anuncios y sin cuenta obligatoria.',
   'about.pointLocal': 'Todo se queda en tu navegador; si quieres, una cuenta opcional guarda tu progreso para tus otros dispositivos.',
   'about.pointCube': 'Con un cubo inteligente (GAN, MoYu, QiYi, GiiKER, GoCube) o con tu cubo de siempre.',
-  'about.pointOffline': 'Funciona sin conexión tras la primera visita, y se puede instalar desde el menú del navegador.',
+  'about.pointOffline': 'Funciona sin conexión tras tu segunda visita, y se puede instalar desde el menú del navegador.',
   'about.faq': 'Preguntas frecuentes',
   'about.qFree': '¿Es gratis?',
   'about.aFree': 'Sí, del todo: sin anuncios, sin versión de pago y sin límites.',
@@ -1132,7 +1132,7 @@ export const es = {
   'about.qPrivacy': '¿Qué guarda la cuenta?',
   'about.aPrivacy': 'Solo si entras con tu correo: tu correo, que usamos únicamente para enviarte el código de acceso (sin publicidad ni boletines), y el progreso de esta app (tiempos, práctica, aprendizaje y ajustes) para tenerlo en tus dispositivos. No hay contraseña; una cookie mantiene la sesión abierta 90 días desde tu última visita. Puedes borrar la cuenta y todo lo guardado en ella en Progreso → Cuenta.',
   'about.qOffline': '¿Funciona sin conexión?',
-  'about.aOffline': 'Sí. Tras la primera visita, TwistLab se abre aunque no tengas internet: las mezclas, el cronómetro y la academia funcionan, porque todo se calcula en tu dispositivo. Puedes instalarla desde el menú del navegador (Añadir a pantalla de inicio o Instalar).',
+  'about.aOffline': 'Sí. Tras tu segunda visita, TwistLab se abre aunque no tengas internet: las mezclas, el cronómetro y la academia funcionan, porque todo se calcula en tu dispositivo. Puedes instalarla desde el menú del navegador (Añadir a pantalla de inicio o Instalar).',
   'about.qWho': '¿Para quién es?',
   'about.aWho': 'Para quien nunca ha resuelto el cubo y para quien quiere bajar sus tiempos: empiezas por la cruz blanca y el método principiante, sigues con el CFOP reducido y llegas al CFOP completo (41 casos de F2L, 57 de OLL y 21 de PLL).',
   'about.qWca': '¿Las mezclas son como las de la WCA?',

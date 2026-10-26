@@ -1103,7 +1103,7 @@ export const en: Record<MessageKey, string> = {
   'seo.academyDescription': 'Learn to solve the Rubik’s cube step by step, from the beginner method to CFOP, Roux and 2x2: a diagram of every case, a quiz with spaced repetition, trainers and a timer to track your progress.',
   'seo.cubeDescription': 'Connect your smart cube over Bluetooth (GAN, MoYu, QiYi, GiiKER or GoCube), watch it turn in 3D and let the app guide you move by move to a scramble or to solve it.',
   // Offline PWA
-  'pwa.offline': 'Works offline: after the first visit, TwistLab opens even without internet. You can install it from the browser menu (Add to Home Screen or Install).',
+  'pwa.offline': 'Works offline: after your second visit, TwistLab opens even without internet. You can install it from the browser menu (Add to Home Screen or Install).',
   // About (/acerca) and the Resolver's first-visit welcome
   'about.menu': 'About',
   'about.link': 'About TwistLab',
@@ -1112,7 +1112,7 @@ export const en: Record<MessageKey, string> = {
   'about.pointFree': 'Free, no ads and no account needed.',
   'about.pointLocal': 'Everything stays in your browser; if you want, an optional account keeps your progress for your other devices.',
   'about.pointCube': 'With a smart cube (GAN, MoYu, QiYi, GiiKER, GoCube) or with your regular cube.',
-  'about.pointOffline': 'Works offline after the first visit, and can be installed from the browser menu.',
+  'about.pointOffline': 'Works offline after your second visit, and can be installed from the browser menu.',
   'about.faq': 'Frequently asked questions',
   'about.qFree': 'Is it free?',
   'about.aFree': 'Yes, completely: no ads, no paid version and no limits.',
@@ -1129,7 +1129,7 @@ export const en: Record<MessageKey, string> = {
   'about.qPrivacy': 'What does the account store?',
   'about.aPrivacy': 'Only if you sign in with your email: your email, used only to send you the sign-in code (no ads or newsletters), and this app’s progress (times, practice, learning and settings) to have it on your devices. There’s no password; a cookie keeps you signed in for 90 days from your last visit. You can delete the account and everything saved in it in Progress → Account.',
   'about.qOffline': 'Does it work offline?',
-  'about.aOffline': 'Yes. After the first visit, TwistLab opens even without internet: scrambles, the timer and the academy work, because everything is computed on your device. You can install it from the browser menu (Add to Home Screen or Install).',
+  'about.aOffline': 'Yes. After your second visit, TwistLab opens even without internet: scrambles, the timer and the academy work, because everything is computed on your device. You can install it from the browser menu (Add to Home Screen or Install).',
   'about.qWho': 'Who is it for?',
   'about.aWho': 'For people who have never solved the cube and for those who want to bring their times down: you start with the white cross and the beginner method, move on to reduced CFOP and get to full CFOP (41 F2L, 57 OLL and 21 PLL cases).',
   'about.qWca': 'Are the scrambles like the WCA’s?',

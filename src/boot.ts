@@ -62,4 +62,10 @@ requestAnimationFrame(() => requestAnimationFrame(() => {
 const whenIdle = (f: () => void) =>
   document.readyState === 'complete' ? idle(f) : addEventListener('load', () => idle(f), { once: true });
 whenIdle(() => inject());
-if (import.meta.env.PROD && 'serviceWorker' in navigator) whenIdle(() => void navigator.serviceWorker.register('/sw.js').catch(() => {}));
+// ponytail: the worker only for a returning visitor (keys from an earlier visit: read now, before main.ts saves this
+// one's) without Save-Data, so a first look, read and gone, doesn't download its ~1 MB gz precache. The limit: TwistLab
+// works offline from the second visit; a worker registered before keeps updating either way.
+let returning = false;
+try { returning = localStorage.length > 0; } catch { /* no storage: no offline either */ }
+const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+if (import.meta.env.PROD && 'serviceWorker' in navigator && returning && !saveData) whenIdle(() => void navigator.serviceWorker.register('/sw.js').catch(() => {}));

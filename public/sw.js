@@ -1,5 +1,6 @@
-// Offline: the app shell and the built files are precached, so TwistLab opens without a connection after one visit
-// (the smart cubes' libraries, only once a cube was connected online: vite.config.ts, swPrecache).
+// Offline: the app shell and the built files are precached, so TwistLab opens without a connection once this worker is
+// in (the smart cubes' libraries, only once a cube was connected online: vite.config.ts, swPrecache). src/boot.ts
+// registers it from the second visit on, never with Save-Data: a first visit only to read doesn't download it all.
 // The build fills VERSION and PRECACHE (vite.config.ts, swPrecache); in dev it isn't registered (src/boot.ts).
 // Updates: a new version installs in the background and waits; the next page load that reaches the network switches to
 // it. Nothing reloads an open tab: it keeps its own version's files from its own cache.
