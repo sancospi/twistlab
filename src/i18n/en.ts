@@ -487,6 +487,7 @@ export const en: Record<MessageKey, string> = {
   'quiz.stuck': 'I’m stuck',
   'quiz.whyStuck': 'You got stuck. Here’s how to solve it:',
   'quiz.whyFail': 'Missed. Here’s how to solve it:',
+  'quiz.whyShown': 'This case is solved like this:',
   'quiz.repeat': 'Another scramble',
   'quiz.retryItem': 'Retry',
   'quiz.recognized': 'Recognized in {time}',

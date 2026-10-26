@@ -101,7 +101,7 @@ interface Feedback {
 // ask (Reconoce) → clock (Resuelve) without a cube, scramble (Mezcla) → solve (Resuelve) with one; then done, or
 // explain after a mistake
 type Screen = 'setup' | 'clock' | 'scramble' | 'solve' | 'done' | 'explain' | 'results';
-type Why = 'stuck' | 'fail'; // why the explanation is up
+type Why = 'stuck' | 'fail' | 'shown'; // why the explanation is up: Me atasqué, Fallé, Ver respuesta
 let kpuzzle: KPuzzle;
 let scope: QuizScope;
 let onClose: () => void = () => {};
@@ -359,8 +359,8 @@ function retryClock() {
   render();
 }
 
-/** "Me atasqué", "Ver respuesta", Fallé (`fail`), or (on the cube) too many turns or too long: graded as failed,
- *  explained. */
+/** "Me atasqué", "Ver respuesta" (`shown`), Fallé (`fail`), or (on the cube) too many turns or too long: graded as
+ *  failed, explained. */
 function stuck(w: Why = 'stuck') {
   const item = items[index];
   guide.stop();
@@ -747,8 +747,8 @@ const steps = (current: 1 | 2) => el('ol', { className: 'steps', ariaLabel: t('p
   ...[t('practice.stepScramble'), t('practice.stepSolve')].map((text, i) =>
     el('li', { textContent: text, ...(i + 1 === current ? { ariaCurrent: 'step' } : {}) })));
 
-/** "Me atasqué" (or "No lo sé" on the question): the explanation. */
-const stuckButton = (label: MessageKey = 'quiz.stuck') => action('stuck', t(label), () => stuck());
+/** "Me atasqué" (or "Ver respuesta" on the clock card): the explanation. */
+const stuckButton = (label: MessageKey = 'quiz.stuck', w: Why = 'stuck') => action('stuck', t(label), () => stuck(w));
 
 /** Without a cube, the clock card: listo, the figure (no arrows: the case isn't named) and the scramble, big; a tap or
  *  Space hides them and starts the clock; parado, the time against the case's record, Limpio (solved: Siguiente) or
@@ -767,7 +767,7 @@ function renderClock(): Node[] {
   clock.setAttribute('aria-describedby', hint.id);
   if (!stopped) {
     return [progress(), card(clockAt ? 'running' : 'ready', [...holdHint(item), ...(ready ? itemScramble() : []), clock, hint], toggleClock),
-      actions(action('solved', t('quiz.solvedNoClock'), solvedNoClock), action('skip', t('quiz.skip'), skip), stuckButton('quiz.showAnswer'))];
+      actions(action('solved', t('quiz.solvedNoClock'), solvedNoClock), action('skip', t('quiz.skip'), skip), stuckButton('quiz.showAnswer', 'shown'))];
   }
   const c = compare(clockMs!, statsFor(item.c.id))!; // clean until said otherwise: never null
   const delta = p(comparisonText(c), ['delta', deltaClass(c)].filter(Boolean).join(' '));
@@ -778,6 +778,7 @@ function renderClock(): Node[] {
   miss.ariaKeyShortcuts = 'x';
   miss.append(el('span', { textContent: t('practice.failBtn') }), el('kbd', { className: 'key-hint', ariaHidden: 'true', textContent: 'X' }));
   return [progress(), card('stopped', [clock, delta, hint, el('div', { className: 'row grade' }, ok, miss)]),
+    feedbackView(item), // which case it was: on the cube the done screen says it
     actions(action('retry', t('quiz.retryItem'), retryClock))];
 }
 
@@ -827,12 +828,13 @@ function renderDone(): Node[] {
       ...(s ? [p(t('quiz.caseStats', { best: timeOr(s.best), avg: timeOr(avg ?? null) }), 'hint')] : []),
       el('div', { className: 'row grade' }, nextButton(true), ...(f.grade === 'fail' ? [retryButton()] : [action('repeat', t('quiz.repeat'), repeat)])),
     ]),
-    feedbackView(f),
+    feedbackView(f.item),
     ...(f.grade === 'fail' ? [actions(action('repeat', t('quiz.repeat'), repeat), ...reviewButton(f.item))] : []),
   ];
 }
 
-const whyText = () => t(why === 'stuck' ? 'quiz.whyStuck' : 'quiz.whyFail');
+const WHY: Record<Why, MessageKey> = { stuck: 'quiz.whyStuck', fail: 'quiz.whyFail', shown: 'quiz.whyShown' };
+const whyText = () => t(WHY[why]);
 
 /** After a mistake: the case explained (figure, algorithm with its triggers, how to recognise it, fingers, animation on
  *  demand); Reintentar (the same item) or Siguiente. */
@@ -842,13 +844,13 @@ function renderExplain(): Node[] {
   const retry = retryButton();
   retry.className = 'primary';
   return [
-    progress(), p(whyText(), 'bad'), diagram(item, 140, true),
+    progress(), p(whyText(), why === 'shown' ? '' : 'bad'), diagram(item, 140, true), // asked for: no reproach
     ...(item.steps ? howTo(item) : [ // full last layer: each case with its AUF and algorithm
       el('p', {}, el('strong', { textContent: caseLabel(item.c) })),
       el('p', { className: 'hint' }, ...inlineText(loc(item.c.recognition))),
       movesView(tokens), fingersView(tokens)]),
-    el('div', { className: 'row' }, anim.button()),
-    el('div', { className: 'row' }, retry, nextButton(false), ...reviewButton(item)),
+    actions(anim.button()),
+    actions(retry, nextButton(false), ...reviewButton(item)),
   ];
 }
 
@@ -914,11 +916,11 @@ function feedbackText(f: Feedback): string {
   return why ? `${t('quiz.gradedFail')} · ${why}` : t('quiz.gradedFail');
 }
 
-/** The solved case: its figure, name and algorithm (the grade is on the card above). */
-function feedbackView(f: Feedback): HTMLElement {
+/** The case just solved: its figure, name and algorithm (how it went is on the card above). */
+function feedbackView(item: Item): HTMLElement {
   const pic = el('div', { className: 'quiz-feedback-diagram', ariaHidden: 'true' }); // the case's name is next to it
-  pic.innerHTML = caseSVG(f.item.c, f.item.user, { size: 72, colors: heldColors(f.item.hold), arrows: !f.item.steps });
-  return el('div', { className: 'quiz-feedback' }, pic, el('div', {}, ...howTo(f.item)));
+  pic.innerHTML = caseSVG(item.c, item.user, { size: 72, colors: heldColors(item.hold), arrows: !item.steps });
+  return el('div', { className: 'quiz-feedback' }, pic, el('div', {}, ...howTo(item)));
 }
 
 const nextMove = () => {

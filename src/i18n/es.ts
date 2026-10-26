@@ -488,6 +488,7 @@ export const es = {
   'quiz.stuck': 'Me atasqué',
   'quiz.whyStuck': 'Te atascaste. Así se resuelve:',
   'quiz.whyFail': 'Fallado. Así se resuelve:',
+  'quiz.whyShown': 'Este caso se resuelve así:',
   'quiz.repeat': 'Otra mezcla',
   'quiz.retryItem': 'Reintentar',
   'quiz.recognized': 'Reconocido en {time}',

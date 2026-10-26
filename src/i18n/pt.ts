@@ -489,6 +489,7 @@ export const pt: Record<MessageKey, string> = {
   'quiz.stuck': 'Travei',
   'quiz.whyStuck': 'Você travou. Assim se resolve:',
   'quiz.whyFail': 'Errou. Assim se resolve:',
+  'quiz.whyShown': 'Este caso se resolve assim:',
   'quiz.repeat': 'Outro embaralhamento',
   'quiz.retryItem': 'Tentar de novo',
   'quiz.recognized': 'Reconhecido em {time}',
