@@ -1,0 +1,27 @@
+# TwistLab
+
+> A free, ad-free Rubik's cube timer with an academy, in Spanish, English and Portuguese: WCA scrambles for the 15
+> events, smart cube support over Web Bluetooth, lessons from the beginner method to full CFOP, Roux and 2x2, and
+> daily and weekly challenges. It runs in the browser and works offline; an account is optional. Open source
+> (AGPL-3.0).
+
+Spanish pages are at the root, English ones under /en/ and Portuguese ones under /pt/. Every page is listed in the
+sitemap: https://twistlab.app/sitemap.xml
+
+## Tools
+
+- [Rubik's cube timer](https://twistlab.app/en/): WCA scrambles, inspection, averages, sessions, training scrambles
+- [Rubik's cube solver](https://twistlab.app/en/cubo/pintar): paint your cube or type its scramble, get the solution
+- [Challenges](https://twistlab.app/en/retos): the daily and weekly scramble, rankings, duels by link
+
+## Learn
+
+- [How to solve a Rubik's cube step by step](https://twistlab.app/en/como-resolver-el-cubo-de-rubik): the beginner method in one article
+- [Academy](https://twistlab.app/en/academia): every method, guide and trainer
+- [Algorithms](https://twistlab.app/en/algoritmos): every case of every method (OLL, PLL, F2L, COLL, Roux, 2x2)
+- [Which smart cube to buy](https://twistlab.app/en/cubos-inteligentes)
+
+## About
+
+- [About TwistLab](https://twistlab.app/en/acerca)
+- [Source code](https://github.com/sancospi/twistlab)
