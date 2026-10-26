@@ -32,7 +32,7 @@ export function edgeTables(kpuzzle: KPuzzle): EdgeTable[] {
   }));
 }
 
-// Integer arithmetic only: the BFS calls this 190080·18 times, and arrays per call cost it ~5x (~120 ms vs ~25).
+// Integer arithmetic only: the BFS calls this 190080·18 times, and arrays per call cost it ~3x (~120 ms vs ~40 in node).
 function step(s: number, t: EdgeTable): number {
   let n = s >> 4, out = 0, flips = 0;
   for (let i = 3, place = 16; i >= 0; i--, place *= 12) {
