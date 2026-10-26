@@ -372,7 +372,7 @@ export const roux: Method = {
     '3. **CMLL:** las 4 esquinas de arriba, con un algoritmo (42 casos).',
     '4. **Últimas seis aristas:** solo con `M` y `U`, en 3 pasos cortos.',
     '## Para quién',
-    '- Si prefieres pensar y planear a memorizar: menos giros por solve que el CFOP y pocos algoritmos.',
+    '- Si prefieres pensar y planear a memorizar: menos giros por resolución que el CFOP y pocos algoritmos.',
     '- Sin rotar el cubo: muy usado a una mano.',
     "- Pide soltura con `M`: practica `M` y `M'` hasta hacerlos sin mirar.",
     '- Si sabes el F2L del CFOP, los pares de los bloques entran igual.',
@@ -603,7 +603,7 @@ export const roux: Method = {
       ],
       progression: doc([
         '1. **CMLL en 2 pasos:** si sabes el OCLL, solo te faltan O Adyacente y O Diagonal.',
-        '2. **Sune y Antisune:** 12 casos, casi 1 de cada 3 solves.',
+        '2. **Sune y Antisune:** 12 casos, casi 1 de cada 3 resoluciones.',
         '3. **O, H y Pi.**',
         '4. **U y T.**',
         '5. **L:** al final.',

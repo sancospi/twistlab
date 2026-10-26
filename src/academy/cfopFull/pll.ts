@@ -214,8 +214,8 @@ export const pllPhase: Phase = {
       '1. **Ua, Ub, H, Z, T y Y:** los del PLL en 2 pasos. Si ya los sabes, repásalos.',
       '2. **Ja, Jb, Aa y Ab:** cortos y fáciles de ver.',
       '3. **F, Ra, Rb, V y E.**',
-      '4. **Ga, Gb, Gc y Gd:** los más difíciles de distinguir; de a uno. Juntos salen en 2 de cada 9 solves.',
-      '5. **Na y Nb:** al final. Largos y raros (1 de cada 72 solves cada uno, como H).',
+      '4. **Ga, Gb, Gc y Gd:** los más difíciles de distinguir; de a uno. Juntos salen en 2 de cada 9 resoluciones.',
+      '5. **Na y Nb:** al final. Largos y raros (1 de cada 72 resoluciones cada uno, como H).',
       'Aprende juntos los pares inversos: Ua y Ub, Aa y Ab, Ga y Gb, Gc y Gd.',
     ].join('\n'),
     [

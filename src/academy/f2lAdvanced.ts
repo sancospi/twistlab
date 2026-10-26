@@ -120,7 +120,7 @@ export const f2lAdvanced: Method = {
       "3. **Pares libres:** a la ranura adelante-izquierda con `L'` y `F`.",
       '## Cómo aprenderlo',
       '- Empieza por los casos 1 a 4 de cada ranura de atrás: son de 3 o 4 giros.',
-      '- Si dudas en un solve, gira: un `y` sin pausa es mejor que un caso a medio recordar.',
+      '- Si dudas en una resolución, gira: un `y` sin pausa es mejor que un caso a medio recordar.',
     ],
     [
       'For when you already know the **41 F2L cases** of Full CFOP, all of them into the front-right slot.',
@@ -227,9 +227,9 @@ export const f2lAdvanced: Method = {
       progression: tr(
         [
           'Orden: **casos 1 a 4 de cada lado → el resto**.',
-          'Los casos 1 a 4 son de 3 o 4 giros: apréndelos primero y úsalos ya en tus solves.',
+          'Los casos 1 a 4 son de 3 o 4 giros: apréndelos primero y úsalos ya en tus resoluciones.',
           '## Práctica',
-          'En cada solve, cuando un par esté atrás, insértalo atrás aunque vayas lento. Con la práctica sale solo.',
+          'En cada resolución, cuando un par esté atrás, insértalo atrás aunque vayas lento. Con la práctica sale solo.',
         ].join('\n'),
         [
           'Order: **cases 1 to 4 on each side → the rest**.',

@@ -244,7 +244,7 @@ export const f2lPhase: Phase = {
       "2. Invierte todos los giros: `R` pasa a `L'`, `F` a `F'`, `U'` a `U`, `y'` a `y`. Solo `M` no cambia.",
       "- Ejemplo: `R U R'` pasa a `L' U' L`.",
       '## Práctica',
-      'Haz 5 solves lentos por sesión buscando el siguiente par mientras insertas el actual.',
+      'Haz 5 resoluciones lentas por sesión buscando el siguiente par mientras insertas el actual.',
     ].join('\n'),
     [
       'Order: **free pairs → separated pieces → touching pieces → corner in the slot → edge in the slot → both in the slot**.',

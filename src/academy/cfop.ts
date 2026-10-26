@@ -158,10 +158,10 @@ const M_NOTE = 'M se gira en la misma dirección que L.';
 const pllCorners = [
   kase({ slug: 't', code: 'T-perm', recognition: 'Faros en un solo lado; ponlos a la izquierda', stage: 'pll-corners',
     alg: "R U R' U' R' F R2 U' R' U' R U R' F'", setup: "F R U' R' U R U R2 F' R U R U' R'", scdb: ['PLL', 'T'],
-    note: 'Aparece en 2 de cada 3 solves.' }),
+    note: 'Aparece en 2 de cada 3 resoluciones.' }),
   kase({ slug: 'y', code: 'Y-perm', recognition: 'Ningún lado tiene faros; se hace desde cualquier ángulo', stage: 'pll-corners',
     alg: "F R U' R' U' R U R' F' R U R' U' R' F R F'", setup: "F R' F' R U R U' R' F R U' R' U R U R' F'", scdb: ['PLL', 'Y'],
-    note: 'Aparece en 1 de cada 6 solves.' }),
+    note: 'Aparece en 1 de cada 6 resoluciones.' }),
 ];
 const pllEdges = [
   kase({ slug: 'ua', code: 'Ua', recognition: 'Un lado completo: ponlo atrás. La arista del frente es del color del centro derecho', stage: 'pll-edges',
@@ -239,12 +239,12 @@ export const cfopReduced: Method = {
       '- **Semana 1 (8 nuevos):** diagnóstico F2L + bloques A y B. Foco: cruz en 8 movimientos o menos, planeada en la inspección. Pasa con: ao12 de base anotado; A y B sin mirar la hoja.',
       '- **Semana 2 (5 nuevos):** OLL cruz (Línea, L y Punto) + F2L bloque C (2). Foco: reconocer la forma amarilla antes de terminar el F2L. Pasa con: cruz amarilla en menos de 3 s.',
       '- **Semana 3 (8 nuevos):** OLL esquinas (Sune, Antisune, H y Pi) + F2L bloque D (4). Foco: contar esquinas amarillas sin girar el cubo. Pasa con: los 4 casos reconocidos en menos de 2 s.',
-      '- **Semana 4 (8 nuevos):** OLL esquinas (U, L y T) + F2L bloque E (5). Foco: solves con OLL en 2 pasos completo. Pasa con: ningún solve con OLL de principiante.',
+      '- **Semana 4 (8 nuevos):** OLL esquinas (U, L y T) + F2L bloque E (5). Foco: resoluciones con OLL en 2 pasos completo. Pasa con: ninguna resolución con OLL de principiante.',
       '- **Semana 5 (4 nuevos):** PLL esquinas (T-perm y Y-perm) + aristas (Ua y Ub). Foco: buscar faros girando solo la capa superior. Pasa con: esquinas reconocidas en menos de 3 s.',
-      '- **Semana 6 (2 nuevos):** PLL aristas (H y Z). Foco: repaso general y 50 solves en la semana. Pasa con: ao12 al menos 20 % mejor que el de la semana 1.',
+      '- **Semana 6 (2 nuevos):** PLL aristas (H y Z). Foco: repaso general y 50 resoluciones en la semana. Pasa con: ao12 al menos 20 % mejor que el de la semana 1.',
       '## Metas al terminar la semana 6',
       'Metas: cruz en menos de 4 s, F2L en menos de 25 s, OLL en menos de 7 s y PLL en menos de 7 s.',
-      'Mídelas una vez por semana: 5 solves lentos, cronometrados por partes.',
+      'Mídelas una vez por semana: 5 resoluciones lentas, cronometradas por partes.',
     ].join('\n'),
   ),
   phases: [
@@ -291,7 +291,7 @@ export const cfopReduced: Method = {
           "- Cambia `R` por `L'`, `F` por `F'`, `U` por `U'`, `r` por `l'` e `y'` por `y`. `M` no cambia.",
           "- Ejemplo: `R U R'` pasa a `L' U' L`.",
           '## Anticipación',
-          '5 solves lentos por sesión, buscando el siguiente par mientras insertas el actual.',
+          '5 resoluciones lentas por sesión, buscando el siguiente par mientras insertas el actual.',
         ].join('\n'),
       ),
       quizzes: [
@@ -430,7 +430,7 @@ export const cfopReduced: Method = {
       progression: es(
         [
           'Orden: **T-perm → Y-perm → Ua y Ub juntos → H → Z**.',
-          'T-perm primero: sale en 2 de cada 3 solves. Y-perm sale en 1 de cada 6; en el otro 1 de cada 6 las esquinas ya están.',
+          'T-perm primero: sale en 2 de cada 3 resoluciones. Y-perm sale en 1 de cada 6; en el otro 1 de cada 6 las esquinas ya están.',
         ].join('\n'),
       ),
       quizzes: [
