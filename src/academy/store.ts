@@ -110,7 +110,8 @@ export function recordRep(caseId: string, rep: Rep): CaseStats {
 }
 
 // --- Spaced repetition: when each case comes back in the trainer ---
-// SM-2-lite with a fixed ease: a fail sends the case back to today (interval 0), a good doubles the interval
+// SM-2-lite with a fixed ease: a fail sends the case back to today and halves its interval (a slip costs a step, not
+// what the clean reviews before it earned), a good doubles the interval
 // (1 day the first time), an easy one (faster than the case's own average) triples it. Grading a case that isn't
 // due yet doesn't grow it: the same case several times in one session counts once.
 
@@ -147,7 +148,7 @@ export const learnStatus = (s: Learning | undefined): LearnStatus => (!s ? 'new'
 /** The case's schedule after a grade. */
 export function graded(s: Learning | undefined, grade: Grade, now: number): Learning {
   const base: Learning = s ?? { due: now, interval: 0, lapses: 0, recognitionMs: null, solveMs: null };
-  if (grade === 'fail') return { ...base, due: now, interval: 0, lapses: base.lapses + 1 };
+  if (grade === 'fail') return { ...base, due: now, interval: Math.floor(base.interval / 2), lapses: base.lapses + 1 };
   if (s && !isDue(s, now)) return s; // reviewed early: no growth
   const interval = Math.min(MAX_DAYS, grade === 'easy' ? Math.max(2, base.interval * 3) : Math.max(1, base.interval * 2));
   return { ...base, interval, due: now + interval * DAY };

@@ -50,7 +50,7 @@ test('parsePrefs keeps string choices; preferred falls back to the main algorith
 const DAY = 86_400_000;
 const at = (day: number, hour = 10) => new Date(2026, 0, day, hour).getTime(); // local time, like the app
 
-test('graded: fail back to today, good doubles, easy triples, early reviews do not grow', () => {
+test('graded: fail back to today at half the interval, good doubles, easy triples, early reviews do not grow', () => {
   let s = graded(undefined, 'good', at(1));
   assert.deepEqual([s.interval, s.due, s.lapses], [1, at(1) + DAY, 0]);
   assert.equal(graded(s, 'good', at(1, 18)), s, 'the same case again in the session: no growth');
@@ -61,10 +61,12 @@ test('graded: fail back to today, good doubles, easy triples, early reviews do n
   assert.equal(s.interval, 6);
   assert.equal(learnStatus(s), 'known');
   const failed = graded(s, 'fail', at(5));
-  assert.deepEqual([failed.interval, failed.lapses, failed.due], [0, 1, at(5)]);
+  assert.deepEqual([failed.interval, failed.lapses, failed.due], [3, 1, at(5)], 'a slip halves the 6 days');
   assert.ok(isDue(failed, at(5, 11)));
-  assert.equal(learnStatus(failed), 'learning');
-  assert.equal(graded(failed, 'good', at(5, 11)).interval, 1, 'relearned later that day');
+  assert.equal(graded(failed, 'good', at(5, 11)).interval, 6, 'relearned later that day: back where it was');
+  const twice = graded(graded(failed, 'fail', at(5, 12)), 'fail', at(5, 13));
+  assert.deepEqual([twice.interval, learnStatus(twice)], [0, 'learning'], 'failing again and again: from the start');
+  assert.equal(graded(twice, 'good', at(5, 14)).interval, 1);
   assert.equal(graded(undefined, 'easy', at(1)).interval, 2);
   assert.equal(graded(undefined, 'fail', at(1)).lapses, 1);
   let long: Learning = { ...s, interval: 150, due: at(1) };
