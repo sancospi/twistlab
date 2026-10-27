@@ -48,11 +48,24 @@ body[data-module="solve"] .results button.time { padding: 6px 10px; margin: -4px
 #solve-opts .round label { flex-direction: column; align-items: stretch; gap: 2px; }
 body[data-module="solve"] #moves:empty { display: none; }
 body[data-module="solve"]:not(.cube-3d) #cube { display: none; }
+.solve-clock { display: contents; } /* its own column only on a phone held sideways (below) */
 .net-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .net-row .net { flex: 0 1 auto; width: auto; aspect-ratio: 4 / 3; min-width: 0; } /* the net's own shape, centred with its button */
 .show-3d { flex: none; min-height: 44px; }
 .show-3d[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
 body.other-puzzle .show-3d { display: none; }
+/* A phone held sideways (short and wide, whatever its width): the scramble and its net on the left, the last time and
+   Empezar on the right, both on the first screen; the rest under them, full width. The clock's column spans the left
+   one's rows and a last 1fr row takes its extra height, so the left one's rows never stretch. */
+@media (orientation: landscape) and (max-height: 500px) {
+  body[data-module="solve"] { grid-template-columns: minmax(0, 520px) minmax(0, 380px); grid-template-rows: repeat(4, auto) 1fr; column-gap: 24px; }
+  body[data-module="solve"] .solve-clock { display: grid; gap: 10px; align-content: start; grid-column: 2; grid-row: 1 / span 5; }
+  body[data-module="solve"] :is(.solve-top, #challenge-note, #scramble-box, #guide) { grid-column: 1; }
+  body[data-module="solve"] :is(#mod-solve > :not(.solve-top, #challenge-note, #scramble-box, .solve-clock), #cube, #moves) { grid-column: 1 / -1; }
+  body[data-module="solve"] .net { height: clamp(80px, 24dvh, 110px); }
+  body[data-module="solve"] .scramble:not(.long) { min-height: 0; font-size: 1rem; }
+  body[data-module="solve"] #scramble-note { font-size: .8571rem; margin: 0; }
+}
 body[data-module="solve"] .view { right: 8px; bottom: 8px; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); gap: 4px; }
 body[data-module="solve"] .view button { font-size: 1.0714rem; }
 body[data-module="solve"] .net { height: clamp(96px, 26vw, 160px); }

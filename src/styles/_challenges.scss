@@ -1,4 +1,4 @@
-// Challenges in the Resolver, and its page scrolling below 900px.
+// Challenges in the Resolver, and its page scrolling below 900px (and on a phone held sideways, however wide).
 
 /* Reto del día (daily-view.ts): a card above the scramble, its rankings in a dialog */
 :is(#daily, #weekly) .account-status:empty { display: none; }
@@ -17,11 +17,11 @@ body[data-module="solve"] #challenge-note { order: 1; } /* an id: over #mod-solv
 @media (min-width: 600px) { body[data-module="solve"] #cube { height: 40dvh; } }
 /* Below 900px the Resolver's page scrolls inside the body, which ends above the tab bar: nothing half under the bar
    (a button cut by it is a tap target too small to hit) */
-@media (max-width: 899px) {
+@media (max-width: 899px), (orientation: landscape) and (max-height: 500px) {
   html:has(> body[data-module="solve"]) { overflow: hidden; }
   body[data-module="solve"] { height: calc(100dvh - var(--tabbar-h, 0px)); min-height: 0; overflow-y: auto; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
 }
-@media (min-width: 900px) {
+@media (min-width: 900px) and (min-height: 501px), (min-width: 900px) and (orientation: portrait) {
   body[data-module="solve"] :is(.panel, #mod-solve) { display: grid; }
   body[data-module="solve"] .scramble.long { max-height: 11em; }
   body[data-module="solve"] :is(.solve-more button, .solve-more select, .solve-top button, .solve-top select) { min-height: 0; }

@@ -116,6 +116,8 @@
         </div>
       </div>
       <!-- the last time, big (a tap opens its sheet), and the averages under it: what a timer is looked at for -->
+      <!-- the clock's column: a phone held sideways puts it beside the scramble (_phone-layout.scss) -->
+      <div class="solve-clock">
       <div id="readout" class="readout">
         <button id="last-open" type="button" class="last-time" aria-haspopup="dialog" disabled><span class="sr-only" data-i18n="solve.lastTime"></span> <span id="last-time">0.00</span></button>
         <dl id="stats" class="stats"></dl>
@@ -128,6 +130,7 @@
           <button class="primary" data-i18n="typed.add"></button>
         </form>
         <p id="typed-status" class="hint" role="status"></p>
+      </div>
       </div>
       <div id="cross-best"></div> <!-- under Empezar: on a phone, Empezar stays on the first screen -->
       <!-- first visit only (body.fresh, set by the inline script above): under Empezar, so it never pushes it down -->
