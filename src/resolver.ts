@@ -350,8 +350,11 @@ function removeSolve(r: Result) {
   dropSolve(r);
   if (latest) void newScramble();
 }
+// the stage's OK / +2 / DNF confirm the time: the penalty, then the next scramble (Ctrl+1/2/3 only set it, Space moves on)
 document.querySelectorAll<HTMLButtonElement>('[data-pen]').forEach((b) => (b.onclick = () => {
-  if (results[0]) setPenalty(results[0], b.dataset.pen === 'DNF' ? 'DNF' : (Number(b.dataset.pen) as Penalty));
+  if (!results[0]) return;
+  setPenalty(results[0], b.dataset.pen === 'DNF' ? 'DNF' : (Number(b.dataset.pen) as Penalty));
+  if (phase === 'done') void newScramble();
 }));
 
 // Typed times (Opciones: Entrada): another timer's, with this scramble
