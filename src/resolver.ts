@@ -167,13 +167,15 @@ function stopInspection() {
   renderTimer();
 }
 
-function startSolve() {
+/** `at`: when the hand let go (the event's time), not when this runs: a phone can run it later (a busy main thread, a
+ *  speech engine starting up on its first cancel), and the solve would lose that much. */
+function startSolve(at = performance.now()) {
   if ((phase !== 'ready' && phase !== 'inspect') || typing) return;
-  penalty = phase === 'inspect' && hasInspection(event) ? inspectionPenalty(performance.now() - inspectStart) : 0;
+  penalty = phase === 'inspect' && hasInspection(event) ? inspectionPenalty(at - inspectStart) : 0;
   holdStart = 0;
   if (canSpeak) speechSynthesis.cancel(); // a late call mustn't talk over the solve
   phase = 'solving';
-  solveStart = performance.now();
+  solveStart = at;
   solveFrom = conn ? moves.length : -1;
   solveTimes = [];
   splits = [];
@@ -181,11 +183,11 @@ function startSolve() {
 }
 
 /** A tap (or Space) while solving: the end of a phase (Opciones: Fases), the last one stops the clock. */
-function lap() {
+function lap(at: number) {
   if (splits.length < phases - 1) {
-    splits.push(recordTime(performance.now() - solveStart));
+    splits.push(recordTime(at - solveStart));
     renderTimer();
-  } else stopSolve();
+  } else stopSolve(at);
 }
 
 /** A new solve of the list shown, with the scramble shown: kept, counted in the round, sent to its challenge. */
@@ -197,9 +199,9 @@ function record(time: Pick<Result, 'ms' | 'penalty'> & Partial<Result>, log: Cub
   return solve;
 }
 
-function stopSolve() {
+function stopSolve(at = performance.now()) {
   if (phase !== 'solving') return;
-  const ms = recordTime(performance.now() - solveStart);
+  const ms = recordTime(at - solveStart);
   const done = splits.filter((x) => x < ms);
   const log = conn && solveFrom >= 0 && moves.length > solveFrom ? { moves: moves.slice(solveFrom).join(' '), times: solveTimes.map(Math.round) } : null;
   const solve = record({ ms, penalty, ...(done.length && { splits: done }) }, log);
@@ -220,21 +222,22 @@ function stopSolve() {
 
 const armed = () => holdStart > 0 && performance.now() - holdStart >= holdMs;
 
-// Space or a touch on the timer screen
-function press() {
+// Space or a touch on the timer screen, at the event's time (when(), clamped: never ahead of the clock)
+const when = (e: Event) => Math.min(e.timeStamp, performance.now());
+function press(at: number) {
   pressPhase = phase;
-  if (phase === 'inspect') holdStart = performance.now(); // red until the hold time, then green
-  else if (phase === 'solving') lap();
+  if (phase === 'inspect') holdStart = at; // red until the hold time, then green
+  else if (phase === 'solving') lap(at);
   renderTimer();
 }
 
-function release() {
+function release(at: number) {
   const began = pressPhase;
   pressPhase = null;
   if (began !== phase) return; // e.g. the release of the press that stopped the clock
   if (phase === 'ready') startInspection();
   else if (phase === 'done') void newScramble();
-  else if (phase === 'inspect' && armed()) startSolve();
+  else if (phase === 'inspect' && armed()) startSolve(at);
   else if (phase === 'inspect') { holdStart = 0; renderTimer(); } // released on red: keep inspecting
 }
 
@@ -385,9 +388,9 @@ $('opts-open').onclick = () => { $('import-status').textContent = ''; ($('solve-
 $('stage').addEventListener('pointerdown', (e) => {
   if ((e.target as Element).closest('button')) return;
   e.preventDefault();
-  press();
+  press(when(e));
 });
-$('stage').addEventListener('pointerup', (e) => !(e.target as Element).closest('button') && release());
+$('stage').addEventListener('pointerup', (e) => !(e.target as Element).closest('button') && release(when(e)));
 
 // Not while a dialog is open, nor from a checkbox (Space toggles it)
 const timerKeys = (e: KeyboardEvent) => mod === 'solve' && !document.querySelector('dialog[open]') && !(e.target as Element).closest?.('input, select');
@@ -409,7 +412,7 @@ addEventListener('keydown', (e) => {
   if (!timerKeys(e) || e.altKey || e.ctrlKey || e.metaKey) return;
   if (e.code === 'Space') {
     e.preventDefault(); // also keeps Space from clicking a focused button
-    if (!e.repeat) press();
+    if (!e.repeat) press(when(e));
   } else if (e.repeat) {
     return;
   } else if (e.key === 'Escape') {
@@ -421,7 +424,7 @@ addEventListener('keydown', (e) => {
 addEventListener('keyup', (e) => {
   if (!timerKeys(e) || e.code !== 'Space') return;
   e.preventDefault();
-  release();
+  release(when(e));
 });
 
 
