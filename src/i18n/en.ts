@@ -72,6 +72,7 @@ export const en: Record<MessageKey, string> = {
 
   // Solve module (WCA attempt)
   'solve.netOpen': 'See the scramble bigger',
+  'solve.show3d': 'View in 3D',
   'solve.scramble': 'Scramble',
   'scramble.note': 'From a solved cube: {up} on top, {front} in front.',
   'solve.start': 'Start',

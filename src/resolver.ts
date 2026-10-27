@@ -387,6 +387,16 @@ $('net').onclick = async () => {
   $('net-scramble').replaceChildren(is333(event) ? algView(scrambleText, { frame: 'white-up' }) : scrambleText);
   ($('net-dialog') as HTMLDialogElement).showModal();
 };
+// Ver en 3D (remembered): the 3D cube is the Resolver's only on request, the scramble's 2D net is always there
+const CUBE3D_KEY = 'cube-3d';
+const show3d = (on: boolean) => (document.body.classList.toggle('cube-3d', on), btn('show-3d').setAttribute('aria-pressed', String(on)));
+show3d(setting<boolean>(CUBE3D_KEY, false));
+$('show-3d').onclick = () => {
+  const on = !document.body.classList.contains('cube-3d');
+  save(CUBE3D_KEY, on);
+  show3d(on);
+  if (on) $('cube').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); // on a phone it's further down the page
+};
 $('opts-open').onclick = () => { $('import-status').textContent = ''; ($('solve-opts') as HTMLDialogElement).showModal(); }; // inspection calls, voice, round settings
 $('stage').addEventListener('pointerdown', (e) => {
   if ((e.target as Element).closest('button')) return;

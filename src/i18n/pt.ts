@@ -72,6 +72,7 @@ export const pt: Record<MessageKey, string> = {
 
   // Solve module (WCA attempt)
   'solve.netOpen': 'Ver o embaralhamento maior',
+  'solve.show3d': 'Ver em 3D',
   'solve.scramble': 'Embaralhamento',
   'scramble.note': 'A partir do cubo resolvido: {up} em cima, {front} na frente.',
   'solve.start': 'Começar',

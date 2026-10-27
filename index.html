@@ -58,6 +58,7 @@
       b.dataset.module = m;
       if (/^\/cubo\/pintar(\/|$)/.test(q)) b.setAttribute('data-paint', '');
       try { var e = JSON.parse(localStorage.getItem('cube-event')); if (m === 'solve' && typeof e === 'string' && e.slice(0, 3) !== '333' && e !== '222') b.classList.add('other-puzzle'); } catch (x) {} // the events without the 3D model, as timer.ts's has3d
+      try { if (JSON.parse(localStorage.getItem('cube-3d')) === true) b.classList.add('cube-3d'); } catch (x) {} // Ver en 3D, as resolver.ts
       // First visit (none of the app's keys, as progress.ts's inBackup, but the empty times main.ts writes on load):
       // the Resolver's welcome card, laid out before the first paint so nothing moves. Dismissed: 'cube-welcome'.
       try { for (var i = 0, s = localStorage, k, fresh = true; fresh && i < s.length; i++) { k = s.key(i); if (/^(cube|academy|quiz|cross|practice|progress|paint)-/.test(k) && !(k === 'cube-results' && s.getItem(k) === '[]')) fresh = false; } if (fresh) b.classList.add('fresh'); } catch (x) {}
@@ -108,8 +109,11 @@
       <div id="scramble-box" class="scramble-box">
         <div id="scramble-text" class="scramble" role="group" data-i18n-aria-label="solve.scramble" data-i18n="solve.generating"></div>
         <p id="scramble-note" hidden></p>
-        <!-- a tap opens it big, with the scramble (#net-dialog) -->
-        <button id="net" class="net" type="button" aria-haspopup="dialog" data-i18n-aria-label="solve.netOpen" data-i18n-title="solve.netOpen" disabled></button>
+        <!-- a tap opens it big, with the scramble (#net-dialog); Ver en 3D shows the 3D cube (#cube), hidden until asked for -->
+        <div class="net-row">
+          <button id="net" class="net" type="button" aria-haspopup="dialog" data-i18n-aria-label="solve.netOpen" data-i18n-title="solve.netOpen" disabled></button>
+          <button id="show-3d" class="show-3d" type="button" aria-pressed="false" aria-controls="cube" data-i18n="solve.show3d"></button>
+        </div>
       </div>
       <!-- the last time, big (a tap opens its sheet), and the averages under it: what a timer is looked at for -->
       <div id="readout" class="readout">

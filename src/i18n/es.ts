@@ -70,6 +70,7 @@ export const es = {
 
   // Solve module (WCA attempt)
   'solve.netOpen': 'Ver la mezcla en grande',
+  'solve.show3d': 'Ver en 3D',
   'solve.scramble': 'Mezcla',
   'scramble.note': 'Desde el cubo resuelto: {up} arriba, {front} al frente.',
   'solve.start': 'Empezar',

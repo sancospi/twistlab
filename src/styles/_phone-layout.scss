@@ -26,7 +26,8 @@
 /* Resolver, mobile first: one column in the page's flow, nothing over the cube. Event + Opciones, the scramble and its
    net, the 3D cube (arrows in its corner), Empezar, the results. .panel and #mod-solve become display: contents so
    their children and #cube (outside the panel) share the body's grid, ordered with `order` (the DOM keeps tab order).
-   From 900px: the side panel again, the big cube to its right (never under it). */
+   From 900px: the side panel again, the big cube to its right (never under it). The 3D cube only with Ver en 3D
+   (body.cube-3d): the scramble's net is what the solve needs. */
 body[data-module="solve"] { height: auto; min-height: 100dvh; overflow: visible; display: grid; grid-template-columns: minmax(0, 640px); justify-content: center; align-content: start; gap: 10px;
   padding: calc(var(--header-h) + 10px) calc(16px + env(safe-area-inset-right)) calc(var(--tabbar-h, env(safe-area-inset-bottom)) + 16px) calc(16px + env(safe-area-inset-left)); }
 body[data-module="solve"] :is(.panel, #mod-solve) { display: contents; }
@@ -46,6 +47,12 @@ body[data-module="solve"] .results button.time { padding: 6px 10px; margin: -4px
 #solve-opts .round input { width: 100%; box-sizing: border-box; }
 #solve-opts .round label { flex-direction: column; align-items: stretch; gap: 2px; }
 body[data-module="solve"] #moves:empty { display: none; }
+body[data-module="solve"]:not(.cube-3d) #cube { display: none; }
+.net-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.net-row .net { flex: 0 1 auto; width: auto; aspect-ratio: 4 / 3; min-width: 0; } /* the net's own shape, centred with its button */
+.show-3d { flex: none; min-height: 44px; }
+.show-3d[aria-pressed="true"] { background: var(--fg); color: var(--bg); font-weight: 700; }
+body.other-puzzle .show-3d { display: none; }
 body[data-module="solve"] .view { right: 8px; bottom: 8px; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); gap: 4px; }
 body[data-module="solve"] .view button { font-size: 1.0714rem; }
 body[data-module="solve"] .net { height: clamp(96px, 26vw, 160px); }

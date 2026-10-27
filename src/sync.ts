@@ -46,7 +46,7 @@ export const RECORDS = ['academy-stats', 'academy-learning', 'academy-prefs', 'a
 // trainers' scores ({best, cases}: pllRecognition.ts, aufTrainer.ts's academy-auf-${mode}), a known trade-off rather
 // than a choice: their per-case counts can't be added up across devices without counting the synced ones twice.
 export const LWW = [
-  'cube-event', 'cube-train', 'cube-session', 'cube-hold', 'cube-precision', 'cube-phases', 'cube-typing', 'cube-calls',
+  'cube-event', 'cube-train', 'cube-session', 'cube-hold', 'cube-precision', 'cube-phases', 'cube-typing', 'cube-calls', 'cube-3d',
   'cube-calls-voice', 'cube-welcome', 'cube-ranking-verified', 'progress-goal', 'paint-facelets', 'academy-view',
   'academy-pll-recog', 'academy-pll-recog-set', 'academy-auf-pre', 'academy-auf-post', 'academy-auf-set', 'academy-auf-mode',
   'academy-auf-view', 'academy-lookahead-tps', 'quiz-per-case', 'quiz-net', 'quiz-neutral', 'quiz-select', 'quiz-order',
