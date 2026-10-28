@@ -31,7 +31,7 @@ test('a case page: its algorithm, recognition, probability and sibling links', (
   const p = pages.find((x) => x.path === '/academia/cfop-completo/caso/cfopc-oll-27')!;
   assert.equal(p.title, 'Sune · OLL 27 · CFOP completo · TwistLab');
   assert.match(p.description, /^Sune · OLL 27 \(CFOP completo, OLL\)\. .+ Algoritmo: R U R' U R U2 R'$/);
-  assert.match(p.body, /<code>R U R' U R U2 R'<\/code>/);
+  assert.match(p.body, /<code>R U R' U R U2 R'<\/code> · Solo R y U/); // with its tags, as on the page
   assert.match(p.body, /Sale en 1\/54/);
   assert.match(p.body, /href="\/academia\/cfop-completo\/caso\/cfopc-oll-26"/);
 });
@@ -40,6 +40,7 @@ test('/academia/gatillos: every trigger with its moves and period', () => {
   const p = pages.find((x) => x.path === '/academia/gatillos')!;
   assert.equal(p.title, 'Gatillos · Academia · TwistLab');
   assert.match(p.body, /<strong>Sexy move<\/strong> <code>R U R' U'<\/code>: .+ Repetido 6 veces seguidas/);
+  assert.match(p.body, /<div id="r-y-u"><h3>Solo R y U, o con F y L<\/h3>/); // the case pages link to it
 });
 
 test('/acerca: the title the app sets', () => {

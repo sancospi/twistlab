@@ -11,10 +11,10 @@ import { lang, loc, t, tp } from '../i18n.ts';
 import { routePath } from '../router.ts';
 import { show3D } from './crossTrainer.ts';
 import { METHODS } from './methods.ts';
-import { el, fingersView } from './practice.ts';
+import { el, fingersView, tagChips } from './practice.ts';
 import { caseLabel } from './quiz.ts';
 import { load, save } from './store.ts';
-import { BESTS_KEY, appearsIn, drillReps, parseBests, period, tps, triggerGuide, type TriggerInfo } from './triggers.ts';
+import { BESTS_KEY, SPEED_ANCHOR, appearsIn, drillReps, parseBests, period, tps, triggerGuide, type TriggerInfo } from './triggers.ts';
 
 const SHOWN = 3; // case links per method; the rest as "y N más"
 const number = (x: number) => x.toFixed(1); // a dot, like formatTime's seconds on the same line
@@ -23,7 +23,8 @@ export function triggersView(kpuzzle: KPuzzle): HTMLElement {
   return el('section', { className: 'academy-phase' },
     el('h2', { textContent: loc(triggerGuide.name) }),
     prose(loc(triggerGuide.intro), 'prose', 'h3'),
-    el('div', { className: 'trigger-cards' }, ...triggerGuide.triggers.map((x) => card(x, kpuzzle))));
+    el('div', { className: 'trigger-cards' }, ...triggerGuide.triggers.map((x) => card(x, kpuzzle))),
+    Object.assign(prose(loc(triggerGuide.speed), 'prose', 'h3'), { id: SPEED_ANCHOR })); // the case pages link here
 }
 
 function card(x: TriggerInfo, kpuzzle: KPuzzle): HTMLElement {
@@ -48,6 +49,7 @@ function card(x: TriggerInfo, kpuzzle: KPuzzle): HTMLElement {
   return el('article', { className: 'academy-group trigger-card', id: `gatillo-${x.id}` },
     el('h3', {}, loc(x.name), ...en),
     el('p', { className: 'trigger-alg' }, algView(x.alg)),
+    ...tagChips(tokens),
     el('div', { className: 'row' },
       el('button', { type: 'button', className: 'small', textContent: t('cross.watch'), ariaLabel: t('cross.watchOf', { alg: x.alg }), onclick: () => show3D(loc(x.name), '', x.alg) }),
       practice),

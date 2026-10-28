@@ -16,7 +16,7 @@ import { StepFollower } from './follow.ts';
 import { minutes, nextLesson, parseDone, type Course, type Lesson, type LessonStep } from './lessons.ts';
 import type { Stage } from './types.ts';
 import { cube, type CubeListener } from './link.ts';
-import { aim, el, MASKS, setPuzzle } from './practice.ts';
+import { aim, el, MASKS, setPuzzle, tagChips } from './practice.ts';
 import { load, save } from './store.ts';
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -214,10 +214,11 @@ function stopFollowing() {
 function doIt(s: Extract<LessonStep, { kind: 'cube' }>, area: HTMLElement) {
   const setup = s.doSetup ? tokenize(s.setup) : [];
   followed = [...setup, ...tokenize(s.alg)];
-  const parts = (mark?: (i: number) => string) => el('dl', {},
+  const tags = s.stage ? tagChips(tokenize(s.alg)) : []; // a case's algorithm (not a notation move or a cross example)
+  const parts = (mark?: (i: number) => string) => [el('dl', {},
     ...(setup.length ? [el('dt', { textContent: t('lesson.setup') }), el('dd', {}, algView(setup, mark && { mark }))] : []),
     el('dt', { textContent: t(setup.length ? 'lesson.solution' : 'lesson.moves') }),
-    el('dd', {}, algView(followed.slice(setup.length), mark && { mark: (i) => mark(i + setup.length) })));
+    el('dd', {}, algView(followed.slice(setup.length), mark && { mark: (i) => mark(i + setup.length) }))), ...tags];
   const steps = expand(followed, held).steps;
   const canFollow = steps.some((x) => x.moves.length); // just a rotation: the cube can't see those
   if (!smart() || !canFollow) {
@@ -226,7 +227,7 @@ function doIt(s: Extract<LessonStep, { kind: 'cube' }>, area: HTMLElement) {
       cube.listener = listener;
       renderFollow = () => void (cube.pattern() && doIt(s, area));
     }
-    area.replaceChildren(el('p', { className: 'hint', textContent: t(setup.length ? 'lesson.doHintSetup' : 'lesson.doHint') }), parts());
+    area.replaceChildren(el('p', { className: 'hint', textContent: t(setup.length ? 'lesson.doHintSetup' : 'lesson.doHint') }), ...parts());
     return;
   }
   follower = new StepFollower(steps);
@@ -238,7 +239,7 @@ function doIt(s: Extract<LessonStep, { kind: 'cube' }>, area: HTMLElement) {
     const f = follower;
     if (!f) return doIt(s, area); // the cube went away: back to the moves, until it syncs again
     if (f.done) {
-      area.replaceChildren(parts(() => 'done'));
+      area.replaceChildren(...parts(() => 'done'));
       return;
     }
     const i = f.index;
@@ -255,7 +256,7 @@ function doIt(s: Extract<LessonStep, { kind: 'cube' }>, area: HTMLElement) {
       el('div', { textContent: undo.length ? t('practice.wrong', { moves: undo.map(name).join(' ') })
         : performance.now() < redoUntil ? t('lesson.restart')
         : left.join(' ') !== f.steps[i].moves.join(' ') ? t('practice.left', { moves: left.map(name).join(' ') }) : '' }),
-      parts((j) => (j < i ? 'done' : j === i ? 'current' : '')));
+      ...parts((j) => (j < i ? 'done' : j === i ? 'current' : '')));
   };
   renderFollow();
 }

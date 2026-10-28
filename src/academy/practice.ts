@@ -18,7 +18,7 @@ import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
 import { describe, nextStep, PathGuide } from '../guide.ts';
-import { CAMERA, IDENTITY, YELLOW_UP, caseSetup, centerMoves, expand, formatAlg, htm, mapMove, tokenize, triggerSegments, turnCount, unmapMove } from '../notation.ts';
+import { CAMERA, IDENTITY, YELLOW_UP, algTags, caseSetup, centerMoves, expand, formatAlg, htm, mapMove, tokenize, triggerSegments, turnCount, unmapMove } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView, scrambleNote } from '../notation-view.ts';
 import { inlineText } from '../rich-text-view.ts';
@@ -32,6 +32,7 @@ import { FADE_AFTER, compare, solutionView, summary, type Comparison, type Sessi
 import { puzzleOf, type AlgSource, type AlgVariant, type Case, type Puzzle, type Stage } from './types.ts';
 import { checkCustomAlg } from './customAlg.ts';
 import { fingertricks, type FingerHint } from '../fingertricks.ts';
+import { TIE_S, formatSeconds, timed, type Timed } from '../speed.ts';
 import { caseProbability, formatProbability, phaseOf } from './probability.ts';
 import { el } from '../el.ts';
 
@@ -349,8 +350,7 @@ function showContent() {
   // the chosen algorithm backwards on every tab: the same case seen the same way as its scramble and animation
   $('practice-diagram').innerHTML = figure(120);
   $('practice-card-diagram').innerHTML = figure(96);
-  $('practice-chosen').replaceChildren(movesView(tokens),
-    el('span', { className: 'hint', textContent: `${sourceLabel(variant)} · ${t('practice.htm', { n: htm(centerMoves(tokens, IDENTITY)) })}` }));
+  $('practice-chosen').replaceChildren(movesView(tokens), el('span', { className: 'hint', textContent: algFacts(variant, timedAlgs(variants(kase)), true) }));
   $('practice-setup').replaceChildren(algView(rep.spec.moves));
   $('practice-setup-note').replaceWith(Object.assign(scrambleNote(), { id: 'practice-setup-note' }));
   $('practice-alg-label').textContent = t(tab === 'practice' ? 'practice.solution' : 'practice.alg');
@@ -663,6 +663,31 @@ export const sourceLabel = (v: AlgVariant): string =>
     v.source === 'speedcubedb' ? t('practice.scdbRank', { rank: v.rank ?? '–' }) : t(SOURCES[v.source]),
   ].filter(Boolean).join(' · ');
 
+/** The case's algorithms with their estimated times (speed.ts). */
+export const timedAlgs = (all: AlgVariant[]): Timed[] => all.map((v) => timed(v.alg, tokenize(v.alg)));
+
+/** "≈ 1.1 s · la más rápida", "≈ 1.4 s · +0.3 s": its estimated time against the fastest of the case's `all`. */
+export function speedLabel(v: AlgVariant, all: Timed[]): string {
+  const s = timed(v.alg, tokenize(v.alg)).seconds;
+  const best = Math.min(...all.map((x) => x.seconds));
+  const close = all.filter((x) => x.seconds - best < TIE_S).length; // as fast as the fastest: the estimate can't tell them apart
+  if (all.length < 2) return t('speed.estimate', { s: formatSeconds(s) });
+  if (s - best >= TIE_S) return t('speed.slower', { s: formatSeconds(s), d: formatSeconds(s - best) });
+  return t(close > 1 ? 'speed.amongFastest' : 'speed.fastest', { s: formatSeconds(s) });
+}
+
+/** "Principal · 8 HTM · ≈ 1.1 s · la más rápida": where it comes from, its length and its estimated time; `tags`: its
+ *  tags too, as words (where there are no chips). */
+export const algFacts = (v: AlgVariant, all: Timed[], tags = false): string =>
+  [sourceLabel(v), t('practice.htm', { n: htm(centerMoves(v.alg, IDENTITY)) }), speedLabel(v, all),
+    ...(tags ? algTags(tokenize(v.alg)).map((tag) => t(`case.tag.${tag}`)) : [])].join(' · ');
+
+/** The algorithm's tags (notation.ts's algTags) as chips: Solo R y U, Con rotación…; none, nothing. */
+export function tagChips(tokens: string[]): HTMLElement[] {
+  const tags = algTags(tokens);
+  return tags.length ? [el('ul', { className: 'chips', ariaLabel: t('case.tags') }, ...tags.map((tag) => el('li', { className: 'chip', textContent: t(`case.tag.${tag}`) })))] : [];
+}
+
 /** Makes `v` the case's algorithm everywhere (cards, practice, quizzes). */
 function prefer(v: AlgVariant) {
   setPreferred(kase, v.id);
@@ -735,6 +760,7 @@ function renderInfo() {
   const all = variants(kase);
   $('practice-change-label').textContent = all.length > 1 ? `${t('practice.change')} (${all.length})` : t('practice.change');
   const current = preferred(kase);
+  const times = timedAlgs(all);
   const option = (v: AlgVariant, folded: boolean) => {
     const input = el('input', { type: 'radio', name: 'practice-alg', value: v.id, checked: v.id === current.id });
     input.onchange = () => {
@@ -745,7 +771,7 @@ function renderInfo() {
     };
     const label = el('label', { className: 'alg-option' }, input,
       el('code', { textContent: formatAlg(tokenize(v.alg)) }),
-      el('span', { className: 'hint', textContent: `${sourceLabel(v)} · ${t('practice.htm', { n: htm(centerMoves(v.alg, IDENTITY)) })}` }),
+      el('span', { className: 'hint', textContent: algFacts(v, times, true) }),
       ...(v.note ? [el('span', { className: 'hint alg-note' }, ...inlineText(loc(v.note)))] : []));
     return v.source === 'custom' ? [label, removeButton(v)] : [label]; // outside the label: not part of the radio's name
   };

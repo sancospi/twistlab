@@ -7,7 +7,7 @@ import { TERMS } from '../terms.ts';
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
-import { IDENTITY, formatAlg, tokenize } from '../notation.ts';
+import { IDENTITY, algTags, formatAlg, tokenize } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { explainMove } from '../notation.ts';
 import { algView } from '../notation-view.ts';
@@ -439,6 +439,7 @@ function card(phase: Phase, c: Case): HTMLAnchorElement {
   link.append(
     el('strong', { textContent: c.code }),
     el('code', { textContent: formatAlg(tokenize(alg)) }),
+    ...(algTags(tokenize(alg)).includes('ru') ? [el('span', { className: 'chip', textContent: t('case.tag.ru') })] : []), // the case page has all the tags
     ...(p === null ? [] : [el('span', { className: 'hint', textContent: t('prob.card', { p: formatProbability(p) }) })]),
     el('span', { className: 'hint', textContent: s ? `${tp('academy.reps', s.reps)}${s.best === null ? '' : ` · ${t('academy.best', { time: formatTime(s.best) })}`}` : t('academy.notPracticed') }),
   );

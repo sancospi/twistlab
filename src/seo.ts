@@ -9,14 +9,14 @@ import { LANGS, fillI18n, lang, langPath, loc, t, tp, type Lang, type MessageKey
 import { TRAINERS, localHref, parseRoute, routePath, type AcademyPage, type Route, type Trainer } from './router.ts';
 import { METHODS, allCases } from './academy/methods.ts';
 import { bases2x2 } from './academy/bases2x2.ts';
-import { period, triggerGuide } from './academy/triggers.ts';
+import { SPEED_ANCHOR, period, triggerGuide } from './academy/triggers.ts';
 import { crossGuide, type TextGuide } from './academy/crossGuide.ts';
 import { beginner } from './academy/beginner.ts';
 import { figureSvg, howToSolve } from './academy/howToSolve.ts';
 import { caseState } from './academy/cube.ts';
 import { caseDiagram } from './academy/diagram.ts';
 import { patternToFacelets } from './facelets.ts';
-import { IDENTITY } from './notation.ts';
+import { IDENTITY, algTags, tokenize } from './notation.ts';
 import { parseBlocks, type Inline } from './rich-text.ts';
 import { caseProbability, formatProbability } from './academy/probability.ts';
 import type { Case, Method, Phase } from './academy/types.ts';
@@ -77,7 +77,7 @@ function casePage(m: Method, c: Case, kpuzzle: KPuzzle): SeoPage {
       `<p class="hint">${[loc(m.name), loc(phase.name), loc(group.name)].map(esc).join(' · ')}</p>`,
       p === null ? '' : `<p>${esc(t('prob.card', { p: formatProbability(p) }))}</p>`,
       `<h3>${esc(t('library.title'))}</h3>`,
-      list(c.algs.map((v) => `<code>${esc(v.alg)}</code>`)),
+      list(c.algs.map((v) => [`<code>${esc(v.alg)}</code>`, ...algTags(tokenize(v.alg)).map((tag) => esc(t(`case.tag.${tag}`)))].join(' · '))),
       `<h3>${esc(t('case.recognition'))}</h3>`,
       `<p>${esc(plain(loc(c.recognition)))}</p>`,
       c.note ? `<p class="hint">${esc(plain(loc(c.note)))}</p>` : '',
@@ -125,7 +125,8 @@ function triggersPage(kpuzzle: KPuzzle): SeoPage {
     trail: inAcademyTrail(loc(g.name), academy({ kind: 'triggers' })),
     article: true,
     body: `<h2>${esc(loc(g.name))}</h2>${loc(g.intro).split('\n').map((x) => `<p>${esc(plain(x.replace(/^## /, '')))}</p>`).join('')}`
-      + list(g.triggers.map((x) => `<strong>${esc(loc(x.name))}</strong> <code>${esc(x.alg)}</code>: ${esc(plain(loc(x.does)))} ${esc(tp('triggers.period', period(kpuzzle, x.alg)))}`)),
+      + list(g.triggers.map((x) => `<strong>${esc(loc(x.name))}</strong> <code>${esc(x.alg)}</code>: ${esc(plain(loc(x.does)))} ${esc(tp('triggers.period', period(kpuzzle, x.alg)))}`))
+      + `<div id="${SPEED_ANCHOR}">${rich(loc(g.speed))}</div>`,
   };
 }
 

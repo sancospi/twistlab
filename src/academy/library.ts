@@ -2,7 +2,7 @@
 // and filters. Pure: caseView.ts draws them.
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { loc } from '../i18n.ts';
-import { IDENTITY, centerMoves, invertTokens, mirrorTokens, tokenize } from '../notation.ts';
+import { IDENTITY, algTags, centerMoves, invertTokens, mirrorTokens, tokenize, type AlgTag } from '../notation.ts';
 import { caseState } from './cube.ts';
 import { aufFor } from './score.ts';
 import { isDue, learnStatus, type Learning } from './store.ts';
@@ -60,6 +60,7 @@ export interface LibraryFilter {
   puzzle: Puzzle | '';
   set: CaseSet | '';
   status: CaseStatus | '';
+  tag: AlgTag | ''; // a case with at least one algorithm so (Solo R y U…)
 }
 
 /** Lower case, no accents, typographic primes as ': "Relámpago" is found as "relampago", R′ as R'. */
@@ -75,6 +76,7 @@ export function matches(c: Case, algs: string[], f: LibraryFilter, learning: Lea
   if (f.puzzle && puzzleOf(c.stage) !== f.puzzle) return false;
   if (f.set && caseSet(c.stage) !== f.set) return false;
   if (f.status && (f.status === 'due' ? !isDue(learning, now) : learnStatus(learning) !== f.status)) return false;
+  if (f.tag && !algs.some((a) => algTags(tokenize(a)).includes(f.tag as AlgTag))) return false;
   const q = fold(f.query);
   if (!q) return true;
   const qa = algText(f.query);

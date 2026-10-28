@@ -20,6 +20,9 @@ export interface TriggerInfo {
   back?: string; // its front-back mirror, where it's used (the F2L inserts into the back slots)
 }
 
+/** The id of the triggers page's "R and U only, or with F and L" section: the case pages link to it. */
+export const SPEED_ANCHOR = 'r-y-u';
+
 export const triggerGuide = {
   name: l('Gatillos', 'Triggers', 'Gatilhos'),
   summary: l('Los bloques cortos de los que están hechos los algoritmos: sexy move, sledgehammer, Sune… Apréndelos como un solo gesto.', 'The short blocks algorithms are made of: sexy move, sledgehammer, Sune… Learn each one as a single gesture.', 'Os blocos curtos de que os algoritmos são feitos: sexy move, sledgehammer, Sune… Aprenda cada um como um só gesto.'),
@@ -44,6 +47,40 @@ export const triggerGuide = {
       '## Como praticar',
       'Repita cada um até sair sem pensar. Muitos **voltam a resolver o cubo** depois de algumas repetições: assim você sabe se fez certo.',
       'Com **Praticar** você cronometra repetições no seu cubo e salva seus movimentos por segundo.',
+    ].join('\n'),
+  ),
+  // When R and U only pays off and when F, L or a rotation does: the weights of speed.ts, in words (the case pages
+  // show its estimate per algorithm and link here)
+  speed: l(
+    [
+      '## Solo R y U, o con F y L',
+      'Si eres diestro, lo más cómodo son los algoritmos **solo R y U**: la muñeca derecha y los dos índices, sin cambiar el agarre. En la página de cada caso los marca la etiqueta **Solo R y U**.',
+      'Pero no siempre son los más rápidos: cuenta los giros y también lo que cuesta cada uno.',
+      '- `F` sale sin cambiar el agarre justo después de `R\'`, como en el sledgehammer (`R\' F R F\'`). Si no, hay que recolocar la mano, y eso cuesta como giro y medio.',
+      '- `L` es la mano izquierda: para un diestro va algo más lenta que `R`, pero sin cambiar el agarre. `D` (con un anular) también va algo más lenta, y `B` bastante más.',
+      '- Una rotación (`y`, `x`, `z`) cuesta como 2 giros, y además pierdes de vista las piezas.',
+      '**Regla práctica:** si la versión solo R y U tiene los mismos giros o solo uno más, quédate con ella: tarda casi lo mismo o menos y es más cómoda. Si la de `F` o `L` ahorra 2 giros o más, suele ganar, sobre todo si no cambia el agarre.',
+      'En la página de cada caso verás el tiempo estimado de cada algoritmo y cuál compensa. Son estimaciones para diestros a ritmo medio: si un algoritmo te sale más rápido, úsalo.',
+    ].join('\n'),
+    [
+      '## R and U only, or with F and L',
+      'If you are right-handed, the most comfortable algorithms are **R and U only**: the right wrist and both index fingers, no regrip. On each case\'s page they carry the tag **R and U only**.',
+      'They are not always the fastest, though: count the moves and also what each one costs.',
+      '- `F` needs no regrip right after `R\'`, as in the sledgehammer (`R\' F R F\'`). Otherwise you have to reposition the hand, which costs about a move and a half.',
+      '- `L` is the left hand: for a right-hander it is a bit slower than `R`, but it needs no regrip. `D` (with a ring finger) is a bit slower too, and `B` much slower.',
+      '- A rotation (`y`, `x`, `z`) costs about 2 moves, and you lose sight of the pieces.',
+      '**Rule of thumb:** if the R and U version has the same moves or just one more, keep it: it takes about the same time or less and it is more comfortable. If the one with `F` or `L` saves 2 moves or more, it usually wins, especially without a regrip.',
+      'Each case\'s page shows every algorithm\'s estimated time and which one pays off. They are estimates for right-handers at a medium pace: if an algorithm is faster for you, use it.',
+    ].join('\n'),
+    [
+      '## Só R e U, ou com F e L',
+      'Se você é destro, os algoritmos mais confortáveis são os **só R e U**: o pulso direito e os dois indicadores, sem trocar a pegada. Na página de cada caso eles levam a etiqueta **Só R e U**.',
+      'Mas nem sempre são os mais rápidos: conte os movimentos e também quanto custa cada um.',
+      '- `F` sai sem trocar a pegada logo depois de `R\'`, como no sledgehammer (`R\' F R F\'`). Senão, é preciso reposicionar a mão, e isso custa cerca de um movimento e meio.',
+      '- `L` é a mão esquerda: para um destro é um pouco mais lento que `R`, mas sem trocar a pegada. `D` (com um anelar) também é um pouco mais lento, e `B` bem mais.',
+      '- Uma rotação (`y`, `x`, `z`) custa cerca de 2 movimentos, e você perde as peças de vista.',
+      '**Regra prática:** se a versão só R e U tem os mesmos movimentos ou só um a mais, fique com ela: leva quase o mesmo tempo ou menos e é mais confortável. Se a com `F` ou `L` economiza 2 movimentos ou mais, costuma ganhar, principalmente sem trocar a pegada.',
+      'Na página de cada caso você vê o tempo estimado de cada algoritmo e qual compensa. São estimativas para destros em ritmo médio: se um algoritmo sai mais rápido para você, use-o.',
     ].join('\n'),
   ),
   triggers: [

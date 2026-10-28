@@ -30,7 +30,7 @@ test('inverse and mirror cases, found in the simulator', async () => {
 test('library: search by code, name, recognition or algorithm; filters by set and status', () => {
   const sune = get('cfopc-oll-27'), t = get('cfopc-pll-t'), lightning = get('cfopc-oll-07'), a1 = get('cfop-f2l-a1');
   const now = Date.parse('2026-10-21T12:00:00');
-  const f = (query: string, more: Partial<LibraryFilter> = {}): LibraryFilter => ({ query, puzzle: '', set: '', status: '', ...more });
+  const f = (query: string, more: Partial<LibraryFilter> = {}): LibraryFilter => ({ query, puzzle: '', set: '', status: '', tag: '', ...more });
   const ok = (c: Case, filter: LibraryFilter, learning?: Learning) => matches(c, c.algs.map((v) => v.alg), filter, learning, now);
   assert.ok(ok(sune, f('')));
   assert.ok(ok(sune, f('sune')));
@@ -52,6 +52,11 @@ test('library: search by code, name, recognition or algorithm; filters by set an
   assert.ok(ok(sune, f('', { status: 'known' }), learning(6, now - 1)));
   assert.ok(ok(sune, f('', { status: 'due' }), learning(6, now - 1)), 'known and due today: both');
   assert.ok(!ok(sune, f('', { status: 'due' }), learning(6, now + 3 * 86_400_000)));
+  // how it's done: at least one of its algorithms so (the user's own count, they're in `algs`)
+  assert.ok(ok(sune, f('', { tag: 'ru' })) && !ok(t, f('', { tag: 'ru' })));
+  assert.ok(ok(get('cfopc-pll-ua'), f('', { tag: 'ru' })), 'the main is M, an alternative R and U only');
+  assert.ok(matches(t, ["R U R' U'"], f('', { tag: 'ru' }), undefined, now));
+  assert.ok(ok(t, f('', { tag: '' })));
 });
 
 test('library: filter by method, group by set across methods', () => {
@@ -68,7 +73,7 @@ test('library: filter by method, group by set across methods', () => {
   assert.equal(sets.reduce((n, s) => n + s.entries.length, 0), all.length, 'each case once per method');
   assert.deepEqual(bySet(libraryEntries(METHODS, 'principiante')).map((s) => s.set), ['oll', 'beginner'], 'no empty sets');
   // the cube filter: 2x2 cases only, or 3x3 ones
-  const f = (puzzle: LibraryFilter['puzzle']): LibraryFilter => ({ query: '', puzzle, set: '', status: '' });
+  const f = (puzzle: LibraryFilter['puzzle']): LibraryFilter => ({ query: '', puzzle, set: '', status: '', tag: '' });
   const sune = findCase('cfop-oll-sune')!;
   assert.ok(matches(sune, [], f('3x3x3'), undefined, 0) && !matches(sune, [], f('2x2x2'), undefined, 0));
   assert.equal(caseSet('2x2-pbl'), 'pbl');

@@ -30,7 +30,7 @@ const PARTS: Record<string, { turns: [Face, number][]; rot?: [Axis, number] }> =
   x: { turns: [], rot: ['x', 1] }, y: { turns: [], rot: ['y', 1] }, z: { turns: [], rot: ['z', 1] },
 };
 
-const TOKEN = /^([UDRLFB]w?|[udrlfbMESxyz])(2'?|'|)$/;
+export const TOKEN = /^([UDRLFB]w?|[udrlfbMESxyz])(2'?|'|)$/;
 const mod4 = (n: number) => ((n % 4) + 4) % 4;
 const SUFFIX = ['', '', '2', "'"];
 const amountOf = (suffix: string) => (suffix === "'" ? 3 : suffix.startsWith('2') ? 2 : 1);
@@ -264,7 +264,8 @@ export function triggerSegments(tokens: string[]): Segment[] {
   return out;
 }
 
-export type AlgTag = 'ru' | 'rotation' | 'wide' | 'slice' | 'left';
+export const ALG_TAGS = ['ru', 'rotation', 'wide', 'slice', 'left'] as const;
+export type AlgTag = (typeof ALG_TAGS)[number];
 
 /** What stands out in how an algorithm is done: only R and U, rotations, wide turns, slices, mostly the left hand. */
 export function algTags(tokens: string[]): AlgTag[] {
