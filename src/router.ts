@@ -101,9 +101,10 @@ export function localizeLinks(): void {
 }
 
 // The app's back stack: each history entry it pushes keeps the screens before it (path + search, oldest first), so ←
-// goes back through them in order and a link to one of them goes back to it instead of adding it again: ← never
-// bounces between two screens. A page opened directly has none: its ← goes up to its parent, in place.
-const MAX_STACK = 100;
+// goes back through them in order. A link to one of them goes back to it, and a link up (a case's method, a lesson's
+// guide, the Academia) takes the place of the screen it leaves: ← never comes back to a screen twice and always ends
+// at the root. A page opened directly has nothing before it: its ← goes up to its parent, in place.
+const MAX_STACK = 40; // under the 50 entries a browser keeps (Chromium, Firefox): every screen in it can be gone back to
 /** A screen, whatever its filters or anchor: /algoritmos?giros=ru is /algoritmos. */
 const screen = (path: string) => path.replace(/[?#].*$/, '');
 
@@ -120,8 +121,17 @@ export function stepsBack(stack: string[], path: string): number {
   return i < 0 ? 0 : stack.length - i;
 }
 
+/** Whether `path` is above the screen `here` (a case's method, a lesson's guide, the Academia from any of them): going
+ *  there is going up. A language's home (the solver) is no screen's parent. */
+export function isAbove(path: string, here: string): boolean {
+  const up = screen(path).replace(/\/+$/, '');
+  return !!up && splitLang(up).path !== '/' && here.startsWith(`${up}/`);
+}
+
 let current = '';
-let pending: string | null = null; // the search and anchor a link back to a screen asked for (its own, else as left)
+// a link back to a screen: the one it opens, and its own search or anchor ('': the screen as it was left)
+let pending: { screen: string; rest: string } | null = null;
+let missing = 0; // the timer of a back step the browser may not take (an entry it dropped): its fallback then
 let apply: (r: Route, scroll: number | null) => void = () => {};
 let readScroll: () => number = () => 0;
 /** Where the app was left ({ path, scroll }): the inline script in index.html reopens it there. Not in the backup. */
@@ -129,49 +139,83 @@ const LAST = 'last-page';
 const saveLast = (scroll = 0) => {
   try { localStorage.setItem(LAST, JSON.stringify({ path: location.pathname + location.search, scroll })); } catch { /* private mode */ }
 };
+const here = () => location.pathname + location.search;
+const push = (path: string, stack: string[]) => {
+  history.replaceState({ ...(history.state ?? {}), scroll: readScroll() }, ''); // for ← back to it
+  history.pushState({ stack: [...stack, here()].slice(-MAX_STACK) }, '', path);
+};
 
 /** `back`: from back/forward, so the page's saved scroll (if any) comes back; a new page starts at the top. */
 function go(back = false) {
-  const moved = ALIASES[splitLang(location.pathname).path.replace(/\/+$/, '')];
+  clearTimeout(missing);
+  const { path: bare } = splitLang(location.pathname);
+  const moved = ALIASES[bare.replace(/\/+$/, '')] ?? (bare !== '/' && bare.endsWith('/') ? location.pathname.replace(/\/+$/, '') : null);
   if (moved) history.replaceState(history.state, '', localHref(moved, lang) + location.search + location.hash); // keeps its back stack
   const asked = back ? pending : null;
   pending = null;
-  if (asked) history.replaceState(history.state, '', location.pathname + asked);
+  let restore = back; // the entry's own scroll
+  if (asked && location.pathname !== asked.screen) { // it was replaced (gone up from) since: open the one asked for
+    history.pushState({ stack: [...backStack(history.state), here()].slice(-MAX_STACK) }, '', asked.screen + asked.rest);
+    restore = false;
+  } else if (asked?.rest) {
+    history.replaceState(history.state, '', location.pathname + asked.rest);
+    restore = false; // its anchor, or the top for other filters
+  }
   if (location.pathname === current) return; // e.g. an in-page #anchor: the browser just scrolls
   current = location.pathname;
   saveLast();
-  const saved = back && !asked ? (history.state as { scroll?: unknown } | null)?.scroll : null; // asked: its anchor, or the top
+  const saved = restore ? (history.state as { scroll?: unknown } | null)?.scroll : null;
   apply(parseRoute(current), typeof saved === 'number' ? saved : null);
 }
 
-/** Goes to an app path (pushes history), e.g. from code rather than a link. The page being left keeps its scroll in
- *  its history entry, for Back. A link to a screen we came through (a crumb, the method from its case) is Back to it:
- *  the same scroll as left, unless the link asks for an anchor or filters. */
-export function navigate(path: string): void {
-  path = localHref(path, lang);
-  const stack = backStack(history.state);
-  const steps = stepsBack(stack, path);
-  if (screen(path) === location.pathname) { // this screen, another anchor or filters: not a new one to go back to
-    history.replaceState(history.state, '', path);
-    const hash = path.split('#')[1];
-    if (hash) document.getElementById(decode(hash))?.scrollIntoView();
-    return;
-  }
-  if (steps) {
-    pending = path.slice(screen(path).length) || null;
-    return history.go(-steps);
-  }
-  history.replaceState({ ...(history.state ?? {}), scroll: readScroll() }, '');
-  history.pushState({ stack: [...stack, location.pathname + location.search].slice(-MAX_STACK) }, '', path);
+/** `steps` entries back, or `fallback` when the browser no longer has them (it keeps 50): it says so where it can
+ *  (the Navigation API), else no popstate comes. */
+function goBackBy(steps: number, fallback: () => void): void {
+  const index = (globalThis as { navigation?: { currentEntry?: { index: number } | null } }).navigation?.currentEntry?.index;
+  if (index != null && index >= 0 && index < steps) return void ((pending = null), fallback());
+  if (index == null) missing = setTimeout(() => { pending = null; fallback(); }, 1000);
+  history.go(-steps);
+}
+
+/** `path` in place of this screen, with this one's back stack: going up. */
+function replaceWith(path: string, stack = backStack(history.state)): void {
+  history.replaceState({ stack }, '', path);
   go();
 }
 
-/** The ← button: back to the previous page of the app; when this one was opened directly (a link, a reload, the app
- *  reopened where it was left), up to `fallback` (its parent) in place of it, so the parent's ← goes on up to the root. */
-export function goBack(fallback: string): void {
-  if (backStack(history.state).length) return history.back();
-  history.replaceState(null, '', localHref(fallback, lang));
+/** Goes to an app path, e.g. from code rather than a link: a new screen is pushed (the one left keeps its scroll, for
+ *  Back); a screen we came through is Back to it, as it was left unless the link asks for an anchor or filters; a
+ *  screen above takes this one's place. */
+export function navigate(path: string): void {
+  path = localHref(path, lang);
+  const to = screen(path);
+  if (to === location.pathname) { // this screen, another anchor or filters: not a new one to go back to
+    const rest = path.slice(to.length);
+    const search = rest.startsWith('?') ? rest.replace(/#.*$/, '') : location.search; // a bare #anchor keeps the filters
+    const hash = rest.includes('#') ? rest.slice(rest.indexOf('#')) : '';
+    const filtered = search !== location.search;
+    history.replaceState(history.state, '', to + search + hash);
+    if (filtered) return void ((current = ''), go()); // the view reads them: draw it again
+    if (hash) document.getElementById(decode(hash.slice(1)))?.scrollIntoView();
+    return;
+  }
+  const stack = backStack(history.state);
+  const steps = stepsBack(stack, path);
+  if (steps) {
+    pending = { screen: to, rest: path.slice(to.length) };
+    return goBackBy(steps, () => (push(path, stack), go()));
+  }
+  if (isAbove(path, location.pathname)) return replaceWith(path);
+  push(path, stack);
   go();
+}
+
+/** The ← button: back to the previous screen; when there's none (a page opened directly: a link, a reload, the app
+ *  reopened where it was left), up to `fallback` (its parent) in its place, so the parent's ← goes on up to the root. */
+export function goBack(fallback: string): void {
+  const up = () => replaceWith(localHref(fallback, lang), []); // nothing before it the browser still has
+  if (backStack(history.state).length) goBackBy(1, up);
+  else up();
 }
 
 /** Applies the current URL now, then on every link click and back/forward. `scroll` reads the page's scroll position. */
@@ -186,9 +230,8 @@ export function startRouter(onRoute: (r: Route, scroll: number | null) => void, 
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null;
     if (!a || a.target || a.hasAttribute('download') || a.origin !== location.origin) return;
-    if (a.getAttribute('href')!.startsWith('#')) return; // in-page anchors scroll as usual
-    e.preventDefault();
-    navigate(a.pathname + a.search + a.hash);
+    e.preventDefault(); // in-page #anchors too: the browser's own entry would have no back stack
+    navigate(a.getAttribute('href')!.startsWith('#') ? location.pathname + location.search + a.hash : a.pathname + a.search + a.hash);
   });
   go(true); // a reload, or the app reopened where it was left (index.html), keeps its scroll
 }

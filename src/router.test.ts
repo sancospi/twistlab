@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { backStack, guidePage, guideSegment, localHref, parseRoute, routePath, stepsBack, type Route } from './router.ts';
+import { backStack, guidePage, guideSegment, isAbove, localHref, parseRoute, routePath, stepsBack, type Route } from './router.ts';
 import { langPath } from './i18n.ts';
 
 test('routes: each screen has its path, and paths round-trip', () => {
@@ -122,4 +122,18 @@ test('back stack: the screens before a history entry; a link to one of them is t
   assert.equal(stepsBack(stack, '/academia/cfop-completo'), 0, 'a new screen: pushed');
   assert.equal(stepsBack(['/academia', '/hoy', '/academia'], '/academia'), 1, 'the latest one');
   assert.equal(stepsBack([], '/academia'), 0);
+});
+
+test('going up: a screen above this one (its method, its guide, the Academia) takes its place', () => {
+  const kase = '/academia/cfop-completo/caso/cfopc-oll-27';
+  assert.ok(isAbove('/academia/cfop-completo', kase));
+  assert.ok(isAbove('/academia/cfop-completo#academy-cfopc-oll-ocll', kase), 'the group chip');
+  assert.ok(isAbove('/academia', kase));
+  assert.ok(isAbove('/academia/cruz', '/academia/cruz/leccion/que-es'), "a lesson's Volver");
+  assert.ok(isAbove('/en/academia', '/en/academia/auf'));
+  assert.ok(!isAbove('/academia/cfop-completo/caso/cfopc-oll-26', kase), 'a sibling');
+  assert.ok(!isAbove(kase, '/academia/cfop-completo'), 'down');
+  assert.ok(!isAbove('/academia/cfop', kase), 'a prefix that is not a parent');
+  assert.ok(!isAbove('/', kase) && !isAbove('/en', '/en/academia') && !isAbove('/en/', '/en/academia'), "the solver is no screen's parent");
+  assert.ok(!isAbove('/algoritmos', kase));
 });
