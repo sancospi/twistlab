@@ -4,9 +4,9 @@
 // item, timed:
 // - With a synced cube: 1) Mezcla, guided to a random state of the case; 2) Resuelve, on the clock from the first
 //   turn, without being asked its name. Graded by itself (time, turns, efficiency).
-// - Without one: first "¿Qué caso es?", the figure and a few cases to tap, by name only when cubers learn their names
-//   (PLL, OCLL…), else by algorithm (lessons.ts caseQuestion); a wrong one: the answer, graded as failed;
-//   then the clock card, as in Practicar: the figure (no arrows) and the random-state scramble, big; a tap (or Space)
+// - Without one: first "¿Qué caso es?", the figure and a few cases to tap, only when cubers learn their names (PLL,
+//   OCLL…; lessons.ts caseQuestion): telling an algorithm from its text by eye (F2L) isn't what a solve needs, so
+//   those go straight to the scramble; a wrong one: the answer, graded as failed; then the clock card, as in Practicar: the figure (no arrows) and the random-state scramble, big; a tap (or Space)
 //   hides them and starts the clock, the next stops it, then Limpio (Siguiente) or Fallé (the answer, graded as failed).
 // Solved: the time, turns and grade with the case's best and average, then Otra mezcla (the same case, another state)
 // or Siguiente. A wrong answer, "Me atasqué", or (with the cube) too many turns or too long: the explanation (figure,
@@ -121,8 +121,7 @@ let items: Item[] = [];
 let index = 0;
 let attempts: Attempt[] = [];
 let shownAt = 0; // on the cube, the item's state was reached: its solve (and recognition) time runs from here
-let choices: { c: Case; label: string }[] = []; // without a cube, "¿Qué caso es?" (or its algorithm): the item's case among its scope's, until one is tapped
-let byAlg = false; // ...asked by algorithm: the choices' cases have no common name (lessons.ts caseQuestion)
+let choices: { c: Case; label: string }[] = []; // without a cube, "¿Qué caso es?": the item's case among its scope's, until one is tapped
 let named = false; // ...tapped right: the attempt is checked, so it counts even without a verdict on the solve
 let firstMoveAt = 0;
 let fromClock = false; // the explanation follows a failed solve on the hand clock: Reintentar goes back to it
@@ -318,13 +317,13 @@ function startItem() {
   } else {
     // without a cube: which case it is, then the scramble, you start the clock and solve it on your cube. Not asked
     // when the case isn't among the scope's (a full last layer's) or it's alone in its stage: the choices are of its
-    // stage, or a mixed scope (Hoy, the library) would give it away.
+    // stage, or a mixed scope (Hoy, the library) would give it away. Nor when its cases have no common name: picking
+    // an algorithm by its text is no test of a solve; the scramble is, graded by Limpio or Fallé.
     screen = 'clock';
     const cases = scopeCases(scope).filter((c) => c.stage === items[index].c.stage);
     const at = cases.findIndex((c) => c.id === items[index].c.id);
     const q = at >= 0 && cases.length > 1 ? caseQuestion(caseChoices(cases, at), cases[at], (c) => preferred(c).alg) : null;
-    choices = q && q.choices.length > 1 ? q.choices : [];
-    byAlg = !!q?.byAlg;
+    choices = q && !q.byAlg && q.choices.length > 1 ? q.choices : [];
     named = false;
     attempts.push({ caseId: items[index].c.id, correct: true, recognitionMs: 0 });
   }
@@ -366,7 +365,7 @@ function solvedByHand() {
 /** The stopped hand clock against the case's record: a retry, after the answer, claims no first mark nor best. */
 const handComparison = () => compare(clockMs!, statsFor(items[index].c.id), !retried);
 
-/** Without a cube, "¿Qué caso es?" (or which algorithm solves it): right, the clock card; wrong, the answer (Fallé). The tap isn't timed: the hand
+/** Without a cube, "¿Qué caso es?": right, the clock card; wrong, the answer (Fallé). The tap isn't timed: the hand
  *  clock's time is the item's, as before. */
 function pickCase(c: Case) {
   if (c.id !== items[index].c.id) return stuck('fail');
@@ -813,12 +812,12 @@ const stuckButton = (label: MessageKey = 'quiz.stuck', w: Why = 'stuck') => acti
 function renderClock(): Node[] {
   const item = items[index];
   if (choices.length) {
-    const q = t(byAlg ? 'lesson.whichAlg' : 'quiz.question');
-    const buttons = choices.map(({ c, label }, i) => el('button', { type: 'button', ...(byAlg ? {} : { ariaLabel: caseLabel(c) }), onclick: () => pickCase(c) },
+    const q = t('quiz.question');
+    const buttons = choices.map(({ c, label }, i) => el('button', { type: 'button', ariaLabel: caseLabel(c), onclick: () => pickCase(c) },
       el('kbd', { textContent: String(i + 1) }), label));
     buttons[0].dataset.focus = '';
     return [progress(), diagram(item, 140), p(q),
-      el('div', { className: `lesson-choices${byAlg ? ' algs' : ''}`, role: 'group', ariaLabel: q }, ...buttons),
+      el('div', { className: 'lesson-choices', role: 'group', ariaLabel: q }, ...buttons),
       actions(action('skip', t('quiz.skip'), skip), stuckButton('quiz.showAnswer', 'shown'))];
   }
   const stopped = clockMs !== null;
