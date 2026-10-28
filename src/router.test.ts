@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { guidePage, guideSegment, localHref, parseRoute, routePath, type Route } from './router.ts';
+import { backStack, guidePage, guideSegment, localHref, parseRoute, routePath, stepsBack, type Route } from './router.ts';
 import { langPath } from './i18n.ts';
 
 test('routes: each screen has its path, and paths round-trip', () => {
@@ -106,4 +106,20 @@ test('links: Spanish paths get the current language\'s prefix; the rest stay', (
   assert.equal(localHref('/en/academia', 'en'), '/en/academia'); // already in a language: idempotent
   assert.equal(localHref('/academia', 'pt'), '/pt/academia');
   for (const href of ['#academy-x', 'https://speedcubedb.com/a/3x3/OLL27', '//cdn.example.com/x', 'blob:https://twistlab.app/1', '']) assert.equal(localHref(href, 'en'), href);
+});
+
+test('back stack: the screens before a history entry; a link to one of them is that many steps back', () => {
+  assert.deepEqual(backStack({ stack: ['/academia', '/academia/cfop-reducido'], scroll: 120 }), ['/academia', '/academia/cfop-reducido']);
+  assert.deepEqual(backStack({ from: '/academia' }), ['/academia'], 'an entry from before the stack');
+  assert.deepEqual(backStack(null), [], 'opened directly: nothing to go back to');
+  assert.deepEqual(backStack({ scroll: 300 }), []); // index.html reopening the last page
+  assert.deepEqual(backStack({ stack: ['/academia', 7, null] }), ['/academia'], 'hand-edited state: strings only');
+  const stack = ['/', '/academia', '/academia/cfop-reducido', '/academia/cfop-reducido/caso/cfop-f2l-a1', '/algoritmos?giros=ru'];
+  assert.equal(stepsBack(stack, '/algoritmos'), 1, 'the same screen, whatever its filters');
+  assert.equal(stepsBack(stack, '/academia/cfop-reducido#academy-f2l-a'), 3, 'the method from its case: back to it, not again');
+  assert.equal(stepsBack(stack, '/academia'), 4);
+  assert.equal(stepsBack(stack, '/'), 5);
+  assert.equal(stepsBack(stack, '/academia/cfop-completo'), 0, 'a new screen: pushed');
+  assert.equal(stepsBack(['/academia', '/hoy', '/academia'], '/academia'), 1, 'the latest one');
+  assert.equal(stepsBack([], '/academia'), 0);
 });
