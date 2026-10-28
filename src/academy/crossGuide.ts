@@ -237,7 +237,7 @@ export const crossGuide: CrossGuide = {
           "- **Cuida lo resuelto.** Antes de `R`, `L`, `F` o `B`, mira si saca una arista ya puesta. Si la saca, elige otro giro, apártala antes con `D` o devuélvela después (como en `R' F R`).",
           '- **Arriba coloca, abajo alinea.** `U` lleva una arista sobre su centro o su hueco; `D` alinea la cruz al final.',
           '- **Media vuelta o cuarto de vuelta.** Media vuelta (`R2`, `F2`…) baja de arriba a abajo sin voltear la arista. Un cuarto de vuelta la mueve entre la capa del medio y arriba o abajo.',
-          '- **Prefiere giros cómodos.** `R`, `U`, `F` y `D` se hacen sin cambiar el agarre; `B` y `L` son más lentos. A igual número de giros, elige el más cómodo.',
+          '- **Prefiere giros cómodos.** `R`, `U` y `D` se hacen sin cambiar el agarre, y `F\'` también; `F` suele pedir recolocar la mano, y `B` y `L` son más lentos. A igual número de giros, elige el más cómodo.',
           '- **Fluidez antes que velocidad.** Una cruz continua gana a una veloz con frenadas. Practica lento y sin parar.',
         ].join('\n'),
     [
@@ -245,7 +245,7 @@ export const crossGuide: CrossGuide = {
       "- **Protect what's solved.** Before `R`, `L`, `F` or `B`, check whether it pulls out an edge that is already in place. If it does, pick another turn, move it aside first with `D` or put it back afterwards (as in `R' F R`).",
       '- **Position on top, align on the bottom.** `U` brings an edge above its center or its slot; `D` aligns the cross at the end.',
       '- **Half turn or quarter turn.** A half turn (`R2`, `F2`…) takes an edge from top to bottom without flipping it. A quarter turn moves it between the middle layer and the top or bottom.',
-      '- **Prefer comfortable turns.** `R`, `U`, `F` and `D` are done without changing grip; `B` and `L` are slower. With the same number of moves, choose the most comfortable one.',
+      '- **Prefer comfortable turns.** `R`, `U` and `D` are done without changing grip, and so is `F\'`; `F` often needs a regrip, and `B` and `L` are slower. With the same number of moves, choose the most comfortable one.',
       '- **Flow before speed.** A continuous cross beats a fast one with stops. Practice slowly and without stopping.',
     ].join('\n'),
     [
@@ -253,7 +253,7 @@ export const crossGuide: CrossGuide = {
       '- **Cuide do que está resolvido.** Antes de `R`, `L`, `F` ou `B`, veja se ele tira uma aresta já colocada. Se tirar, escolha outro movimento, afaste-a antes com `D` ou devolva-a depois (como em `R\' F R`).',
       '- **Em cima posiciona, embaixo alinha.** `U` leva uma aresta sobre o seu centro ou o seu slot; `D` alinha a cruz no final.',
       '- **Meia volta ou quarto de volta.** Meia volta (`R2`, `F2`…) desce de cima para baixo sem virar a aresta. Um quarto de volta a move entre a camada do meio e em cima ou embaixo.',
-      '- **Prefira movimentos confortáveis.** `R`, `U`, `F` e `D` saem sem mudar a pegada; `B` e `L` são mais lentos. Com o mesmo número de movimentos, escolha o mais confortável.',
+      '- **Prefira movimentos confortáveis.** `R`, `U` e `D` saem sem mudar a pegada, e `F\'` também; `F` costuma pedir trocar a pegada, e `B` e `L` são mais lentos. Com o mesmo número de movimentos, escolha o mais confortável.',
       '- **Fluidez antes da velocidade.** Uma cruz contínua ganha de uma rápida com freadas. Pratique devagar e sem parar.',
     ].join('\n'),
   ),

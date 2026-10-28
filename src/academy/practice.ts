@@ -32,7 +32,7 @@ import { FADE_AFTER, compare, solutionView, summary, type Comparison, type Sessi
 import { puzzleOf, type AlgSource, type AlgVariant, type Case, type Puzzle, type Stage } from './types.ts';
 import { checkCustomAlg } from './customAlg.ts';
 import { fingertricks, type FingerHint } from '../fingertricks.ts';
-import { TIE_S, formatSeconds, timed, type Timed } from '../speed.ts';
+import { formatTenths, timed, type Timed } from '../speed.ts';
 import { caseProbability, formatProbability, phaseOf } from './probability.ts';
 import { el } from '../el.ts';
 
@@ -666,14 +666,14 @@ export const sourceLabel = (v: AlgVariant): string =>
 /** The case's algorithms with their estimated times (speed.ts). */
 export const timedAlgs = (all: AlgVariant[]): Timed[] => all.map((v) => timed(v.alg, tokenize(v.alg)));
 
-/** "≈ 1.1 s · la más rápida", "≈ 1.4 s · +0.3 s": its estimated time against the fastest of the case's `all`. */
+/** "≈ 1.1 s · el más rápido", "≈ 1.4 s · +0.3 s": its estimated time against the fastest of the case's `all`, in the
+ *  tenths shown (the same tenth: as fast). */
 export function speedLabel(v: AlgVariant, all: Timed[]): string {
-  const s = timed(v.alg, tokenize(v.alg)).seconds;
-  const best = Math.min(...all.map((x) => x.seconds));
-  const close = all.filter((x) => x.seconds - best < TIE_S).length; // as fast as the fastest: the estimate can't tell them apart
-  if (all.length < 2) return t('speed.estimate', { s: formatSeconds(s) });
-  if (s - best >= TIE_S) return t('speed.slower', { s: formatSeconds(s), d: formatSeconds(s - best) });
-  return t(close > 1 ? 'speed.amongFastest' : 'speed.fastest', { s: formatSeconds(s) });
+  const s = timed(v.alg, tokenize(v.alg)).tenths;
+  const best = Math.min(...all.map((x) => x.tenths));
+  if (all.length < 2) return t('speed.estimate', { s: formatTenths(s) });
+  if (s > best) return t('speed.slower', { s: formatTenths(s), d: formatTenths(s - best) });
+  return t(all.filter((x) => x.tenths === best).length > 1 ? 'speed.amongFastest' : 'speed.fastest', { s: formatTenths(s) });
 }
 
 /** "Principal · 8 HTM · ≈ 1.1 s · la más rápida": where it comes from, its length and its estimated time; `tags`: its
@@ -735,6 +735,10 @@ function removeButton(v: AlgVariant) {
   b.onclick = () => {
     removeCustom(kase.id, v.alg);
     if (variant.id === v.id) prefer(preferred(kase)); // it was the chosen one: back to the main algorithm
+    else {
+      showContent(); // the chosen one's time was against it
+      onUpdate(kase);
+    }
     renderInfo();
     customBox.open = true;
     customInput.value = v.alg; // the undo: Añadir brings it back

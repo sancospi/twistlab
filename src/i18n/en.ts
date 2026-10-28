@@ -595,7 +595,7 @@ export const en: Record<MessageKey, string> = {
   'speed.other': 'Here using {moves} pays off: ≈ {s} s less than the best **R and U only** one.',
   'speed.tie': '**R and U only** or with {moves}: about the same time. Pick the one that feels most comfortable.',
   'speed.how': 'Estimated times for a right-handed solver at a medium pace: they count the moves, regrips, rotations and which hand or finger does each move.',
-  'speed.guide': 'When do F or L pay off?',
+  'speed.guide': 'When does leaving R and U pay off?',
   'case.trigger.sexy': 'Sexy move',
   'case.trigger.sexyInv': 'Reverse sexy',
   'case.trigger.sledge': 'Sledgehammer',

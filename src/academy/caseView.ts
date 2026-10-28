@@ -7,7 +7,7 @@
 import type { KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
 import { ALG_TAGS, IDENTITY, caseSetup, tokenize, triggerSegments } from '../notation.ts';
-import { formatSeconds, otherMoves, ruVerdict, type Timed } from '../speed.ts';
+import { formatTenths, otherMoves, ruVerdict, type Timed } from '../speed.ts';
 import { algView, scrambleNote } from '../notation-view.ts';
 import { inlineText } from '../rich-text-view.ts';
 import { lang, loc, t, tp, type MessageKey } from '../i18n.ts';
@@ -75,7 +75,7 @@ function speedVerdict(times: Timed[]): HTMLElement[] {
   if (!v) return [];
   const moves = moveList.format(otherMoves(v.other.tokens).map((m) => `\`${m}\``)); // tappable, and `y` isn't read as "and"
   const guide = routePath({ mod: 'academy', page: { kind: 'triggers' } });
-  return [rich(t(`speed.${v.winner}`, { s: formatSeconds(v.saved), moves }), 'speed-verdict'),
+  return [rich(t(`speed.${v.winner}`, { s: formatTenths(v.saved), moves }), 'speed-verdict'),
     el('p', { className: 'hint' }, t('speed.how'), ' ', el('a', { href: `${guide}#${SPEED_ANCHOR}`, textContent: t('speed.guide') }))];
 }
 
