@@ -1,20 +1,23 @@
 // The Quiz (retener), the same activity from a case page, a group, a phase, the whole method or the plan's own
 // quizzes: only the scope changes. Setup: which cases (by hand, by learning status, slowest, due today…) and in which
 // order (uniform, as often as they come up in a solve, due first); Hoy's review skips it, each due case once. Each
-// item, timed:
+// item:
 // - With a synced cube: 1) Mezcla, guided to a random state of the case; 2) Resuelve, on the clock from the first
 //   turn, without being asked its name. Graded by itself (time, turns, efficiency).
 // - Without one: first "¿Qué caso es?", the figure and a few cases to tap, only when cubers learn their names (PLL,
 //   OCLL…; lessons.ts caseQuestion): telling an algorithm from its text by eye (F2L) isn't what a solve needs, so
-//   those go straight to the scramble; a wrong one: the answer, graded as failed; then the clock card, as in Practicar: the figure (no arrows) and the random-state scramble, big; a tap (or Space)
-//   hides them and starts the clock, the next stops it, then Limpio (Siguiente) or Fallé (the answer, graded as failed).
+//   those go straight to the scramble; a wrong one: the answer, graded as failed. Then the clock card, as in
+//   Practicar: the figure (no arrows) and the random-state scramble, big; the user solves it on their cube and says
+//   how it went, Lo resolví (Siguiente) or Fallé (the answer, graded as failed). The quiz is about knowing the case,
+//   so the clock is optional: a tap (or Space) hides the scramble and starts it, the next stops it, then Limpio or
+//   Fallé.
 // Solved: the time, turns and grade with the case's best and average, then Otra mezcla (the same case, another state)
 // or Siguiente. A wrong answer, "Me atasqué", or (with the cube) too many turns or too long: the explanation (figure,
 // algorithm with its triggers, recognition, fingers, animation on demand), then Reintentar or Siguiente. Saltar is
-// always there. Every item with a verdict grades its case for the spaced repetition (store.ts; "Lo resolví" without the
-// clock moves on ungraded, in the score only if the case was named) and every solve counts as a repetition of it (a
-// retry, after the answer, as a helped one); scoring lives in score.ts, a short history of sessions in this browser; the errors are reviewed at
-// the end, with what the session moved in the spaced repetition (cases now known, or new ones brought in).
+// always there. Every item with a verdict grades its case for the spaced repetition (store.ts) and every timed solve
+// counts as a repetition of it (a retry, after the answer, as a helped one); scoring lives in score.ts, a short
+// history of sessions in this browser; the errors are reviewed at the end, with what the session moved in the spaced
+// repetition (cases now known, or new ones brought in).
 import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { describe, nextStep, PathGuide } from '../guide.ts';
@@ -375,18 +378,20 @@ function pickCase(c: Case) {
 }
 
 /** Without a cube, "Lo resolví" without stopping a clock: a running clock is stopped and counted (Limpio); never
- *  started, the item moves on without a grade (the user's word can't be checked), in the score only if it was named. */
+ *  started, the user's word grades it good, with no time (nor a repetition: its stats are times). */
 function solvedNoClock() {
   if (clockAt) {
     toggleClock();
     return solvedByHand();
   }
-  dropPending();
+  const item = items[index];
+  gradeItem(item, 'good');
+  if (!retried) logs.push({ item, n: index + 1, done, skipped: false, assisted: false });
   next();
 }
 
-/** Without a cube the item's attempt is pushed as right when it's shown, a placeholder until Limpio: an item left
- *  without a verdict ("Lo resolví", the quiz closed) is dropped from the score, unless its case was named right. A miss
+/** Without a cube the item's attempt is pushed as right when it's shown, a placeholder until Lo resolví or Limpio: an
+ *  item left without a verdict (the quiz closed) is dropped from the score, unless its case was named right. A miss
  *  (a wrong case, Fallé, Ver respuesta) stays. */
 function dropPending() {
   if (screen === 'clock' && !named && attempts.at(-1)?.correct) attempts.pop();
@@ -534,8 +539,7 @@ function tick() {
 }
 
 // On document: re-rendering drops the focus to <body>, outside the dialog, where its own listener can't hear.
-// The hand clock's keys: 1–4 answer "¿Qué caso es?"; Space starts and stops the clock, then means Limpio; X, once
-// stopped, is Fallé.
+// The hand clock's keys: 1–4 answer "¿Qué caso es?"; Space starts and stops the clock, then means Limpio; X is Fallé.
 document.addEventListener('keydown', (e) => {
   if (!dialog.open || e.ctrlKey || e.metaKey || e.altKey || screen !== 'clock' || e.repeat) return;
   const target = e.target as Element;
@@ -544,7 +548,7 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') e.preventDefault(); // nor a click on the focused choice: Space started the clock here
     return; // no clock before the case is named
   }
-  if (e.code === 'KeyX' && clockMs !== null && !target.closest?.('input')) {
+  if (e.code === 'KeyX' && !target.closest?.('input')) {
     e.preventDefault();
     return stuck('fail');
   }
@@ -806,9 +810,9 @@ const steps = (current: 1 | 2) => el('ol', { className: 'steps', ariaLabel: t('p
 const stuckButton = (label: MessageKey = 'quiz.stuck', w: Why = 'stuck') => action('stuck', t(label), () => stuck(w));
 
 /** Without a cube, first "¿Qué caso es?": the figure and the choices, Saltar and Ver respuesta under them. Then the
- *  clock card: listo, the figure (no arrows) and the scramble, big; a tap or Space hides them and starts the clock;
- *  parado, the time against the case's record, Limpio (solved: Siguiente) or Fallé (the answer). Lo resolví, Saltar
- *  and Ver respuesta stay under it. */
+ *  clock card: listo, the figure (no arrows) and the scramble, big, with Lo resolví, Fallé and Saltar under it; a tap
+ *  or Space hides them and starts the optional clock; parado, the time against the case's record, Limpio (solved:
+ *  Siguiente) or Fallé (the answer). */
 function renderClock(): Node[] {
   const item = items[index];
   if (choices.length) {
@@ -827,24 +831,31 @@ function renderClock(): Node[] {
     : el('button', { type: 'button', className: `practice-clock${clockAt ? ' running' : ''}${ready ? ' small' : ''}` },
       el('span', { id: 'quiz-clock', textContent: formatTime(clockAt ? performance.now() - clockAt : 0) }));
   if (!stopped) Object.assign(clock.dataset, { action: 'clock', focus: '' });
-  const hint = p(t(stopped ? 'practice.card.grade' : clockAt ? 'practice.timerStop' : 'practice.card.ready'), 'hint');
+  const hint = p(t(stopped ? 'practice.card.grade' : clockAt ? 'practice.timerStop' : 'quiz.card.ready'), 'hint');
   hint.id = 'quiz-card-hint';
   clock.setAttribute('aria-describedby', hint.id);
   if (!stopped) {
+    const ok = action('solved', t('quiz.solvedNoClock'), solvedNoClock);
+    ok.className = 'primary';
     return [progress(), card(clockAt ? 'running' : 'ready', [...holdHint(item), ...(ready ? itemScramble() : []), clock, hint], toggleClock),
-      actions(action('solved', t('quiz.solvedNoClock'), solvedNoClock), action('skip', t('quiz.skip'), skip), stuckButton('quiz.showAnswer', 'shown'))];
+      actions(ok, failButton(), action('skip', t('quiz.skip'), skip))];
   }
   const c = handComparison();
   const delta = c ? [p(comparisonText(c), ['delta', deltaClass(c)].filter(Boolean).join(' '))] : [];
   const ok = action('next', t('practice.cleanBtn'), solvedByHand);
   ok.className = 'primary';
   ok.dataset.focus = '';
-  const miss = action('stuck', '', () => stuck('fail'));
-  miss.ariaKeyShortcuts = 'x';
-  miss.append(el('span', { textContent: t('practice.failBtn') }), el('kbd', { className: 'key-hint', ariaHidden: 'true', textContent: 'X' }));
-  return [progress(), card('stopped', [clock, ...delta, hint, el('div', { className: 'row grade' }, ok, miss)]),
+  return [progress(), card('stopped', [clock, ...delta, hint, el('div', { className: 'row grade' }, ok, failButton())]),
     feedbackView(item), // which case it was: on the cube the done screen says it
     actions(action('retry', t('quiz.retryItem'), retryClock))];
+}
+
+/** Fallé (X), on the clock card: graded as failed, the answer shown. */
+function failButton(): HTMLElement {
+  const b = action('stuck', '', () => stuck('fail'));
+  b.ariaKeyShortcuts = 'x';
+  b.append(el('span', { textContent: t('practice.failBtn') }), el('kbd', { className: 'key-hint', ariaHidden: 'true', textContent: 'X' }));
+  return b;
 }
 
 /** The solved item's time (on the cube): first turn to solved. */
