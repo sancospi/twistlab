@@ -5,8 +5,8 @@
 // - With a synced cube: 1) Mezcla, guided to a random state of the case; 2) Resuelve, on the clock from the first
 //   turn, without being asked its name. Graded by itself (time, turns, efficiency).
 // - Without one: first "¿Qué caso es?", the figure and a few cases to tap, only when cubers learn their names (PLL,
-//   OCLL…; lessons.ts caseQuestion): telling an algorithm from its text by eye (F2L) isn't what a solve needs, so
-//   those go straight to the scramble; a wrong one: the answer, graded as failed. Then the clock card, as in
+//   OLL…; lessons.ts caseQuestion): telling an algorithm from its text by eye (F2L) isn't what a solve needs, so
+//   the others go straight to the scramble; optional (Pasar al caso); a wrong one: the answer, graded as failed. Then the clock card, as in
 //   Practicar: the figure (no arrows) and the random-state scramble, big; the user solves it on their cube and says
 //   how it went, Lo resolví (Siguiente) or Fallé (the answer, graded as failed). The quiz is about knowing the case,
 //   so the clock is optional: a tap (or Space) hides the scramble and starts it, the next stops it, then Limpio or
@@ -325,8 +325,8 @@ function startItem() {
     screen = 'clock';
     const cases = scopeCases(scope).filter((c) => c.stage === items[index].c.stage);
     const at = cases.findIndex((c) => c.id === items[index].c.id);
-    const q = at >= 0 && cases.length > 1 ? caseQuestion(caseChoices(cases, at), cases[at], (c) => preferred(c).alg) : null;
-    choices = q && !q.byAlg && q.choices.length > 1 ? q.choices : [];
+    const q = at >= 0 && cases.length > 1 ? caseQuestion(caseChoices(cases, at), cases[at]) : null;
+    choices = q && q.length > 1 ? q : [];
     named = false;
     attempts.push({ caseId: items[index].c.id, correct: true, recognitionMs: 0 });
   }
@@ -374,6 +374,12 @@ function pickCase(c: Case) {
   if (c.id !== items[index].c.id) return stuck('fail');
   choices = [];
   named = true;
+  render();
+}
+
+/** Without a cube, Pasar al caso: the name is optional, on to the clock card without it (the solve still counts). */
+function skipName() {
+  choices = [];
   render();
 }
 
@@ -809,7 +815,8 @@ const steps = (current: 1 | 2) => el('ol', { className: 'steps', ariaLabel: t('p
 /** "Me atasqué" (or "Ver respuesta" on the clock card): the explanation. */
 const stuckButton = (label: MessageKey = 'quiz.stuck', w: Why = 'stuck') => action('stuck', t(label), () => stuck(w));
 
-/** Without a cube, first "¿Qué caso es?": the figure and the choices, Saltar and Ver respuesta under them. Then the
+/** Without a cube, first "¿Qué caso es?": the figure and the choices, Pasar al caso, Ver respuesta and Saltar under
+ *  them. Then the
  *  clock card: listo, the figure (no arrows) and the scramble, big, with Lo resolví, Fallé and Saltar under it; a tap
  *  or Space hides them and starts the optional clock; parado, the time against the case's record, Limpio (solved:
  *  Siguiente) or Fallé (the answer). */
@@ -822,7 +829,7 @@ function renderClock(): Node[] {
     buttons[0].dataset.focus = '';
     return [progress(), diagram(item, 140), p(q),
       el('div', { className: 'lesson-choices', role: 'group', ariaLabel: q }, ...buttons),
-      actions(action('skip', t('quiz.skip'), skip), stuckButton('quiz.showAnswer', 'shown'))];
+      actions(action('skip-name', t('quiz.skipName'), skipName), stuckButton('quiz.showAnswer', 'shown'), action('skip', t('quiz.skip'), skip))];
   }
   const stopped = clockMs !== null;
   const ready = !clockAt && !stopped;

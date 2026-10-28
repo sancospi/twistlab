@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loc, t } from '../i18n.ts';
-import { formatAlg, tokenize } from '../notation.ts';
+import { tokenize } from '../notation.ts';
 import { beginner } from './beginner.ts';
 import { cfopReduced } from './cfop.ts';
 import { crossGuide } from './crossGuide.ts';
@@ -83,7 +83,7 @@ test('lessons: every guide with lessons builds them from its own data', () => {
   for (const [phase, l] of beginner.phases.map((p, i) => [p, prin.lessons[i + 1]] as const)) {
     assert.deepEqual(l.steps[0], { kind: 'text', text: loc(phase.goal!) }, l.id);
     const tips = l.steps.findIndex((s) => s.kind === 'text' && s.title === t('academy.tips'));
-    assert.ok(tips > 0 && l.steps[tips - 1].kind === 'cube' && l.steps[tips + 1]?.kind === 'case', l.id);
+    assert.ok(tips > 0 && l.steps[tips - 1].kind === 'cube' && l.steps.slice(tips + 1).every((s) => s.kind === 'case'), l.id);
   }  // the 2x2's lessons play on a 2x2
   for (const id of ['principiante-2x2', 'ortega']) assert.equal(courseFor(id)?.puzzle, '2x2x2');
 });
@@ -123,32 +123,28 @@ test('lessons: a lesson with cases ends on their Quiz, under the id of a Quiz bu
   }
 });
 
-test('commonName: the names cubers learn (PLL, OCLL, 2-look OLL, PBL), never a catalogue number', () => {
+test('commonName: the names cubers learn (PLL, OCLL, 2-look OLL, OLL numbers, PBL), never another catalogue number', () => {
   const named = (id: string) => commonName(findCase(id)!);
-  for (const id of ['cfopc-pll-t', 'cfopc-oll-27', 'cfop-oll-punto']) assert.ok(named(id), id);
-  for (const id of ['cfop-f2l-a1', 'cfopc-f2l-01', 'cfopc-oll-45']) assert.ok(!named(id), id);
+  for (const id of ['cfopc-pll-t', 'cfopc-oll-27', 'cfop-oll-punto', 'cfopc-oll-45']) assert.ok(named(id), id);
+  for (const id of ['cfop-f2l-a1', 'cfopc-f2l-01', 'coll-h-1']) assert.ok(!named(id), id);
 });
 
-test('lessons: a case question shows names only when every choice has a common name, else algorithms', () => {
-  let byAlg = 0, byName = 0;
+test('lessons: a case question asks names only, and only when every choice has one; F2L asks nothing', () => {
+  let asked = 0;
   for (const m of [beginner, cfopReduced, f2lAdvanced, roux, beginner2x2, ortega]) {
     const byId = new Map(m.phases.flatMap((p) => p.groups.flatMap((g) => g.cases)).map((c) => [c.id, c]));
     for (const s of courseFor(m.id)!.lessons.flatMap((l) => l.steps)) {
       if (s.kind !== 'case') continue;
+      asked++;
       assert.ok(s.choices.length >= 2, s.caseId);
       assert.equal(new Set(s.choices.map((c) => c.label)).size, s.choices.length); // never two right answers
-      if (s.choices.every((c) => commonName(byId.get(c.id)!))) {
-        byName++;
-        assert.equal(s.title, undefined);
-        s.choices.forEach((c) => assert.equal(c.label, byId.get(c.id)!.code));
-      } else {
-        byAlg++;
-        assert.equal(s.title, t('lesson.whichAlg'));
-        s.choices.forEach((c) => assert.equal(c.label, formatAlg(tokenize(byId.get(c.id)!.algs[0].alg))));
-      }
+      s.choices.forEach((c) => assert.ok(commonName(byId.get(c.id)!) && c.label === byId.get(c.id)!.code, c.id));
     }
   }
-  assert.ok(byAlg > 0 && byName > 0);
+  assert.ok(asked > 0);
+  for (const l of courseFor(cfopReduced.id)!.lessons.filter((x) => x.quiz?.cases.some((c) => c.stage === 'f2l'))) {
+    assert.ok(l.steps.every((s) => s.kind !== 'case'), l.id);
+  }
 });
 
 test('suggestedLesson: the recent course first, then one started, then the cross; finished courses are skipped', () => {

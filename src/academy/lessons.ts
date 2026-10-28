@@ -2,7 +2,7 @@
 // the texts): Notación from the glossary's moves, La cruz blanca from crossGuide.ts, Método principiante from
 // beginner.ts. Pure (no DOM): lessonView.ts plays them, view.ts lists them.
 import { glossary, loc, t } from '../i18n.ts';
-import { caseSetup, explainMove, formatAlg, tokenize } from '../notation.ts';
+import { caseSetup, explainMove } from '../notation.ts';
 import { beginner } from './beginner.ts';
 import { cfopReduced } from './cfop.ts';
 import { bases2x2 } from './bases2x2.ts';
@@ -19,8 +19,8 @@ export type LessonStep =
   // the cube at `setup` (from solved, yellow up), then `alg`; doSetup: "on my cube" does the setup first
   | { kind: 'cube'; title?: string; text: string; setup: string; alg: string; doSetup: boolean; stage?: Stage }
   | { kind: 'move'; move: string; choices: string[] } // "¿Qué giro hizo el cubo?"
-  // "¿Qué caso es?", or the title ("¿Qué algoritmo lo resuelve?") when the labels are algorithms
-  | { kind: 'case'; title?: string; caseId: string; alg: string; stage: Stage; diagram: 'iso' | 'top'; choices: { id: string; label: string }[] };
+  // "¿Qué caso es?", by name, optional (Pasar)
+  | { kind: 'case'; caseId: string; alg: string; stage: Stage; diagram: 'iso' | 'top'; choices: { id: string; label: string }[] };
 
 export interface Lesson {
   id: string;
@@ -137,7 +137,8 @@ function guideLessons(g: TextGuide): Lesson[] {
 }
 
 // --- A method (principiante, CFOP reducido): how to hold it, then per phase its goal and method, each case with its
-// algorithm, and "which case is it?". A phase with many cases (CFOP's F2L) gets a lesson per group instead. ---
+// algorithm, and "which case is it?" when its cases have names to learn (else the lesson's end proposes its Quiz). A
+// phase with many cases (CFOP's F2L) gets a lesson per group instead. ---
 
 /** Up to 4 choices for a case among its phase's: all of them, or the case and the 3 after it. They keep the phase's
  *  cyclic order but start at a random one, so the answer's button doesn't give it away (asked last, it would always
@@ -150,19 +151,19 @@ export function caseChoices(cases: Case[], answer: number, rand = Math.random): 
 }
 
 // Stages whose case names cubers commonly learn: the PLL letters, OCLL's Sune to H, the 2-look OLL's Línea, L and Punto,
-// Ortega's PBL. A code with a digit is a catalogue number (A1, F2L 7, OLL 45, COLL H 1), not a name worth memorising.
+// the full OLL's numbers (OLL 45: how cubers call them), Ortega's PBL. Any other code with a digit is a catalogue
+// number (A1, F2L 7, COLL H 1), not a name worth memorising.
 const NAMED: Stage[] = ['oll-cross', 'oll-corners', 'pll-corners', 'pll-edges', 'll-corners-twist', '2x2-oll', '2x2-pbl'];
-export const commonName = (c: Case): boolean => NAMED.includes(c.stage) && !/\d/.test(c.code);
+export const commonName = (c: Case): boolean => NAMED.includes(c.stage) && (!/\d/.test(c.code) || /^OLL \d+$/.test(c.code));
 
-/** "¿Qué caso es?" asked for what a solve needs: by name only when every choice has a common name, otherwise by
- *  algorithm ("¿Qué algoritmo lo resuelve?"), one choice per algorithm text (the answer's kept: never two right ones).
- *  `algOf`: the algorithm shown for a case (the user's chosen one, in the app). */
-export function caseQuestion(shown: Case[], answer: Case, algOf: (c: Case) => string): { byAlg: boolean; choices: { c: Case; label: string }[] } {
-  const byAlg = !shown.every(commonName);
-  const label = (c: Case) => (byAlg ? formatAlg(tokenize(algOf(c))) : c.code);
-  const seen = new Set([label(answer)]);
-  const kept = shown.filter((c) => c === answer || (!seen.has(label(c)) && !!seen.add(label(c))));
-  return { byAlg, choices: kept.map((c) => ({ c, label: label(c) })) };
+/** "¿Qué caso es?", by name: only when every choice has a common name (null otherwise: telling algorithms apart by
+ *  their text is no test of a solve, the Quiz's scrambles are), one choice per name (the answer's kept: never two
+ *  right ones). */
+export function caseQuestion(shown: Case[], answer: Case): { c: Case; label: string }[] | null {
+  if (!shown.every(commonName)) return null;
+  const seen = new Set([answer.code]);
+  const kept = shown.filter((c) => c === answer || (!seen.has(c.code) && !!seen.add(c.code)));
+  return kept.map((c) => ({ c, label: c.code }));
 }
 
 const MAX_CASES = 8; // more in one phase: a lesson per group, so a lesson stays short
@@ -192,11 +193,10 @@ function methodLessons(m: Method, algOf: (c: Case) => string): Lesson[] {
         }),
         ...(tips ? [text({ title: t('academy.tips'), text: tips })] : []),
         ...asked.flatMap((i): LessonStep[] => {
-          const q = caseQuestion(caseChoices(cases, i), cases[i], algOf);
-          return q.choices.length < 2 ? [] : [{
+          const q = caseQuestion(caseChoices(cases, i), cases[i]);
+          return !q || q.length < 2 ? [] : [{
             kind: 'case', caseId: cases[i].id, alg: cases[i].algs[0].alg, stage: cases[i].stage, diagram, // the case's own state: what its recognition reads
-            choices: q.choices.map(({ c, label }) => ({ id: c.id, label })),
-            ...(q.byAlg ? { title: t('lesson.whichAlg') } : {}),
+            choices: q.map(({ c, label }) => ({ id: c.id, label })),
           }];
         }),
       ],

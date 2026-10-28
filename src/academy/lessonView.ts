@@ -2,9 +2,10 @@
 // pages are rebuilt there, and the one 3D player must never be re-attached. One step at a time with a progress bar,
 // Anterior and Continuar, the step kept in the page's history entry (Back finds the lesson where it was left); cube
 // steps let you watch it ("Cubo virtual") or do it ("Lo hago en mi cubo": followed move by move on a synced smart cube,
-// else just the moves); questions answer on the spot. A finished lesson is remembered in this browser; a course's last
-// one leads on to the lesson Hoy would suggest (suggestedLesson), usually the next course. A lesson with cases ends on
-// their Quiz too ("Practicar estos casos"): only the Quiz makes a case known and brings it back in Hoy's review. The
+// else just the moves); questions answer on the spot, and a case's name is optional (Pasar). A finished lesson is
+// remembered in this browser; a course's last one leads on to the lesson Hoy would suggest (suggestedLesson), usually
+// the next course. A lesson with cases ends on their Quiz too ("Mini quiz"), first unless every question was answered
+// right: scrambles solved on the cube, and only the Quiz makes a case known and brings it back in Hoy's review. The
 // cross guide's lessons, which ask nothing, end on its trainer instead: checked practice with no smart cube needed.
 import type { TwistyPlayer } from 'cubing/twisty';
 import type { KPuzzle } from 'cubing/kpuzzle';
@@ -180,6 +181,7 @@ function show() {
   feedback.textContent = '';
   feedback.className = 'lesson-feedback';
   next.hidden = index >= steps.length;
+  next.textContent = t('lesson.continue');
   prev.hidden = index === 0 || index >= steps.length; // the end has its own way on
   if (index >= steps.length) finish();
   else {
@@ -354,6 +356,7 @@ function choices(options: { label: string; right: boolean }[], wrongText: string
       x.classList.toggle('right', options[j].right);
       x.classList.toggle('wrong', j === i && !options[j].right);
     });
+    next.textContent = t('lesson.continue'); // a case question's Pasar
     feedback.textContent = options[i].right ? t('quiz.correct') : wrongText;
     feedback.className = `lesson-feedback ${options[i].right ? 'ok' : 'bad'}`;
     next.focus();
@@ -371,17 +374,17 @@ function moveStep(s: Extract<LessonStep, { kind: 'move' }>) {
     choices(s.choices.map((m) => ({ label: m, right: m === s.move })), t('lesson.wrongMove', { move: s.move, how })));
 }
 
+/** "¿Qué caso es?", by name: optional, Continuar reads Pasar until it's answered. */
 function caseStep(s: Extract<LessonStep, { kind: 'case' }>) {
   const pic = el('div', { className: 'quiz-diagram' });
-  const q = s.title ?? t('quiz.question');
+  const q = t('quiz.question');
   pic.innerHTML = caseDiagram(s.diagram, s.stage, patternToFacelets(caseState(kpuzzle, s.alg, IDENTITY)), { size: 180, title: q });
-  textBox.replaceChildren(el('h3', { textContent: q }), pic);
+  textBox.replaceChildren(el('h3', { textContent: q }), el('p', { className: 'hint', textContent: t('lesson.optional') }), pic);
+  if (answers.get(index) == null) next.textContent = t('lesson.skipQuestion');
   const answer = s.choices.find((c) => c.id === s.caseId)!.label;
   // a miss says how to recognise it, as a wrong move says how it turns (the template ends the sentence; a few recognitions already do)
   const wrong = t('lesson.wrongCase', { name: answer, how: loc(findCase(s.caseId)!.recognition).replace(/\.$/, '') });
-  const box = choices(s.choices.map((c) => ({ label: c.label, right: c.id === s.caseId })), wrong);
-  box.classList.toggle('algs', !!s.title); // the labels are algorithms (lessons.ts caseQuestion)
-  body.replaceChildren(box);
+  body.replaceChildren(choices(s.choices.map((c) => ({ label: c.label, right: c.id === s.caseId })), wrong));
 }
 
 // --- The end ---
@@ -391,15 +394,19 @@ function finish() {
   stage.hidden = true;
   const i = course.lessons.indexOf(lesson);
   const after = course.lessons[i + 1];
-  const right = [...answers.values()].filter(Boolean).length;
+  const answered = [...answers.values()].filter((a) => a !== null); // a question passed doesn't count
+  const right = answered.filter(Boolean).length;
+  const { quiz } = lesson;
+  // the questions are optional and only ask names: the cases' Quiz, their scrambles solved on the cube, comes first
+  // unless every question was answered right
+  const practiceFirst = !!quiz && (!answered.length || right < answers.size);
   textBox.replaceChildren(el('h3', { textContent: t('lesson.finished') }),
-    ...(answers.size ? [el('p', { textContent: t('lesson.score', { right, n: answers.size }) })] : []));
+    ...(answered.length ? [el('p', { textContent: t('lesson.score', { right, n: answered.length }) })] : []),
+    ...(quiz ? [el('p', { textContent: t('lesson.quizHint') })] : []));
   const back = el('button', { type: 'button', textContent: t('lesson.back'), onclick: () => navigate(guidePath(course.id)) });
   // the course's last lesson: on to the lesson Hoy would suggest now (its `next` course when this one is finished)
   const way = after ? { course, lesson: after } : suggestedLesson([course.id], parseDone(load(DONE_KEY)));
   const title = way && (way.course.id === course.id ? way.lesson.title : `${way.course.title}: ${way.lesson.title}`);
-  const { quiz } = lesson;
-  const practiceFirst = !!quiz && right < answers.size; // a question missed: practising the cases comes first
   body.replaceChildren(el('div', { className: 'row' },
     ...(quiz ? [el('button', { type: 'button', className: practiceFirst ? 'primary' : '', textContent: t('lesson.practice'),
       onclick: () => void openQuiz({ kind: 'cases', id: quiz.id, cases: quiz.cases, title: lesson.title }) })] : []),

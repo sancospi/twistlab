@@ -31,8 +31,5 @@ body:not([data-module="academy"]) #lesson { display: none; }
 .lesson-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .lesson-choices button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 8px; font: 700 1.1429rem var(--mono); }
 .lesson-choices button:disabled { opacity: 1; }
-// algorithms as answers: one per row, read from the left, so a long one never breaks into a narrow column
-.lesson-choices.algs { grid-template-columns: minmax(0, 1fr); }
-.lesson-choices.algs button { width: 100%; justify-content: flex-start; text-align: left; font-size: 1rem; }
 .lesson-feedback { margin: 0; font-weight: 700; }
 @media (max-width: 600px) { .lesson-card { padding: 12px; } }
