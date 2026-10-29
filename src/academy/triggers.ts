@@ -142,9 +142,10 @@ export function contains(alg: string, trigger: string): boolean {
   return have.some((_, i) => want.every((tok, j) => have[i + j] === tok));
 }
 
-/** The cases whose main algorithm contains the trigger, grouped by method (methods without one are left out). */
-export function appearsIn(trigger: string, methods: Method[]): { method: Method; cases: Case[] }[] {
-  return methods.map((method) => ({ method, cases: allCases(method).filter((c) => contains(c.algs[0].alg, trigger)) }))
+/** The cases whose algorithm (`algOf`: the user's chosen one, the main one by default) contains the trigger, grouped by
+ *  method (methods without one are left out). */
+export function appearsIn(trigger: string, methods: Method[], algOf: (c: Case) => string = (c) => c.algs[0].alg): { method: Method; cases: Case[] }[] {
+  return methods.map((method) => ({ method, cases: allCases(method).filter((c) => contains(algOf(c), trigger)) }))
     .filter((x) => x.cases.length);
 }
 

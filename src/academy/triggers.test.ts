@@ -67,6 +67,9 @@ test('Aparece en: the moves in a row, R2\' as R2 and Rw as r', () => {
   const sune = appearsIn("R U R' U R U2 R'", METHODS);
   assert.ok(sune.find((x) => x.method.id === 'cfop-completo')?.cases.some((c) => c.id === 'cfopc-oll-27'));
   assert.ok(sune.every((x) => x.cases.length > 0));
+  // a case counts by the algorithm the user chose: Sune's case drilled with another one doesn't contain it
+  const other = appearsIn("R U R' U R U2 R'", METHODS, (c) => (c.id === 'cfopc-oll-27' ? "R' U' R U' R' U2 R" : c.algs[0].alg));
+  assert.ok(!other.find((x) => x.method.id === 'cfop-completo')?.cases.some((c) => c.id === 'cfopc-oll-27'));
 });
 
 test('tps and the stored bests', () => {

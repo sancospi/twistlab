@@ -14,7 +14,7 @@ import { show3D } from './crossTrainer.ts';
 import { METHODS } from './methods.ts';
 import { fingersView } from './practice.ts';
 import { el } from '../el.ts';
-import { load, save } from './store.ts';
+import { load, preferred, save } from './store.ts';
 import { BESTS_KEY, appearsIn, drillReps, parseBests, period, tps, triggerGuide, type TriggerInfo } from './triggers.ts';
 import { caseLabel } from './types.ts';
 
@@ -74,7 +74,7 @@ function card(x: TriggerInfo, kpuzzle: KPuzzle): HTMLElement {
 /** "Aparece en N casos", folded: per method, its name over a few of its cases that use the trigger (links as chips, each
  *  one big enough to tap), and how many more. */
 function appearsView(alg: string): HTMLElement[] {
-  const found = appearsIn(alg, METHODS);
+  const found = appearsIn(alg, METHODS, (c) => preferred(c).alg);
   const total = found.reduce((sum, x) => sum + x.cases.length, 0);
   if (!total) return [];
   const out = el('details', { className: 'trigger-appears' }, el('summary', { textContent: tp('triggers.appearsCount', total) }));
