@@ -12,9 +12,10 @@
 //   so the clock is optional: a tap (or Space) hides the scramble and starts it, the next stops it, then Limpio or
 //   Fallé.
 // Solved: the time, turns and grade with the case's best and average, then Otra mezcla (the same case, another state)
-// or Siguiente. A wrong answer, "Me atasqué", or (with the cube) too many turns or too long: the explanation (figure,
-// algorithm with its triggers, recognition, fingers, animation on demand), then Reintentar or Siguiente. Saltar is
-// always there. Every item with a verdict grades its case for the spaced repetition (store.ts) and every timed solve
+// or Siguiente. A wrong answer or Fallé: the explanation (figure, algorithm with its triggers, recognition, fingers,
+// animation on demand), then Reintentar or Siguiente. With the cube, "Me atasqué" (or too many turns, too long) leaves
+// it somewhere off the case: Mezcla leads it back (the turns undone, if few) with the explanation under the card, the
+// algorithm is tried again (a retry: not scored), then on with the quiz. Saltar is always there. Every item with a verdict grades its case for the spaced repetition (store.ts) and every timed solve
 // counts as a repetition of it (a retry, after the answer, as a helped one); scoring lives in score.ts, a short
 // history of sessions in this browser; the errors are reviewed at the end, with what the session moved in the spaced
 // repetition (cases now known, or new ones brought in).
@@ -22,12 +23,12 @@ import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { describe, nextStep, PathGuide } from '../guide.ts';
 import { patternToFacelets } from '../facelets.ts';
-import { IDENTITY, YELLOW_UP, centerMoves, htm, merge, tokenize, turnCount, unmapMove, type Face, type Frame } from '../notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, htm, invertMove, merge, tokenize, turnCount, unmapMove, type Face, type Frame } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView, scrambleNote } from '../notation-view.ts';
 import { lang, loc, percent, t, tp, type MessageKey } from '../i18n.ts';
 import {
-  HOLDS, caseState, goalReached, holdIn, llSpecs, llSteps, makeQuizItems, quizPattern, randomStateScramble, specsFor,
+  HOLDS, UNDO_MAX, caseState, goalReached, holdIn, llSpecs, llSteps, makeQuizItems, quizPattern, randomStateScramble, specsFor,
   type Auf, type LLStep, type QuizSpec,
 } from './cube.ts';
 import { heldColors, netSVG } from './diagram.ts';
@@ -129,6 +130,7 @@ let named = false; // ...tapped right: the attempt is checked, so it counts even
 let firstMoveAt = 0;
 let fromClock = false; // the explanation follows a failed solve on the hand clock: Reintentar goes back to it
 let retried = false; // Reintentar: the item is not graded for the SRS again
+let guided = false; // with the cube, after Me atasqué: led back to the item's state, its algorithm on screen
 let done: string[] = []; // quarter turns while solving the current item
 let assisted = false;
 let clockAt = 0; // without a cube: > 0 while the solve clock runs
@@ -304,8 +306,11 @@ function gradeItem(item: Item, g: Grade, solveMs?: number) {
   if (g === 'fail') failed.add(item.c.id);
 }
 
-function startItem() {
+/** Sets the item up: on the cube, Mezcla to its state. `back`, after Me atasqué: a way back there to try first (the
+ *  turns undone), the explanation on screen. */
+function startItem(back?: string[]) {
   rendered = null; // a new item is a new screen for the focus: its clock, not the last item's Saltar or Lo resolví
+  guided = !!back;
   assisted = false;
   done = [];
   firstMoveAt = 0;
@@ -316,7 +321,7 @@ function startItem() {
   prefetch(index + 1);
   if (mode === 'execution') {
     screen = 'scramble';
-    void guide.start(quizPattern(kpuzzle, items[index].spec, onCube(items[index]))); // cube frame: yellow is the cube's D
+    void guide.start(quizPattern(kpuzzle, items[index].spec, onCube(items[index])), back); // cube frame: yellow is the cube's D
   } else {
     // without a cube: which case it is, then the scramble, you start the clock and solve it on your cube. Not asked
     // when the case isn't among the scope's (a full last layer's) or it's alone in its stage: the choices are of its
@@ -411,7 +416,7 @@ function retryClock() {
 }
 
 /** "Me atasqué", "Ver respuesta" (`shown`), Fallé (`fail`), or (on the cube) too many turns or too long: graded as
- *  failed, explained. */
+ *  failed, explained; on the cube, while it's led back to the case to try the algorithm again. */
 function stuck(w: Why = 'stuck') {
   const item = items[index];
   guide.stop();
@@ -427,7 +432,10 @@ function stuck(w: Why = 'stuck') {
     }
   }
   gradeItem(item, 'fail');
-  explain(w);
+  if (mode !== 'execution') return explain(w);
+  retried = true;
+  // undoing a few turns is the human way back; more, and the solver's is shorter ([] never leads there)
+  startItem(done.length <= UNDO_MAX ? merge(done.map(invertMove).reverse()) : []);
 }
 
 function explain(w: Why) {
@@ -527,7 +535,7 @@ const listener: CubeListener = {
     if (screen === 'setup') render(); // the mode follows the cube until the quiz starts
     else if (mode === 'execution' && !cube.pattern() && screen !== 'results') finish(); // disconnected: score what was done
     else if (screen === 'scramble') void guide.replan();
-    else if (screen === 'solve' && reset) startItem(); // the item's state is gone: set it up again
+    else if (screen === 'solve' && reset) startItem(guided ? [] : undefined); // the item's state is gone: set it up again
     // the cube lost the last turn and the corrected state is at the goal (any other drift: the next turn is judged right)
     else if (screen === 'solve' && goalReached(items[index].c.stage, cube.pattern()!, onCube(items[index]))) solved();
   },
@@ -587,7 +595,10 @@ function render() {
   const focused = body.contains(document.activeElement) ? (document.activeElement as HTMLElement).dataset.action : undefined;
   const same = screen === rendered;
   rendered = screen;
+  const fingersOpen = !!body.querySelector<HTMLDetailsElement>('.fingers-box')?.open; // each cube move rebuilds the screen
   body.replaceChildren(...view());
+  const fingers = body.querySelector<HTMLDetailsElement>('.fingers-box');
+  if (fingers && same) fingers.open = fingersOpen;
   // Keyboard flow: on the same screen the button the user was on keeps the focus, else the screen's main action
   // takes it; a new screen's main action comes first (answered: "Next", not the scramble toggle that's still there).
   const kept = focused ? body.querySelector<HTMLElement>(`[data-action="${focused}"]`) : null;
@@ -607,8 +618,8 @@ function helpText(): string {
   switch (screen) {
     case 'setup': return [t(executionNext() ? 'quiz.howCube' : 'quiz.howNoCube'), `${t('neutral.option')}: ${t('neutral.optionHint')}`].join(' ');
     case 'clock': return [t(clockMs !== null ? 'quiz.helpClockDone' : 'quiz.helpClock'), items[index]?.random ? t('quiz.randomState') : ''].join(' ').trim();
-    case 'scramble': return t('quiz.helpScramble');
-    case 'solve': return t('quiz.helpSolve');
+    case 'scramble': return t(guided ? 'quiz.helpGuided' : 'quiz.helpScramble');
+    case 'solve': return t(guided ? 'quiz.helpGuided' : 'quiz.helpSolve');
     case 'done': return t(feedback?.grade === 'fail' ? 'quiz.helpDoneFail' : 'quiz.helpDone');
     case 'explain': return t('quiz.helpExplain');
     default: return '';
@@ -626,7 +637,7 @@ function statusText(): string {
       return [where, formatTime(clockMs), ...(c ? [comparisonText(c)] : []), t('practice.card.grade')].join('. ');
     }
     case 'scramble': return [nextMove() ?? '', scrambleDesc(), neutral && item ? holdText(item, 'neutral.holdAfter') : ''].join(' ').trim();
-    case 'solve': return `${where}. ${t('quiz.helpSolve')}${neutral ? ` ${holdText(item, 'neutral.holdSolve')}` : ''}`; // not the clock: it would talk every frame
+    case 'solve': return `${where}. ${t(guided ? 'quiz.guidedSolve' : 'quiz.helpSolve')}${neutral ? ` ${holdText(item, 'neutral.holdSolve')}` : ''}`; // not the clock: it would talk every frame
     case 'done': return `${feedbackText(feedback!)} ${t('quiz.time', { time: formatTime(itemTime()) })}`;
     case 'explain': return `${whyText()} ${caseLabel(item.c)}`;
     case 'results': return t('quiz.results');
@@ -923,19 +934,27 @@ const whyText = () => t(WHY[why]);
  *  demand); Reintentar (the same item) or Siguiente. */
 function renderExplain(): Node[] {
   const item = items[index];
-  const tokens = tokenize(solution(item));
   const retry = retryButton();
   retry.className = 'primary';
   return [
     progress(), p(whyText(), why === 'shown' ? '' : 'bad'), diagram(item, 140, true), // asked for: no reproach
-    ...(item.steps ? howTo(item) : [ // full last layer: each case with its AUF and algorithm
-      el('p', {}, el('strong', { textContent: caseLabel(item.c) })),
-      el('p', { className: 'hint' }, ...inlineText(loc(item.c.recognition))),
-      movesView(tokens), fingersView(tokens)]),
-    actionsStart(anim.button()),
+    ...lesson(item), actionsStart(anim.button()),
     actionsStart(retry, nextButton(false), ...reviewButton(item)),
   ];
 }
+
+/** How the item is solved: its name, how to recognise it, the algorithm with its triggers and fingers; a full last
+ *  layer, each case with its AUF and algorithm. */
+function lesson(item: Item): Node[] {
+  if (item.steps) return howTo(item);
+  const tokens = tokenize(solution(item));
+  return [el('p', {}, el('strong', { textContent: caseLabel(item.c) })), el('p', { className: 'hint' }, ...inlineText(loc(item.c.recognition))),
+    movesView(tokens), fingersView(tokens)];
+}
+
+/** On the cube after Me atasqué, under Mezcla's and Resuelve's card: the algorithm to try, and the way on. */
+const guidedLesson = (key: MessageKey): Node[] =>
+  [p(t(key)), ...lesson(items[index]), actionsStart(anim.button()), actionsStart(nextButton(false), ...reviewButton(items[index]))];
 
 /** "Repasar ahora": it leaves the quiz, so it says so. Not for a full last layer: it's no case of its own. */
 function reviewButton(item: Item): HTMLElement[] {
@@ -1029,7 +1048,7 @@ function renderScramble(): Node[] {
       diagram(items[index], 96), // where the scramble leads
       ...netToggle(),
     ]),
-    actions(action('skip', t('quiz.skip'), skip)),
+    ...(guided ? guidedLesson('quiz.guidedScramble') : [actions(action('skip', t('quiz.skip'), skip))]),
   ];
 }
 
@@ -1044,7 +1063,7 @@ function renderSolve(): Node[] {
       p(tp('quiz.turns', turnCount(done)), 'hint'), // as the review counts them
       diagram(item, 96),
     ]),
-    actions(action('skip', t('quiz.skip'), skip), stuckButton()),
+    ...(guided ? guidedLesson('quiz.guidedSolve') : [actions(action('skip', t('quiz.skip'), skip), stuckButton())]),
   ];
 }
 
