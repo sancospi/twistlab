@@ -307,8 +307,7 @@ function beginSolve() {
   follower = new StepFollower(expand(active(), YELLOW_UP).steps);
   startedAt = 0;
   done = [];
-  clean = true;
-  peek = helped = false;
+  clean = true; // Ver solución stays: lost and set up again, the help asked for is still wanted (start / newRep clear it)
 }
 
 function finishRep() {
@@ -343,6 +342,7 @@ const listener: CubeListener = {
     if (!linked()) return; // a 2x2 case isn't done on it
     if (mode === 'result') { // the next turn starts the next repetition: Practicar's scramble undoes it first
       if (tab === 'practice') return newRep(), start();
+      peek = helped = false;
       beginSolve();
     }
     if (mode === 'scramble') {
