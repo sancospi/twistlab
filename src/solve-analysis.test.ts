@@ -33,6 +33,17 @@ test('a CFOP solve splits into cross, 4 pairs, OLL, PLL and AUF, with its cases'
   assert.equal(steps.reduce((n, s) => n + s.ms, 0), timesOf(PARTS).at(-1));
 });
 
+// As a smart cube reports a solve: quarter turns only, R2 as "R R"
+const quarters = (moves: string[]) => moves.flatMap((m) => (m.endsWith('2') ? [m[0], m[0]] : [m]));
+const every100 = (moves: string[]) => moves.map((_, i) => 100 * (i + 1));
+
+test("a step's turns as made: a half turn reported as two quarters is one, a slip and its undo two", () => {
+  const moves = quarters(solve(PARTS));
+  assert.deepEqual(stepsOf(analyseSolve(kpuzzle, 1, moves, every100(moves))).map((s) => s.moves), PARTS.map((p) => tokenize(p).length));
+  const slip = quarters(solve(["F2 R2 D'", "R U U' U R'", ...PARTS.slice(2)]));
+  assert.equal(stepsOf(analyseSolve(kpuzzle, 1, slip, every100(slip)))[1].moves, 5);
+});
+
 test('any cross color: the same solve held any of the 24 ways', () => {
   for (const hold of HOLDS) {
     const a = analyseSolve(kpuzzle, 1, solve(PARTS).map((m) => mapMove(m, hold)), timesOf(PARTS));

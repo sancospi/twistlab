@@ -24,7 +24,8 @@ type TwoLook = [first: string, second: string, at: number];
 
 export const STEPS = ['cross', 'f2l1', 'f2l2', 'f2l3', 'f2l4', 'oll', 'pll', 'auf'] as const;
 export type StepKey = (typeof STEPS)[number];
-/** One step: `ms` from the end of the previous one, `recog` of them before its first move (the rest is execution). */
+/** One step: its turns as made (turnCount: a smart cube reports R2 as "R R", one turn; a slip and its undo, two), `ms`
+ *  from the end of the previous step, `recog` of them before its first move (the rest is execution). */
 export interface Step { key: StepKey; moves: number; ms: number; recog: number }
 
 const FACES: Face[] = ['U', 'D', 'F', 'B', 'R', 'L'];
@@ -108,18 +109,19 @@ const timesOf = (a: Analysis) => {
   a.t.reduce((sum, dt) => (at.push(sum + dt), sum + dt), 0);
   return at;
 };
-/** The moves `from` to `to` (left out): their count, their time from the end of the move before, and its pause. */
+/** The moves `from` to `to` (left out): their time from the end of the move before, and its pause. */
 function span(at: number[], from: number, to: number) {
-  if (to === from) return { moves: 0, ms: 0, recog: 0 };
+  if (to === from) return { ms: 0, recog: 0 };
   const prev = from ? at[from - 1] : 0;
-  return { moves: to - from, ms: at[to - 1] - prev, recog: at[from] - prev };
+  return { ms: at[to - 1] - prev, recog: at[from] - prev };
 }
 
 /** Each step's numbers (STEPS' order). */
 export function stepsOf(a: Analysis): Step[] {
   const at = timesOf(a);
+  const moves = a.m.split(' ').filter(Boolean);
   const bounds = [0, ...a.s, a.t.length];
-  return STEPS.map((key, k) => ({ key, ...span(at, bounds[k], bounds[k + 1]) }));
+  return STEPS.map((key, k) => ({ key, moves: turnCount(moves.slice(bounds[k], bounds[k + 1])), ...span(at, bounds[k], bounds[k + 1]) }));
 }
 
 /** A stored 2-look half: two case ids and where the second began, inside its step (`from`..`to`). */
