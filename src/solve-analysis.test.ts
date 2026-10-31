@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { IDENTITY, YELLOW_UP, centerMoves, invertTokens, mapMove, tokenize } from './notation.ts';
 import { EDGES, HOLDS } from './academy/cube.ts';
-import { MAX_ANALYSES, addAnalysis, analyseSolve, lessonsOf, parseAnalyses, stepsOf, summarize } from './solve-analysis.ts';
+import type { Case } from './academy/types.ts';
+import { MAX_ANALYSES, addAnalysis, analyseSolve, extrasOf, lessonsOf, parseAnalyses, stepsOf, summarize } from './solve-analysis.ts';
 
 const kpuzzle = await cube3x3x3.kpuzzle();
 
@@ -212,4 +213,34 @@ test('2-look: the summary times each part as its own case', () => {
   assert.equal(byId.get('cfop-pll-t')!.ms + byId.get('cfop-pll-ub')!.ms, steps[6].ms);
   assert.equal(byId.get('cfop-oll-linea')!.recog, steps[5].recog); // the pause before the step is the first part's
   assert.equal(byId.get('cfop-oll-sune')!.recog, 500); // the pause before the second algorithm
+});
+
+// --- Extra turns per step ---
+
+const main = (c: Case) => c.algs[0].alg;
+const extras = (parts: string[], alg = main) => extrasOf(kpuzzle, analysed(parts), alg);
+
+test('extra turns: none in a clean solve, the cross over the shortest one (not an x-cross), an overturn anywhere', () => {
+  assert.deepEqual(extras(PARTS), [0, 0, 0, 0, 0, 0, 0, 0]);
+  assert.equal(extras(LONG_CROSS)[0], 5); // as its lesson says
+  assert.equal(extras(["R U R' D'", ...PARTS.slice(2)])[0], 0); // an x-cross: 4 turns, a 1-turn cross
+  assert.equal(extras(["F2 R2 D'", "R U U' U R'", ...PARTS.slice(2)])[1], 2); // a pair has no shortest: just the slip
+  assert.equal(extras([...PARTS.slice(0, 6), `U U U ${PARTS[6]}`, 'U'])[6], 2); // U U U before the T-perm, for U'
+  assert.equal(extras([...PARTS.slice(0, 7), "U' U2"])[7], 1);
+});
+
+test("extra turns: OLL and PLL over the user's algorithm for the case met, each half's when done in two", () => {
+  // the H as F (R U R' U')×3 F' (14 turns): 2 over the main algorithm (11, plus the U it needs from there), none when
+  // that is the user's choice
+  const fSexy = "U F R U R' U' R U R' U' R U R' U' F'";
+  const chosen = (c: Case) => (c.id === 'cfopc-oll-21' ? fSexy : main(c));
+  const h = [...PARTS.slice(0, 5), fSexy.slice(2), ...PARTS.slice(6)];
+  assert.equal(analysed(h).oll, 'cfopc-oll-21');
+  assert.equal(extras(h)[5], 2);
+  assert.equal(extras(h, chosen)[5], 0);
+  // two anti-Sunes: R' R cancels, then U' U2 is one U; a longer choice doesn't hide those 3 overturns
+  const anti = [...PARTS.slice(0, 5), "R U2 R' U' R U' R' R U2 R' U' R U' R'", ...PARTS.slice(6)];
+  assert.equal(analysed(anti).oll, 'cfopc-oll-21');
+  assert.equal(extras(anti, chosen)[5], 3);
+  assert.deepEqual(extras(TWO_LOOK), [0, 0, 0, 0, 0, 0, 0, 0]);
 });

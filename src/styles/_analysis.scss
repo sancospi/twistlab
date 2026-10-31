@@ -7,10 +7,13 @@
 .analysis-bar span { --c: var(--accent); min-width: 2px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 35%, transparent) var(--r), var(--c) var(--r)); }
 .analysis .cross { --c: var(--cross); } .analysis .f2l { --c: var(--f2l); } .analysis .oll { --c: var(--oll); } .analysis .pll { --c: var(--pll); }
 .analysis-table tbody th { border-left: 4px solid var(--c); }
+.analysis { min-width: 0; } /* a grid item (the time's sheet) would grow to the table instead of letting it scroll */
 .analysis .table-scroll { overflow-x: auto; }
 .analysis-table { font-size: 0.8571rem; }
-.analysis-table th, .analysis-table td { padding: 4px 3px; }
-@media (max-width: 400px) { .analysis { padding-inline: 6px; } } /* the table's 6 columns fit 360px */
+.analysis-table th, .analysis-table td { padding: 4px 2px; }
+.analysis-table td { white-space: nowrap; } /* "14 +2": the extra turns by the turns (analysis-view.ts) */
+.analysis-extra { color: $warn; font-size: 0.85em; }
+@media (max-width: 400px) { .analysis { padding-inline: 6px; } } /* the table's 6 columns fit a 375px phone; narrower, it scrolls */
 .analysis-cases { margin: 0; padding-left: 1.5em; }
 #mac-help { overflow-wrap: anywhere; } /* its chrome:// addresses are one long word */
 .inspect-pairs { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; overflow-wrap: anywhere; } /* "En tu cubo" (inspectView.ts) */

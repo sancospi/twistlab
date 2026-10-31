@@ -1,15 +1,18 @@
 // Solve analysis (smart cube): a solve's moves and times split into CFOP's steps (the cross, the 4 F2L pairs, OLL, PLL
-// and the last AUF), each with its time, moves and recognition (the pause before its first move), plus the OLL and PLL
-// cases met. Moves are the cube's: its centers never move (a smart cube reports face turns), so a face is a color.
+// and the last AUF), each with its time, turns (and those over its shortest) and recognition (the pause before its first
+// move), plus the OLL and PLL cases met. Moves are the cube's: its centers never move (a smart cube reports face turns),
+// so a face is a color.
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { CORNERS, EDGES, OPPOSITE, goalReached, llSteps, turnToUp, withUp } from './academy/cube.ts';
 import { cfopReduced } from './academy/cfop.ts';
 import { cfopFull } from './academy/cfopFull.ts';
-import { crossDistance, solveCross } from './academy/cross.ts';
+import { crossDistance, solveCross, type CrossFace } from './academy/cross.ts';
 import { crossGuide } from './academy/crossGuide.ts';
 import { allCases } from './academy/methods.ts';
+import { aufFor } from './academy/score.ts';
 import { load } from './academy/store.ts';
-import { YELLOW_UP, invertTokens, turnCount, unmapMove, type Face } from './notation.ts';
+import type { Case } from './academy/types.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, htm, invertTokens, turnCount, unmapMove, type Face } from './notation.ts';
 
 export const ANALYSIS_KEY = 'cube-analysis';
 /** The newest ones kept: ~0.5 KB each, far under the account's 512 KB per key. */
@@ -45,6 +48,7 @@ const CASES = allCases(cfopFull);
 const OLLS = CASES.filter((c) => c.stage === 'oll-corners');
 const PLLS = CASES.filter((c) => c.stage === 'pll-edges');
 const REDUCED = allCases(cfopReduced).filter((c) => c.stage !== 'f2l'); // the 2-look OLL and PLL
+const LL_CASES = new Map([...OLLS, ...PLLS, ...REDUCED].map((c) => [c.id, c]));
 /** The case of `cases` met on `p` (its last layer on `ll`); undefined: already solved (a skip). */
 const caseAt = (p: KPattern, ll: Face, cases: typeof CASES) => llSteps(withUp(p, ll), cases, (c) => c.algs[0].alg)?.[0]?.c.id;
 
@@ -56,6 +60,14 @@ function midway(states: KPattern[], from: number, to: number, sub: 'oll-cross' |
   if (goalReached(sub, states[from], ll)) return out; // the first half was already done (or skipped)
   for (let i = from + 1; i < to; i++) if (goalReached(sub, states[i], ll)) out.push(i);
   return out;
+}
+
+/** The scrambled state `p` as its cross `c` is solved: the white cross on U as is (the Academia holds it yellow up,
+ *  which renames its moves without turning the state), the yellow one on D, a side one seen after the whole-cube turn
+ *  that puts it on D (`side`: turnToUp of the face opposite). */
+function crossView(p: KPattern, c: Face) {
+  const side = c !== 'U' && c !== 'D';
+  return { side, view: side ? withUp(p, OPPOSITE[c]) : p, face: (c === 'U' ? 'U' : 'D') as CrossFace };
 }
 
 /** The state before each move of a solve that ends solved, and the solved one: `moves.length + 1` of them. */
@@ -224,9 +236,7 @@ export function lessonsOf(kpuzzle: KPuzzle, a: Analysis): Lesson[] {
   const out: Lesson[] = [];
 
   if (a.s[1] !== a.s[0]) {
-    const side = a.c !== 'U' && a.c !== 'D';
-    const view = side ? withUp(states[0], ll) : states[0];
-    const face = a.c === 'U' ? 'U' : 'D';
+    const { side, view, face } = crossView(states[0], a.c);
     // ponytail: the first call per face builds the cross table (~40 ms on a desktop, cached after); warm it on connect if it nags
     const best = crossDistance(view, face);
     // ponytail: every turn counts, as in the cross trainer (crossTrainer.ts): a slip and its undo cost time
@@ -262,4 +272,46 @@ export function lessonsOf(kpuzzle: KPuzzle, a: Analysis): Lesson[] {
   if (pll >= 500) out.push({ kind: 'pause', step: 'pll', save: pll });
 
   return out.sort((x, y) => y.save - x.save);
+}
+
+/**
+ * Each step's turns (stepsOf's) over the fewest it could have taken from where it began, as far as that is known:
+ * - cross: the shortest cross (lessonsOf's), unless it ended with a pair (an x-cross: that cross would be unfair to it);
+ * - OLL and PLL: the user's algorithm for the case met (`alg`) after the AUF it needs; done in two, each half's;
+ * - any step, at least its overturns: its turns over the same turns merged, the ones that undid or overshot another
+ *   ("R R R" for R', "U' U2" for U); all the pairs and the AUF have. A shorter algorithm of the user's doesn't hide one.
+ * ponytail: no fewest turns for a pair (it'd take an F2L pair solver), nor across steps (an overturn split by a step's
+ * end counts in neither).
+ */
+export function extrasOf(kpuzzle: KPuzzle, a: Analysis, alg: (c: Case) => string): number[] {
+  const moves = a.m.split(' ').filter(Boolean);
+  const states = statesOf(kpuzzle, moves);
+  const ll = OPPOSITE[a.c];
+  const bounds = [0, ...a.s, moves.length];
+  // case `id` solved from `p` with the user's algorithm and its AUF, in turns; undefined: no such case, or no AUF fits
+  const known = (id: string | undefined, p: KPattern): number | undefined => {
+    const c = id === undefined ? undefined : LL_CASES.get(id);
+    const auf = c && aufFor(c, alg(c), withUp(p, ll));
+    return auf == null ? undefined : htm(centerMoves(`${auf} ${alg(c!)}`, IDENTITY));
+  };
+  const cross = () => {
+    if (a.s[1] === a.s[0]) return undefined;
+    const { view, face } = crossView(states[0], a.c);
+    return crossDistance(view, face);
+  };
+  const lastLayer = (from: number, id?: string, two?: TwoLook) => {
+    if (!two) return known(id, states[from]);
+    const [first, second] = [known(two[0], states[from]), known(two[1], states[two[2]])];
+    return first === undefined || second === undefined ? undefined : first + second;
+  };
+  return STEPS.map((key, k) => {
+    const done = moves.slice(bounds[k], bounds[k + 1]);
+    if (!done.length) return 0;
+    const fewest = key === 'cross' ? cross()
+      : key === 'oll' ? lastLayer(bounds[k], a.oll, a.o2)
+      : key === 'pll' ? lastLayer(bounds[k], a.pll, a.p2)
+      : undefined;
+    const turns = turnCount(done);
+    return Math.max(turns - htm(done), fewest === undefined ? 0 : turns - fewest);
+  });
 }

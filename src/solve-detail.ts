@@ -73,7 +73,7 @@ export function showSolve(r: Result, s: SolveSheet): void {
   if (s.cross && r.scramble) void crossLine(r.scramble).then((line) => line && cross.replaceChildren(line));
   const analysis = el('div', { className: 'analysis' });
   const analysed = Array.isArray(load(ANALYSIS_KEY)) && (load(ANALYSIS_KEY) as { at?: number }[]).some((a) => a?.at === r.at);
-  if (analysed) void import('./analysis-view.ts').then((m) => analysis.replaceChildren(...m.analysisOf(r.at!)));
+  if (analysed) void import('./analysis-view.ts').then((m) => m.analysisOf(r.at!)).then((view) => analysis.replaceChildren(...view));
   const note = el('textarea', { id: 'solve-comment', rows: 2, maxLength: MAX_COMMENT, value: r.comment ?? '', placeholder: t('detail.commentHint') });
   note.oninput = () => s.comment(note.value.trim());
   body.replaceChildren(

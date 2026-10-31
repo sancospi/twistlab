@@ -896,6 +896,8 @@ export const pt: Record<MessageKey, string> = {
   'analysis.exec': 'Execução',
   'analysis.total': 'Total',
   'analysis.hint': 'Pausa: o tempo antes do primeiro movimento de cada passo (reconhecer o caso); a parte clara de cada trecho na barra. Um passo com 0 movimentos já veio pronto.',
+  'analysis.extra': 'a mais',
+  'analysis.hintExtra': "+n: movimentos a mais sobre o mais curto de cada passo: a cruz mais curta; na OLL e na PLL, o seu algoritmo do caso com o seu AUF; nos pares e no AUF, os giros excessivos (que desfazem outro ou passam do ponto, como R\u00a0R\u00a0R em vez de R').",
   'analysis.progressTitle': 'Análise por passos',
   'analysis.empty': 'Cronometre suas resoluções na aba Resolver com um cubo inteligente conectado e aqui você verá quanto demora na cruz, em cada par do F2L, na OLL e na PLL.',
   'analysis.over': 'Média das suas resoluções com cubo inteligente (últimas {n}).',

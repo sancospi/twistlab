@@ -892,6 +892,8 @@ export const en: Record<MessageKey, string> = {
   'analysis.exec': 'Execution',
   'analysis.total': 'Total',
   'analysis.hint': 'Pause: the time before each step’s first move (recognizing the case); the lighter part of each segment in the bar. A step with 0 moves was a skip.',
+  'analysis.extra': 'extra',
+  'analysis.hintExtra': "+n: extra turns over each step’s shortest: the shortest cross; for OLL and PLL, your algorithm for the case with its AUF; for the pairs and the AUF, overturns (turns that undo another or go too far, like R\u00a0R\u00a0R for R').",
   'analysis.progressTitle': 'Step analysis',
   'analysis.empty': 'Time solves on the Solve tab with a smart cube connected and you’ll see here how long the cross, each F2L pair, OLL and PLL take you.',
   'analysis.over': 'Mean of your smart-cube solves (last {n}).',

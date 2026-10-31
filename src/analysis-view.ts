@@ -2,7 +2,7 @@
 // smart cube) and the means of the latest ones (Progreso). Loaded only when there's one to show.
 import { loc, t, tp, type MessageKey } from './i18n.ts';
 import { el } from './el.ts';
-import { learningFor, load, save, statsFor } from './academy/store.ts';
+import { learningFor, load, preferred, save, statsFor } from './academy/store.ts';
 import { cfopReduced } from './academy/cfop.ts';
 import { cfopFull } from './academy/cfopFull.ts';
 import { allCases } from './academy/methods.ts';
@@ -10,9 +10,10 @@ import { routePath } from './router.ts';
 import { formatTime, type Result } from './timer.ts';
 import { algView } from './notation-view.ts';
 import {
-  ANALYSIS_KEY, GROUP_OF, LAST, SLOWEST, addAnalysis, analyseSolve, lessonsOf, parseAnalyses, stepsOf, summarize, type Analysis,
-  type Lesson, type Step, type Summary,
+  ANALYSIS_KEY, GROUP_OF, LAST, SLOWEST, addAnalysis, analyseSolve, extrasOf, lessonsOf, parseAnalyses, stepsOf, summarize,
+  type Analysis, type Lesson, type Step, type Summary,
 } from './solve-analysis.ts';
+import type { KPuzzle } from 'cubing/kpuzzle';
 import type { Case } from './academy/types.ts';
 
 /** Cross and two-look lessons are shown only if they cost at least this much (pauses have their own floors, solve-analysis.ts). */
@@ -31,25 +32,31 @@ const stepName = (s: Step) => t(`analysis.step.${s.key}`);
 /** Cases met in the solves that the user practises in the Academia (a learner's 2-look cases aren't theirs yet). */
 const practised = (id: string) => !!(learningFor(id) || statsFor(id));
 
+const kpuzzle = async () => (await import('cubing/puzzles')).cube3x3x3.kpuzzle();
+
 /** Analyses a solve that ended solved (moves in the cube's frame, times in ms since the start), stores it and returns its view. */
 export async function recordSolve(at: number, moves: string[], times: number[]): Promise<HTMLElement[]> {
-  const { cube3x3x3 } = await import('cubing/puzzles');
-  const kpuzzle = await cube3x3x3.kpuzzle();
-  const a = analyseSolve(kpuzzle, at, moves, times);
+  const kp = await kpuzzle();
+  const a = analyseSolve(kp, at, moves, times);
   if (a.s[4] === a.s[0]) return []; // no F2L pair took a move: not CFOP (or a scramble that left F2L whole), the split means nothing
   const prev = parseAnalyses(load(ANALYSIS_KEY));
   save(ANALYSIS_KEY, addAnalysis(prev, a));
   // one lesson, the costliest worth saying (above the table: on a phone it'd be out of sight below it)
-  const lesson = lessonsOf(kpuzzle, a).find((l) => worthSaying(l, a, prev));
-  return [el('h3', { textContent: t('analysis.title') }), el('p', { className: 'hint', textContent: t(`analysis.cross.${a.c}`) }),
-    ...(lesson ? [lessonView(a, lesson)] : []), ...stepsView(stepsOf(a), { oll: a.o2 ? [a.o2[0], a.o2[1]] : a.oll, pll: a.p2 ? [a.p2[0], a.p2[1]] : a.pll })];
+  return solveView(kp, a, lessonsOf(kp, a).find((l) => worthSaying(l, a, prev)));
 }
 
-/** A stored solve's analysis (the Resolver's sheet of a time): its timeline and table; none if it wasn't analysed. */
-export function analysisOf(at: number): HTMLElement[] {
+/** A stored solve's analysis (the Resolver's sheet of a time); none if it wasn't analysed. */
+export async function analysisOf(at: number): Promise<HTMLElement[]> {
   const a = parseAnalyses(load(ANALYSIS_KEY)).find((x) => x.at === at);
-  return a ? [el('h3', { textContent: t('analysis.title') }), el('p', { className: 'hint', textContent: t(`analysis.cross.${a.c}`) }),
-    ...stepsView(stepsOf(a), { oll: a.o2 ? [a.o2[0], a.o2[1]] : a.oll, pll: a.p2 ? [a.p2[0], a.p2[1]] : a.pll })] : [];
+  return a ? solveView(await kpuzzle(), a) : [];
+}
+
+/** One solve's analysis: its cross, a lesson, the timeline and the table with the turns over each step's reference
+ *  (the user's algorithm for a case: the one chosen in the Academia, now). */
+function solveView(kp: KPuzzle, a: Analysis, lesson?: Lesson): HTMLElement[] {
+  return [el('h3', { textContent: t('analysis.title') }), el('p', { className: 'hint', textContent: t(`analysis.cross.${a.c}`) }),
+    ...(lesson ? [lessonView(a, lesson)] : []),
+    ...stepsView(stepsOf(a), { oll: a.o2 ? [a.o2[0], a.o2[1]] : a.oll, pll: a.p2 ? [a.p2[0], a.p2[1]] : a.pll }, 0, extrasOf(kp, a, (c) => preferred(c).alg))];
 }
 
 /** A two-look of a case not practised yet is the method being learnt, not a mistake (the Academia: solve it in two
@@ -78,8 +85,10 @@ function lessonView(a: Analysis, l: Lesson): HTMLElement {
   return el('p', {}, `${t(`analysis.pause.${l.step}`, { s: secs1(l.save) })} `, link({ mod: 'academy', page: { kind: 'trainer', id: trainer } }, t(`trainer.${trainer}.title`)));
 }
 
-/** The timeline (each step's width its time, the recognition lighter) and the table; cases link to their pages. */
-function stepsView(steps: Step[], cases: { oll?: string | string[]; pll?: string | string[] } = {}, decimals = 0): HTMLElement[] {
+/** The timeline (each step's width its time, the recognition lighter) and the table; cases link to their pages. One
+ *  solve's has each step's `extras` (extrasOf) as "+n" by its turns, none when 0: not Progreso's means (they'd need
+ *  every solve's states). */
+function stepsView(steps: Step[], cases: { oll?: string | string[]; pll?: string | string[] } = {}, decimals = 0, extras?: number[]): HTMLElement[] {
   const total = steps.reduce((n, s) => n + s.ms, 0);
   const bar = el('div', { className: 'analysis-bar', ariaHidden: 'true' }, // the table says the same
     ...steps.filter((s) => s.ms > 0).map((s) => {
@@ -90,10 +99,12 @@ function stepsView(steps: Step[], cases: { oll?: string | string[]; pll?: string
     }));
   const cell = (tag: 'th' | 'td', ...c: (Node | string)[]) => el(tag, {}, ...c);
   const moves = (n: number) => n.toFixed(decimals);
-  const row = (s: Step) => {
+  const turns = (n: number, extra?: number) => cell('td', moves(n), ...(extra ? ['\u2009', el('span', { className: 'analysis-extra' }, `+${extra}`,
+    el('span', { className: 'sr-only', textContent: ` ${t('analysis.extra')}` }))] : []));
+  const row = (s: Step, k: number) => {
     const ids = [s.key === 'oll' ? cases.oll : s.key === 'pll' ? cases.pll : undefined].flat().filter((x) => x !== undefined); // two: 2-look
     const name = el('th', { scope: 'row' }, stepName(s), ...ids.flatMap((id, i) => [i ? ' + ' : ' · ', caseLink(id)]));
-    return el('tr', { className: GROUP_OF[s.key] }, name, cell('td', s.ms ? secs(s.ms) : '–'), cell('td', moves(s.moves)), cell('td', tps(s.moves, s.ms)),
+    return el('tr', { className: GROUP_OF[s.key] }, name, cell('td', s.ms ? secs(s.ms) : '–'), turns(s.moves, extras?.[k]), cell('td', tps(s.moves, s.ms)),
       cell('td', s.ms ? secs(s.recog) : '–'), cell('td', s.ms ? secs(s.ms - s.recog) : '–'));
   };
   const all = steps.reduce((n, s) => n + s.moves, 0);
@@ -101,9 +112,11 @@ function stepsView(steps: Step[], cases: { oll?: string | string[]; pll?: string
     el('thead', {}, el('tr', {}, ...['', 'analysis.time', 'analysis.moves', 'TPS', 'analysis.recog', 'analysis.exec'].map((k) =>
       el('th', { scope: 'col', textContent: k.startsWith('analysis.') ? t(k as MessageKey) : k })))),
     el('tbody', {}, ...steps.map(row)),
-    el('tfoot', {}, el('tr', {}, el('th', { scope: 'row', textContent: t('analysis.total') }), cell('td', secs(total)), cell('td', moves(all)), cell('td', tps(all, total)),
+    el('tfoot', {}, el('tr', {}, el('th', { scope: 'row', textContent: t('analysis.total') }), cell('td', secs(total)),
+      turns(all, extras?.reduce((n, x) => n + x, 0)), cell('td', tps(all, total)),
       cell('td', secs(steps.reduce((n, s) => n + s.recog, 0))), cell('td', secs(steps.reduce((n, s) => n + s.ms - s.recog, 0))))));
-  return [bar, el('div', { className: 'table-scroll' }, table), el('p', { className: 'hint', textContent: t('analysis.hint') })];
+  return [bar, el('div', { className: 'table-scroll' }, table),
+    el('p', { className: 'hint', textContent: [t('analysis.hint'), ...(extras ? [t('analysis.hintExtra')] : [])].join(' ') })];
 }
 
 /** Progreso: the means of the latest analyses, where the most time goes over a typical split, the slowest cases. */

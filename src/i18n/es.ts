@@ -895,6 +895,8 @@ export const es = {
   'analysis.exec': 'Ejecución',
   'analysis.total': 'Total',
   'analysis.hint': 'Pausa: el tiempo antes del primer giro de cada paso (reconocer el caso); lo claro de cada tramo en la barra. Un paso con 0 giros salió solo.',
+  'analysis.extra': 'de más',
+  'analysis.hintExtra': "+n: giros de más sobre lo más corto de cada paso: la cruz más corta; en la OLL y la PLL, tu algoritmo del caso con su AUF; en los pares y el AUF, los sobregiros (giros que deshacen otro o se pasan, como R\u00a0R\u00a0R por R').",
   'analysis.progressTitle': 'Análisis por pasos',
   'analysis.empty': 'Cronometra tus resoluciones en la pestaña Resolver con un cubo inteligente conectado y aquí verás cuánto tardas en la cruz, cada par del F2L, la OLL y la PLL.',
   'analysis.over': 'Media de tus resoluciones con cubo inteligente (últimas {n}).',
