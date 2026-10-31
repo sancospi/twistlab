@@ -12,7 +12,7 @@ import { allCases } from './academy/methods.ts';
 import { aufFor } from './academy/score.ts';
 import { load } from './academy/store.ts';
 import type { Case } from './academy/types.ts';
-import { IDENTITY, YELLOW_UP, centerMoves, htm, invertTokens, turnCount, unmapMove, type Face } from './notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, compact, expand, htm, invertTokens, turnCount, unmapMove, type Face, type Frame } from './notation.ts';
 
 export const ANALYSIS_KEY = 'cube-analysis';
 /** The newest ones kept: ~0.5 KB each, far under the account's 512 KB per key. */
@@ -314,4 +314,16 @@ export function extrasOf(kpuzzle: KPuzzle, a: Analysis, alg: (c: Case) => string
     const turns = turnCount(done);
     return Math.max(turns - htm(done), fewest === undefined ? 0 : turns - fewest);
   });
+}
+
+/** A solve's reconstruction: each step's turns as made (compact(): "R R" is R2, a slip stays as it was), named as held
+ *  with the cross down: the white one as the Academia holds it, yellow up and green front (`rot` z2 from the scramble's
+ *  white up, green front), any other after the whole-cube turn that puts it on D (lessonsOf's); `frame` names where
+ *  each center is (frame.U: the one up). */
+export function reconstruction(a: Analysis): { rot: string; frame: Frame; steps: string[][] } {
+  const moves = a.m.split(' ').filter(Boolean);
+  const rot = a.c === 'U' ? 'z2' : turnToUp(OPPOSITE[a.c]);
+  const frame = expand(rot, IDENTITY).frame;
+  const bounds = [0, ...a.s, moves.length];
+  return { rot, frame, steps: STEPS.map((_, k) => compact(moves.slice(bounds[k], bounds[k + 1])).map((m) => unmapMove(m, frame))) };
 }

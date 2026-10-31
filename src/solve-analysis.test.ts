@@ -4,7 +4,7 @@ import { cube3x3x3 } from 'cubing/puzzles';
 import { IDENTITY, YELLOW_UP, centerMoves, invertTokens, mapMove, tokenize } from './notation.ts';
 import { EDGES, HOLDS } from './academy/cube.ts';
 import type { Case } from './academy/types.ts';
-import { MAX_ANALYSES, addAnalysis, analyseSolve, extrasOf, lessonsOf, parseAnalyses, stepsOf, summarize } from './solve-analysis.ts';
+import { MAX_ANALYSES, addAnalysis, analyseSolve, extrasOf, lessonsOf, parseAnalyses, reconstruction, stepsOf, summarize } from './solve-analysis.ts';
 
 const kpuzzle = await cube3x3x3.kpuzzle();
 
@@ -243,4 +243,26 @@ test("extra turns: OLL and PLL over the user's algorithm for the case met, each 
   assert.equal(analysed(anti).oll, 'cfopc-oll-21');
   assert.equal(extras(anti, chosen)[5], 3);
   assert.deepEqual(extras(TWO_LOOK), [0, 0, 0, 0, 0, 0, 0, 0]);
+});
+
+// --- Reconstruction ---
+
+test("reconstruction: each step's turns as made, held with the cross down, solving the scramble; any of the 24 holds", () => {
+  for (const hold of HOLDS) {
+    const moves = quarters(solve(LONG_CROSS)).map((m) => mapMove(m, hold));
+    const a = analyseSolve(kpuzzle, 1, moves, every100(moves));
+    const r = reconstruction(a);
+    assert.deepEqual(r.steps.map((s) => s.length), stepsOf(a).map((s) => s.moves), JSON.stringify(hold));
+    assert.equal(r.frame.D, a.c);
+    // done as shown on the scrambled cube (white up, green front), the rotation first: solved
+    const p0 = kpuzzle.defaultPattern().applyAlg(invertTokens(moves).join(' '));
+    const shown = centerMoves([r.rot, ...r.steps.flat()].filter(Boolean).join(' '), IDENTITY);
+    assert.ok(p0.applyAlg(shown.join(' ')).isIdentical(kpuzzle.defaultPattern()), JSON.stringify(hold));
+  }
+  // the white cross as the Academia holds it: yellow up, the turns as a yellow-up solve names them
+  const white = quarters(solve(PARTS)).map((m) => mapMove(m, YELLOW_UP));
+  const r = reconstruction(analyseSolve(kpuzzle, 1, white, every100(white)));
+  assert.equal(r.rot, 'z2');
+  assert.deepEqual(r.frame, YELLOW_UP);
+  assert.deepEqual(r.steps.flat(), solve(PARTS));
 });

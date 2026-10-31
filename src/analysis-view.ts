@@ -1,5 +1,6 @@
-// Solve analysis on screen (solve-analysis.ts): one solve's timeline and table (the Resolver, after a solve with the
-// smart cube) and the means of the latest ones (Progreso). Loaded only when there's one to show.
+// Solve analysis on screen (solve-analysis.ts): one solve's timeline, table and reconstruction (the Resolver, after a
+// solve with the smart cube, and a time's sheet) and the means of the latest ones (Progreso). Loaded only when there's
+// one to show.
 import { loc, t, tp, type MessageKey } from './i18n.ts';
 import { el } from './el.ts';
 import { learningFor, load, preferred, save, statsFor } from './academy/store.ts';
@@ -9,11 +10,13 @@ import { allCases } from './academy/methods.ts';
 import { routePath } from './router.ts';
 import { formatTime, type Result } from './timer.ts';
 import { algView } from './notation-view.ts';
+import { YELLOW_UP, invertTokens, unmapMove, type Face } from './notation.ts';
 import {
-  ANALYSIS_KEY, GROUP_OF, LAST, SLOWEST, addAnalysis, analyseSolve, extrasOf, lessonsOf, parseAnalyses, stepsOf, summarize,
-  type Analysis, type Lesson, type Step, type Summary,
+  ANALYSIS_KEY, GROUP_OF, LAST, SLOWEST, STEPS, addAnalysis, analyseSolve, extrasOf, lessonsOf, parseAnalyses, reconstruction, stepsOf,
+  summarize, type Analysis, type Lesson, type Step, type Summary,
 } from './solve-analysis.ts';
 import type { KPuzzle } from 'cubing/kpuzzle';
+import type { TwistyPlayer } from 'cubing/twisty';
 import type { Case } from './academy/types.ts';
 
 /** Cross and two-look lessons are shown only if they cost at least this much (pauses have their own floors, solve-analysis.ts). */
@@ -52,11 +55,51 @@ export async function analysisOf(at: number): Promise<HTMLElement[]> {
 }
 
 /** One solve's analysis: its cross, a lesson, the timeline and the table with the turns over each step's reference
- *  (the user's algorithm for a case: the one chosen in the Academia, now). */
+ *  (the user's algorithm for a case: the one chosen in the Academia, now), and its reconstruction. */
 function solveView(kp: KPuzzle, a: Analysis, lesson?: Lesson): HTMLElement[] {
+  const steps = stepsOf(a);
   return [el('h3', { textContent: t('analysis.title') }), el('p', { className: 'hint', textContent: t(`analysis.cross.${a.c}`) }),
     ...(lesson ? [lessonView(a, lesson)] : []),
-    ...stepsView(stepsOf(a), { oll: a.o2 ? [a.o2[0], a.o2[1]] : a.oll, pll: a.p2 ? [a.p2[0], a.p2[1]] : a.pll }, 0, extrasOf(kp, a, (c) => preferred(c).alg))];
+    ...stepsView(steps, { oll: a.o2 ? [a.o2[0], a.o2[1]] : a.oll, pll: a.p2 ? [a.p2[0], a.p2[1]] : a.pll }, 0, extrasOf(kp, a, (c) => preferred(c).alg)),
+    reconstructionView(a, steps)];
+}
+
+/** The reconstruction, folded: each step's turns held with its cross down, and a 3D cube (cubing/twisty, built when
+ *  first opened) that shows the whole solve or plays a step, at the pace its turns were made (from its first turn to
+ *  its last: the pauses before the steps are the table's); its controls step through it move by move. */
+function reconstructionView(a: Analysis, steps: Step[]): HTMLElement {
+  const r = reconstruction(a);
+  const all = r.steps.flat();
+  const starts = r.steps.map((_, k) => r.steps.slice(0, k).reduce((n, s) => n + s.length, 0));
+  // turns a second while turning, the cube's tempo: a cubing.js quarter turn takes 1 s at tempo 1 (a half one 1.5 s: a
+  // bit slower); a step of one turn has no such time, the whole solve's goes
+  const turning = (sel: Step[]) => {
+    const ms = sel.reduce((n, s) => n + s.ms - s.recog, 0);
+    return ms > 0 ? sel.reduce((n, s) => n + s.moves, 0) / (ms / 1000) : 0;
+  };
+  const pace = (k0: number, k1: number) => Math.max(1, turning(steps.slice(k0, k1)) || turning(steps));
+  const box = el('div', { className: 'recon-player' });
+  let player: TwistyPlayer | undefined;
+  /** Steps k0..k1 (left out) on the cube from where they began; `play`: played, else at their start. */
+  const show = async (k0: number, k1: number, play: boolean) => {
+    const { TwistyPlayer } = await import('cubing/twisty');
+    player ??= box.appendChild(new TwistyPlayer({ puzzle: '3x3x3', background: 'none', controlPanel: 'bottom-row', experimentalSetupAnchor: 'start', hintFacelets: 'none' }));
+    player.experimentalSetupAlg = [r.rot, ...invertTokens(all.slice(starts[k0]))].join(' ');
+    player.alg = all.slice(starts[k0], starts[k1 - 1] + r.steps[k1 - 1].length).join(' ');
+    player.tempoScale = pace(k0, k1);
+    player.jumpToStart();
+    if (play) player.play();
+  };
+  // a center's color as the Academia names it (paint.color.*: yellow up, green front)
+  const color = (place: Face) => t(`paint.color.${unmapMove(r.frame[place], YELLOW_UP) as Face}`);
+  const frame = a.c === 'U' ? 'yellow-up' : 'white-up'; // the move tooltips' cube, as the cross lesson's
+  const fold = el('details', { className: 'recon' }, el('summary', { textContent: t('analysis.recon') }),
+    el('p', { className: 'hint', textContent: t('analysis.reconHold', { up: color('U'), front: color('F') }) }), box,
+    el('ul', { className: 'recon-steps' }, ...STEPS.flatMap((key, k) => (r.steps[k].length ? [el('li', {},
+      el('button', { type: 'button', textContent: t(`analysis.step.${key}`), onclick: () => void show(k, k + 1, true) }), ' ', algView(r.steps[k], { frame }))] : []))),
+    el('button', { type: 'button', textContent: t('analysis.reconAll'), onclick: () => void show(0, STEPS.length, true) }));
+  fold.ontoggle = () => { if (fold.open && !player) void show(0, STEPS.length, false); };
+  return fold;
 }
 
 /** A two-look of a case not practised yet is the method being learnt, not a mistake (the Academia: solve it in two
