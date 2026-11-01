@@ -467,7 +467,7 @@ cube.useResolver({
     // the solve analysis's and a challenge's log (cheap: the clock never waits); never back in time: a GAN cube's
     // recovered moves are timed when they arrive, after the live move that revealed them
     if (phase === 'solving' && solveFrom >= 0) solveTimes.push(Math.max(at - solveStart, solveTimes.at(-1) ?? -Infinity));
-    if (mod === 'solve' && phase === 'solving' && is333(event) && isSolved(pattern)) stopSolve();
+    if (phase === 'solving' && is333(event) && isSolved(pattern)) stopSolve(); // also off the Resolver: see show
   },
   synced() { if (mod === 'solve' && phase === 'ready' && is333(event)) challenges.keep(), void newScramble(); },
   lost() { if (mod === 'solve' && phase === 'scramble') challenges.keep(), void newScramble(); },
@@ -476,7 +476,9 @@ cube.useResolver({
 });
 renderResults();
 
-/** Leaving the Resolver (another screen): an inspection under way stops, calls and all. */
+/** Leaving the Resolver (another screen): an inspection under way stops, calls and all; a solve goes on (a Back
+ *  mid-solve, the phone's edge gesture, mustn't lose it). */
 export const leave = stopInspection;
-/** Back on the Resolver: a challenge's scramble if Jugar brought one (challenges-view.ts), or the one left unplayed. */
-export const show = () => (challenges.keep(), void newScramble());
+/** Back on the Resolver: the solve still running, on its stage (setModule's render drew it); else a challenge's scramble
+ *  if Jugar brought one (challenges-view.ts), or the one left unplayed. */
+export const show = () => phase !== 'solving' && (challenges.keep(), void newScramble());
