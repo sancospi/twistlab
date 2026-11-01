@@ -241,6 +241,13 @@ function release(at: number) {
   else if (phase === 'inspect') { holdStart = 0; renderTimer(); } // released on red: keep inspecting
 }
 
+/** A press whose release won't come (the system took the touch, the window lost Space's keyup): nothing starts, and
+ *  the hold doesn't stay green with nothing held. */
+function cancelPress() {
+  pressPhase = null;
+  if (holdStart) (holdStart = 0), renderTimer();
+}
+
 function stageHint() {
   if (phase === 'inspect') {
     if (holdStart) return t(armed() ? 'timer.release' : 'timer.hold');
@@ -407,6 +414,7 @@ $('stage').addEventListener('pointerdown', (e) => {
   press(when(e));
 });
 $('stage').addEventListener('pointerup', (e) => pressing(e) && release(when(e)));
+$('stage').addEventListener('pointercancel', (e) => e.isPrimary && cancelPress()); // e.g. a notification shade, a palm
 // A finger's click comes after its pointerup, which may have hidden the stage (the next scramble): a phone hit-tests it
 // again and it lands on what the stage covered (Iniciar starts an inspection, the last time opens its sheet). Cancelling
 // the touch's end drops that click; the stage's buttons keep theirs.
@@ -446,6 +454,7 @@ addEventListener('keyup', (e) => {
   e.preventDefault();
   release(when(e));
 });
+addEventListener('blur', cancelPress); // Space held while switching windows: its keyup goes to the other one
 
 
 // The Resolver's side of the times, the round and the smart cube
