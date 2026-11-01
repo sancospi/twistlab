@@ -398,12 +398,15 @@ $('show-3d').onclick = () => {
   if (on) $('cube').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); // on a phone it's further down the page
 };
 $('opts-open').onclick = () => { $('import-status').textContent = ''; ($('solve-opts') as HTMLDialogElement).showModal(); }; // inspection calls, voice, round settings
+// Only the first finger presses and releases: a second hand on the screen (both down to stop, as on a Stackmat) would
+// press again in 'done' and its release take the stage on before the penalty, or restart the hold and drop it
+const pressing = (e: PointerEvent) => e.isPrimary && !(e.target as Element).closest('button');
 $('stage').addEventListener('pointerdown', (e) => {
-  if ((e.target as Element).closest('button')) return;
+  if (!pressing(e)) return;
   e.preventDefault();
   press(when(e));
 });
-$('stage').addEventListener('pointerup', (e) => !(e.target as Element).closest('button') && release(when(e)));
+$('stage').addEventListener('pointerup', (e) => pressing(e) && release(when(e)));
 // A finger's click comes after its pointerup, which may have hidden the stage (the next scramble): a phone hit-tests it
 // again and it lands on what the stage covered (Iniciar starts an inspection, the last time opens its sheet). Cancelling
 // the touch's end drops that click; the stage's buttons keep theirs.
