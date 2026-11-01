@@ -404,6 +404,10 @@ $('stage').addEventListener('pointerdown', (e) => {
   press(when(e));
 });
 $('stage').addEventListener('pointerup', (e) => !(e.target as Element).closest('button') && release(when(e)));
+// A finger's click comes after its pointerup, which may have hidden the stage (the next scramble): a phone hit-tests it
+// again and it lands on what the stage covered (Iniciar starts an inspection, the last time opens its sheet). Cancelling
+// the touch's end drops that click; the stage's buttons keep theirs.
+$('stage').addEventListener('touchend', (e) => !(e.target as Element).closest('button') && e.preventDefault());
 
 // Not while a dialog is open, nor from a checkbox (Space toggles it)
 const timerKeys = (e: KeyboardEvent) => mod === 'solve' && !document.querySelector('dialog[open]') && !(e.target as Element).closest?.('input, select');
