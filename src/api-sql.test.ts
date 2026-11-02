@@ -66,6 +66,11 @@ test('progress: new keys are saved, a key changed elsewhere comes back stale, an
   assert.deepEqual(await push({ 'academy-stats': { v: '{"y":1}', t: 40, b: 0 } }), [200, { stale: ['academy-stats'] }]);
   const items = (await (await GET(request('/api/progress', cookie))).json()).items;
   assert.deepEqual(items, { 'cube-results': { v: '[1,2]', t: 20 }, 'academy-stats': { v: '{}', t: 10 } });
+  // a device that synced just that (2 keys, versions adding up to 30) downloads nothing; one behind gets it all
+  const since = async (seen: string) => (await (await GET(request(`/api/progress?seen=${seen}`, cookie))).json()).items;
+  assert.equal(await since('2:30'), null);
+  assert.deepEqual(await since('2:20'), items);
+  assert.deepEqual(await since('x'), items);
   // more keys than the account may hold: refused whole
   const many = Object.fromEntries(Array.from({ length: MAX_KEYS }, (_, i) => [`cube-k${i}`, { v: '1', t: 1, b: 0 }]));
   const [status] = await push(many);

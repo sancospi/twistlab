@@ -1,5 +1,8 @@
 // The account's copy of the app's data (src/sync.ts), a row per localStorage key.
-// GET /api/progress → {items: {key: {v, t}}}: everything (v null = deleted).
+// GET /api/progress → {items: {key: {v, t}}}: everything (v null = deleted). With ?seen=n:sum, the versions a device
+// synced last (how many keys, and their sum: sync.ts's `seen`), {items: null} if the account still has just those: a
+// push always raises a key's version (t > b), so any change shows. A device asks this every time the user comes back
+// to it, without downloading the whole account (up to MAX_TOTAL) when nothing changed.
 // POST /api/progress {items: {key: {v, t, b}}}: each key is written only if the account still has version b (0: none),
 // so a device that hasn't seen another's change can't overwrite it: those keys come back in `stale`, to fetch and merge.
 import { MAX_KEYS, MAX_REQUEST, MAX_TOTAL, parseItems } from './_lib/rules.js';
@@ -9,6 +12,11 @@ import { body, db, json, limit, route, session, tooMany } from './_lib/server.js
 export const GET = route(async (req) => {
   const s = await session(req);
   if (!s) return json({ error: 'auth' }, 401);
+  const seen = new URL(req.url).searchParams.get('seen');
+  if (seen) {
+    const [r] = await db()`SELECT count(*)::int AS n, coalesce(sum(updated_at), 0)::text AS sum FROM progress WHERE user_id = ${s.id}`;
+    if (seen === `${r.n}:${r.sum}`) return json({ items: null }, 200, s.headers);
+  }
   const rows = await db()`SELECT key, value, updated_at FROM progress WHERE user_id = ${s.id}`;
   return json({ items: Object.fromEntries(rows.map((r) => [r.key, { v: r.value, t: Number(r.updated_at) }])) }, 200, s.headers);
 });

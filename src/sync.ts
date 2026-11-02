@@ -3,9 +3,10 @@
 // (solves, rounds, quiz and cross sessions) and per-case records are merged, so what was done on each device is kept.
 // Without a session nothing here calls the server: no login wall, no request for visitors who never signed in.
 // Changes are found by comparing appData with the last synced versions (hashes), every minute while the page is
-// visible, on route changes and when it's hidden. The account's changes are fetched on load and when the page comes
-// back, and written here only when nothing is going on (no solve, quiz or connected cube: main.ts's `busy`); then the
-// page reloads, as after importing a backup, so every screen reads them.
+// visible, on route changes and when it's hidden. The account's changes are fetched on load and every time the user
+// comes back to the page (`seen` first: nothing is downloaded if the account has nothing new), and written here only
+// when nothing is going on (no solve, quiz or connected cube: main.ts's `busy`); then the page reloads, as after
+// importing a backup, so every screen reads them.
 import { MAX_REQUEST, MAX_VALUE } from './backup-keys.js';
 import { appData } from './progress.ts';
 import { isRecord } from './academy/store.ts';
@@ -21,7 +22,7 @@ interface Meta { email: string; at: number; keys: Record<string, Base> }
 const META_KEY = 'sync-meta'; // not a backup key (backup-keys.js): this browser's link to the account
 const WRAPPER = 1024; // bytes: the push's JSON around its entries ({"items":{…}}), left out of each batch's count
 const KEEPALIVE = 60_000; // bytes: browsers refuse bigger keepalive requests (the page is going away)
-const PULL_EVERY = 5 * 60_000; // coming back to the page fetches the account's changes at most this often
+const QUIET = 60_000; // ms without a move on the page: the user may have been on another device
 
 /** A short hash of a value (cyrb53 and the length): enough to tell whether it changed. null = absent. */
 export function hash(s: string | null): string {
@@ -88,6 +89,14 @@ export function mergeValue(key: string, local: string | null, remote: string | n
     return JSON.stringify(out);
   }
   return localNewer ? local : remote;
+}
+
+/** The account as this browser last synced it, as GET /api/progress?seen= compares it: how many keys and the sum of
+ * their versions (0: never synced, not in the account). The account's versions only grow (a push needs t > b) and each
+ * one here is at most the account's, so the same pair means the account has nothing new. */
+export function seen(keys: Record<string, Base>): string {
+  const ts = Object.values(keys).map((b) => b.t).filter((t) => t > 0);
+  return `${ts.length}:${ts.reduce((sum, t) => sum + t, 0)}`;
 }
 
 export interface Plan { apply: Record<string, string | null>; push: Record<string, Push>; keys: Record<string, Base> }
@@ -160,7 +169,6 @@ if (meta) [status.email, status.at] = [meta.email, meta.at];
 
 let busy: () => boolean = () => false;
 let pullDue = true; // the account may have changes: fetch them at the next sync
-let lastPull = 0;
 let waitUntil = 0; // after a 429
 let running: Promise<void> | null = null;
 let again: boolean | null = null; // another sync was asked for meanwhile (true: the page is being hidden)
@@ -190,11 +198,20 @@ function wire() {
   wired = true;
   setInterval(() => void (document.visibilityState === 'visible' && sync()), 60_000);
   addEventListener('online', () => void sync());
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') return void sync(true);
-    if (Date.now() - lastPull > PULL_EVERY) pullDue = true;
+  // The user coming back to the page: what they did on another device is fetched right away. A computer's page can
+  // stay on screen while they use the phone, so their first move on it after a quiet minute counts too.
+  const back = () => {
+    pullDue = true;
     void sync();
-  });
+  };
+  document.addEventListener('visibilitychange', () => (document.visibilityState === 'hidden' ? void sync(true) : back()));
+  addEventListener('focus', back);
+  let input = Date.now();
+  const moved = () => {
+    if (Date.now() - input > QUIET) back();
+    input = Date.now();
+  };
+  for (const type of ['pointermove', 'pointerdown', 'keydown']) addEventListener(type, moved, { capture: true, passive: true });
 }
 
 /** At startup (main.ts, after the first paint): if this browser was signed in, check the session (it also keeps it
@@ -257,15 +274,17 @@ async function run(leaving: boolean): Promise<void> {
   let reload = false;
   try {
     let remote: Record<string, Item> = {};
+    let full = false;
     if (pull) {
       setState('syncing');
-      const res = await api('GET', '/api/progress');
+      const res = await api('GET', `/api/progress?seen=${seen(base)}`);
       if (res.status === 401) return forget();
       if (!res.ok) return setState('error');
-      remote = (await res.json()).items;
-      [pullDue, lastPull] = [false, Date.now()];
+      const items = (await res.json()).items; // null: nothing new in the account, only this browser's changes go up
+      if (items) [remote, full] = [items, true];
+      pullDue = false;
     }
-    const plan = reconcile(local, remote, base, Date.now(), pull);
+    const plan = reconcile(local, remote, base, Date.now(), full);
     m.keys = plan.keys;
     apply = plan.apply;
     const pushed = await push(m, plan.push, leaving);

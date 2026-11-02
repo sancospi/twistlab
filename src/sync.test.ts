@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { inBackup } from './backup-keys.js';
-import { hash, LISTS, LWW, mergeValue, RECORDS, reconcile, union, type Base, type Item } from './sync.ts';
+import { hash, LISTS, LWW, mergeValue, RECORDS, reconcile, seen, union, type Base, type Item } from './sync.ts';
 
 const NOW = 1_000_000;
 const synced = (v: string | null, t: number): Base => ({ h: hash(v), t });
@@ -57,6 +57,18 @@ test('first sign-in: both sides kept; solves done on each device are all there',
 test('a key the account lost goes up again instead of being deleted here', () => {
   const plan = reconcile({ 'cube-event': '"222"' }, {}, { 'cube-event': synced('"222"', 10) }, NOW, true);
   assert.deepEqual([plan.apply, plan.push], [{}, { 'cube-event': { v: '"222"', t: NOW, b: 0 } }]);
+});
+
+test('seen: the account as synced last (api/progress.js counts it the same); a change there shows', () => {
+  const account: Record<string, Item> = { 'cube-results': { v: '[]', t: 400 }, 'progress-goal': { v: '{}', t: 5 } };
+  const counted = () => `${Object.keys(account).length}:${Object.values(account).reduce((sum, it) => sum + it.t, 0)}`;
+  const plan = reconcile({ 'cube-event': '"222"', 'cube-3d': 'true' }, account, {}, NOW, true);
+  delete plan.push['cube-3d']; // not sent (too big, say): still at version 0 here, and not in the account
+  for (const [k, it] of Object.entries(plan.push)) [account[k], plan.keys[k]] = [{ v: it.v, t: it.t }, { h: hash(it.v), t: it.t }]; // as push() saves it
+  assert.equal(seen(plan.keys), counted());
+  account['progress-goal'] = { v: '{"x":1}', t: 6 }; // another device's change
+  assert.notEqual(seen(plan.keys), counted());
+  assert.equal(seen({}), '0:0');
 });
 
 test('union: by date, in the list\'s order; undated solves keep their place; null when nothing is new', () => {
