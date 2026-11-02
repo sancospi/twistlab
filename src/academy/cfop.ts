@@ -1,5 +1,6 @@
 // "CFOP reducido" (Parte 1 of the training plan): 19 F2L + OLL in 2 steps + PLL in 2 steps, plus the
-// plan's quizzes. Text is the plan's wording; algorithms and scrambles are the plan's, with ASCII primes.
+// plan's quizzes. Text follows the plan, rewritten to the Academia's style; algorithms and scrambles are the plan's,
+// with ASCII primes.
 import { fromSpanish, loc, type Localized } from '../i18n.ts';
 import type { Case, Method, OfficialQuiz, QuizItem, SpeedCubeDbRef, Stage } from './types.ts';
 import { scdbUrl } from './scdb.ts';
@@ -9,7 +10,7 @@ import { PT } from './cfop.pt.ts';
 // Spanish text -> Localized; English and Portuguese come from EN and PT line by line (see cfop.en.ts).
 const es = (text: string): Localized => fromSpanish(text, { en: EN, pt: PT });
 
-const PLAN_B_NOTE = es('Plan B: más fácil al principio; solo R, U y F o gatillos conocidos.');
+const PLAN_B_NOTE = es("Plan B: más fácil al principio, con solo `R`, `U` y `F` o gatillos que ya conoces.");
 
 // Extra SpeedCubeDB algorithms (fetched 2026-10-20), [rank, alg], at most 4 per case in the site's order.
 // Each one is the site's text plus the U turn it needs here (a leading y dropped when that is all it took);
@@ -89,163 +90,164 @@ function quiz(id: string, name: string, instructions: Localized, prefix: string,
 }
 
 const Y_NOTE =
-  'Empieza con y′: giras todo el cubo y el par entra con la mano derecha. El Plan B hace lo mismo sin rotar, con F.';
-const R_NOTE = 'Usa r: 2 capas a la vez (la cara R y la capa del medio).';
+  "Empieza con `y'`, un giro del cubo entero: así metes el par con la mano derecha. El Plan B hace lo mismo con `F`, sin girar el cubo.";
+const R_NOTE = 'Usa `r`, un giro de dos capas: `R` y la capa del medio a la vez.';
 const F2L = (slug: string, recognition: string, alg: string, setup: string, n: string, planB?: string, note?: string): Case =>
   kase({ slug, code: slug.toUpperCase(), recognition, stage: 'f2l', alg, planB, setup, scdb: ['F2L', n], note });
 
 const f2lA = [
-  F2L('a1', 'Esquina arriba adelante a la derecha, blanco al frente; arista arriba-derecha, verde arriba', "U R U' R'", "R U R' U'", '1'),
-  F2L('a2', 'Esquina arriba adelante a la derecha, blanco a la derecha; arista arriba-adelante, naranja arriba', "F R' F' R", "R' F R F'", '2', "U' F' U F"),
-  F2L('a3', 'Esquina arriba adelante a la derecha, blanco a la derecha; arista arriba-atrás, verde arriba', "R U R'", "R U' R'", '4'),
-  F2L('a4', 'Esquina arriba adelante a la derecha, blanco al frente; arista arriba-izquierda, naranja arriba', "F' U' F", "F' U F", '3'),
+  F2L('a1', 'Esquina arriba, adelante a la derecha, con el blanco al frente; arista arriba a la derecha, con el verde arriba', "U R U' R'", "R U R' U'", '1'),
+  F2L('a2', 'Esquina arriba, adelante a la derecha, con el blanco a la derecha; arista arriba adelante, con el naranja arriba', "F R' F' R", "R' F R F'", '2', "U' F' U F"),
+  F2L('a3', 'Esquina arriba, adelante a la derecha, con el blanco a la derecha; arista arriba atrás, con el verde arriba', "R U R'", "R U' R'", '4'),
+  F2L('a4', 'Esquina arriba, adelante a la derecha, con el blanco al frente; arista arriba a la izquierda, con el naranja arriba', "F' U' F", "F' U F", '3'),
 ];
 const f2lB = [
-  F2L('b1', 'Esquina arriba adelante a la derecha, blanco al frente; arista arriba-atrás, verde arriba', "U' R U R' U2 R U' R'", "R U R' U2 R U' R' U", '5'),
-  F2L('b2', 'Esquina arriba adelante a la derecha, blanco a la derecha; arista arriba-izquierda, naranja arriba', "U' r U' R' U R U r'", "r U' R' U' R U r' U", '6', "U F' U' F U2 F' U F", R_NOTE),
-  F2L('b3', 'Esquina arriba adelante a la derecha, blanco a la derecha; arista arriba-derecha, verde arriba', "U' R U' R' U R U R'", "R U' R' U' R U R' U", '14'),
-  F2L('b4', 'Esquina arriba adelante a la derecha, blanco al frente; arista arriba-adelante, naranja arriba', "y' U R' U R U' R' U' R", "F' U F U F' U' F U'", '13', "U F' U F U' F' U' F", Y_NOTE),
+  F2L('b1', 'Esquina arriba, adelante a la derecha, con el blanco al frente; arista arriba atrás, con el verde arriba', "U' R U R' U2 R U' R'", "R U R' U2 R U' R' U", '5'),
+  F2L('b2', 'Esquina arriba, adelante a la derecha, con el blanco a la derecha; arista arriba a la izquierda, con el naranja arriba', "U' r U' R' U R U r'", "r U' R' U' R U r' U", '6', "U F' U' F U2 F' U F", R_NOTE),
+  F2L('b3', 'Esquina arriba, adelante a la derecha, con el blanco a la derecha; arista arriba a la derecha, con el verde arriba', "U' R U' R' U R U R'", "R U' R' U' R U R' U", '14'),
+  F2L('b4', 'Esquina arriba, adelante a la derecha, con el blanco al frente; arista arriba adelante, con el naranja arriba', "y' U R' U R U' R' U' R", "F' U F U F' U' F U'", '13', "U F' U F U' F' U' F", Y_NOTE),
 ];
 const f2lC = [
-  F2L('c1', 'Esquina arriba adelante a la derecha, blanco al frente; arista arriba-izquierda, verde arriba', "U' R U2 R' U' R U2 R'", "R U2 R' U R U2 R' U", '7'),
-  F2L('c2', 'Esquina arriba adelante a la derecha, blanco a la derecha; arista arriba-atrás, naranja arriba', "r' U2 R2 U R2 U r", "r' U' R2 U' R2 U2 r", '8', "U F' U2 F U2 F' U F", R_NOTE),
+  F2L('c1', 'Esquina arriba, adelante a la derecha, con el blanco al frente; arista arriba a la izquierda, con el verde arriba', "U' R U2 R' U' R U2 R'", "R U2 R' U R U2 R' U", '7'),
+  F2L('c2', 'Esquina arriba, adelante a la derecha, con el blanco a la derecha; arista arriba atrás, con el naranja arriba', "r' U2 R2 U R2 U r", "r' U' R2 U' R2 U2 r", '8', "U F' U2 F U2 F' U F", R_NOTE),
 ];
 const f2lD = [
-  F2L('d1', 'Esquina arriba adelante a la derecha, blanco arriba; arista arriba-derecha, verde arriba', "R U2 R' U' R U R'", "R U' R' U R U2 R'", '17'),
-  F2L('d2', 'Esquina arriba adelante a la derecha, blanco arriba; arista arriba-adelante, naranja arriba', "y' R' U2 R U R' U' R", "F' U F U' F' U2 F", '18', "F' U2 F U F' U' F", Y_NOTE),
-  F2L('d3', 'Esquina arriba adelante a la derecha, blanco arriba; arista arriba-atrás, verde arriba', "U R U2 R' U R U' R'", "R U R' U' R U2 R' U'", '19'),
-  F2L('d4', 'Esquina arriba adelante a la derecha, blanco arriba; arista arriba-izquierda, naranja arriba', "y' U' R' U2 R U' R' U R", "F' U' F U F' U2 F U", '20', "U' F' U2 F U' F' U F", Y_NOTE),
+  F2L('d1', 'Esquina arriba, adelante a la derecha, con el blanco arriba; arista arriba a la derecha, con el verde arriba', "R U2 R' U' R U R'", "R U' R' U R U2 R'", '17'),
+  F2L('d2', 'Esquina arriba, adelante a la derecha, con el blanco arriba; arista arriba adelante, con el naranja arriba', "y' R' U2 R U R' U' R", "F' U F U' F' U2 F", '18', "F' U2 F U F' U' F", Y_NOTE),
+  F2L('d3', 'Esquina arriba, adelante a la derecha, con el blanco arriba; arista arriba atrás, con el verde arriba', "U R U2 R' U R U' R'", "R U R' U' R U2 R' U'", '19'),
+  F2L('d4', 'Esquina arriba, adelante a la derecha, con el blanco arriba; arista arriba a la izquierda, con el naranja arriba', "y' U' R' U2 R U' R' U R", "F' U' F U F' U2 F U", '20', "U' F' U2 F U' F' U F", Y_NOTE),
 ];
 const f2lE = [
-  F2L('e1', 'Esquina en la ranura, blanco al frente; arista arriba-derecha, verde arriba', "R U' R' U R U' R'", "R U R' U' R U R'", '27'),
-  F2L('e2', 'Esquina en la ranura, blanco abajo; arista arriba-adelante, naranja arriba', "U R U' R' F R' F' R", "R' F R F' R U R' U'", '26', "U R U' R' U' F' U F"),
-  F2L('e3', 'Esquina arriba adelante a la derecha, blanco arriba; arista bien puesta en la ranura', "U R U' R' U R U' R' U R U' R'", "R U R' U' R U R' U' R U R' U'", '32'),
-  F2L('e4', 'Esquina en la ranura, blanco al frente; arista bien puesta en la ranura', "R U' R' U' R U R' U2 R U' R'", "R U R' U2 R U' R' U R U R'", '38'),
-  F2L('e5', 'Esquina en la ranura, blanco a la derecha; arista bien puesta en la ranura', "R U' R' U R U2 R' U R U' R'", "R U R' U' R U2 R' U' R U R'", '39'),
+  F2L('e1', 'Esquina en la ranura, con el blanco al frente; arista arriba a la derecha, con el verde arriba', "R U' R' U R U' R'", "R U R' U' R U R'", '27'),
+  F2L('e2', 'Esquina en la ranura, con el blanco abajo; arista arriba adelante, con el naranja arriba', "U R U' R' F R' F' R", "R' F R F' R U R' U'", '26', "U R U' R' U' F' U F"),
+  F2L('e3', 'Esquina arriba, adelante a la derecha, con el blanco arriba; arista en su sitio, en la ranura', "U R U' R' U R U' R' U R U' R'", "R U R' U' R U R' U' R U R' U'", '32'),
+  F2L('e4', 'Esquina en la ranura, con el blanco al frente; arista en su sitio, en la ranura', "R U' R' U' R U R' U2 R U' R'", "R U R' U2 R U' R' U R U R'", '38'),
+  F2L('e5', 'Esquina en la ranura, con el blanco a la derecha; arista en su sitio, en la ranura', "R U' R' U R U2 R' U R U' R'", "R U R' U' R U2 R' U' R U R'", '39'),
 ];
 
 const ollCross = [
-  kase({ slug: 'linea', code: 'Línea', recognition: 'Línea amarilla horizontal (izquierda–derecha)', stage: 'oll-cross',
-    alg: "F R U R' U' F'", setup: "F U R U' R' F'", scdb: ['OLL', '45'], note: 'Es el OLL 45.' }),
-  kase({ slug: 'l', code: 'L', recognition: 'Aristas amarillas adelante y a la derecha', stage: 'oll-cross',
-    alg: "f R U R' U' f'", setup: "f U R U' R' f'", scdb: ['OLL', '44'], note: 'Usa f (2 capas). Es el OLL 44.' }),
-  kase({ slug: 'punto', code: 'Punto', recognition: 'Solo el centro amarillo', stage: 'oll-cross',
+  kase({ slug: 'linea', code: 'Línea', recognition: 'Línea amarilla de izquierda a derecha', stage: 'oll-cross',
+    alg: "F R U R' U' F'", setup: "F U R U' R' F'", scdb: ['OLL', '45'], note: 'En el CFOP completo es el caso OLL 45.' }),
+  kase({ slug: 'l', code: 'L', recognition: 'Dos aristas amarillas, adelante y a la derecha', stage: 'oll-cross',
+    alg: "f R U R' U' f'", setup: "f U R U' R' f'", scdb: ['OLL', '44'], note: 'Usa `f`, un giro de dos capas. En el CFOP completo es el caso OLL 44.' }),
+  kase({ slug: 'punto', code: 'Punto', recognition: 'Ninguna arista amarilla arriba, solo el centro', stage: 'oll-cross',
     alg: "F R U R' U' F' f R U R' U' f'", setup: "f U R U' R' f' F U R U' R' F'", scdb: null,
     note: 'No es nuevo: es la Línea seguida de la L, sin giro en medio.' }),
 ];
 
-const SUNE_NOTE = 'Sune y Antisune son inversas: la preparación de una es el algoritmo de la otra. Apréndelas primero: salen mucho y comparten gatillos con la H.';
-const UL_NOTE = 'U y L son inversas: la preparación de una es el algoritmo de la otra. D gira la capa de abajo en sentido horario, mirándola desde abajo.';
+const SUNE_NOTE = 'Sune y Antisune son inversos: la preparación de uno es el algoritmo del otro.';
+const UL_NOTE = 'Los casos U y L de las esquinas son inversos: la preparación de uno es el algoritmo del otro. `D` gira la capa de abajo en sentido horario, mirándola desde abajo.';
 const ollCorners = [
-  kase({ slug: 'sune', code: 'Sune', recognition: 'Una esquina arriba, la de adelante a la izquierda; la de adelante a la derecha muestra amarillo al frente', stage: 'oll-corners',
+  kase({ slug: 'sune', code: 'Sune', recognition: 'Una esquina con el amarillo arriba, la de adelante a la izquierda; la de adelante a la derecha, con el amarillo al frente', stage: 'oll-corners',
     alg: "R U R' U R U2 R'", setup: "R U2 R' U' R U' R'", scdb: ['OLL', '27'], note: SUNE_NOTE }),
-  kase({ slug: 'antisune', code: 'Antisune', recognition: 'Una esquina arriba, la de atrás a la derecha; la de adelante a la izquierda muestra amarillo al frente', stage: 'oll-corners',
+  kase({ slug: 'antisune', code: 'Antisune', recognition: 'Una esquina con el amarillo arriba, la de atrás a la derecha; la de adelante a la izquierda, con el amarillo al frente', stage: 'oll-corners',
     alg: "R U2 R' U' R U' R'", setup: "R U R' U R U2 R'", scdb: ['OLL', '26'], note: SUNE_NOTE }),
-  kase({ slug: 'h', code: 'H', recognition: 'Ninguna esquina arriba; dos amarillos a la izquierda y dos a la derecha', stage: 'oll-corners',
+  kase({ slug: 'h', code: 'H', recognition: 'Ninguna esquina con el amarillo arriba; 2 amarillos a la izquierda y 2 a la derecha', stage: 'oll-corners',
     alg: "R U R' U R U' R' U R U2 R'", setup: "R U2 R' U' R U R' U' R U' R'", scdb: ['OLL', '21'] }),
-  kase({ slug: 'pi', code: 'Pi', recognition: 'Ninguna esquina arriba; dos amarillos a la izquierda, a la derecha uno al frente y otro atrás', stage: 'oll-corners',
+  kase({ slug: 'pi', code: 'Pi', recognition: 'Ninguna esquina con el amarillo arriba; 2 amarillos a la izquierda; a la derecha, uno al frente y otro atrás', stage: 'oll-corners',
     alg: "R U2 R2 U' R2 U' R2 U2 R", setup: "R' U2 R2 U R2 U R2 U2 R'", scdb: ['OLL', '22'] }),
-  kase({ slug: 'u', code: 'U', name: 'U (faros)', recognition: 'Dos esquinas arriba (las de atrás); dos amarillos al frente', stage: 'oll-corners',
+  kase({ slug: 'u', code: 'U', name: 'U (faros)', recognition: 'Dos esquinas con el amarillo arriba, las de atrás; las de adelante, con el amarillo al frente', stage: 'oll-corners',
     alg: "R2 D R' U2 R D' R' U2 R'", setup: "R U2 R D R' U2 R D' R2", scdb: ['OLL', '23'], note: UL_NOTE }),
-  kase({ slug: 't', code: 'T', recognition: 'Dos esquinas arriba (las de la derecha); a la izquierda un amarillo al frente y otro atrás', stage: 'oll-corners',
+  kase({ slug: 't', code: 'T', recognition: 'Dos esquinas con el amarillo arriba, las de la derecha; a la izquierda, un amarillo al frente y otro atrás', stage: 'oll-corners',
     alg: "r U R' U' r' F R F'", setup: "F R' F' r U R U' r'", scdb: ['OLL', '24'] }),
-  kase({ slug: 'l-esquinas', code: 'L', name: 'L (esquinas)', recognition: 'Dos esquinas arriba en diagonal (atrás a la izquierda y adelante a la derecha); la de adelante a la izquierda muestra amarillo al frente', stage: 'oll-corners',
+  kase({ slug: 'l-esquinas', code: 'L', name: 'L (esquinas)', recognition: 'Dos esquinas con el amarillo arriba, en diagonal (atrás a la izquierda y adelante a la derecha); la de adelante a la izquierda, con el amarillo al frente', stage: 'oll-corners',
     alg: "R U2 R D R' U2 R D' R2", setup: "R2 D R' U2 R D' R' U2 R'", scdb: ['OLL', '25'], note: UL_NOTE }),
 ];
 
-const U_NOTE = 'Ua y Ub son inversos: la preparación de uno es el algoritmo del otro.';
-const M_NOTE = 'M se gira en la misma dirección que L.';
+const M_NOTE = '`M` gira en el mismo sentido que `L`.';
+const U_NOTE = `Ua y Ub son inversos: la preparación de uno es el algoritmo del otro. ${M_NOTE}`;
 const pllCorners = [
-  kase({ slug: 't', code: 'T-perm', recognition: 'Faros en un solo lado; ponlos a la izquierda', stage: 'pll-corners',
+  kase({ slug: 't', code: 'T-perm', recognition: 'Un solo lado con faros o completo, a la izquierda', stage: 'pll-corners',
     alg: "R U R' U' R' F R2 U' R' U' R U R' F'", setup: "F R U' R' U R U R2 F' R U R U' R'", scdb: ['PLL', 'T'],
-    note: 'Aparece en 2 de cada 3 resoluciones.' }),
-  kase({ slug: 'y', code: 'Y-perm', recognition: 'Ningún lado tiene faros; se hace desde cualquier ángulo', stage: 'pll-corners',
+    note: 'Gira `U` hasta dejar los faros, o el lado completo, a la izquierda. Aparece en 2 de cada 3 resoluciones.' }),
+  kase({ slug: 'y', code: 'Y-perm', recognition: 'Ningún lado tiene faros ni está completo', stage: 'pll-corners',
     alg: "F R U' R' U' R U R' F' R U R' U' R' F R F'", setup: "F R' F' R U R U' R' F R U' R' U R U R' F'", scdb: ['PLL', 'Y'],
-    note: 'Aparece en 1 de cada 6 resoluciones.' }),
+    note: 'Aparece en 1 de cada 6 resoluciones. Puedes hacerla desde cualquier lado, sin girar `U` antes.' }),
 ];
 const pllEdges = [
-  kase({ slug: 'ua', code: 'Ua', recognition: 'Un lado completo: ponlo atrás. La arista del frente es del color del centro derecho', stage: 'pll-edges',
+  kase({ slug: 'ua', code: 'Ua', recognition: 'Un lado completo, atrás; la arista del frente tiene el color del centro de la derecha', stage: 'pll-edges',
     alg: "M2 U M U2 M' U M2", planB: "R U' R U R U R U' R' U' R2", setup: "M2 U' M U2 M' U' M2", scdb: ['PLL', 'Ua'], note: U_NOTE }),
-  kase({ slug: 'ub', code: 'Ub', recognition: 'Un lado completo: ponlo atrás. La arista del frente es del color del centro izquierdo', stage: 'pll-edges',
+  kase({ slug: 'ub', code: 'Ub', recognition: 'Un lado completo, atrás; la arista del frente tiene el color del centro de la izquierda', stage: 'pll-edges',
     alg: "M2 U' M U2 M' U' M2", planB: "R2 U R U R' U' R' U' R' U R'", setup: "M2 U M U2 M' U M2", scdb: ['PLL', 'Ub'], note: U_NOTE }),
-  kase({ slug: 'h', code: 'H-perm', recognition: 'Ningún lado completo; cada arista es del color opuesto a su cara', stage: 'pll-edges',
-    alg: "M2 U M2 U2 M2 U M2", setup: "M2 U' M2 U2 M2 U' M2", scdb: ['PLL', 'H'], note: M_NOTE }),
-  kase({ slug: 'z', code: 'Z-perm', recognition: 'Ningún lado completo; la arista del frente es del color de la izquierda y la de la izquierda del color del frente', stage: 'pll-edges',
+  kase({ slug: 'h', code: 'H-perm', recognition: 'Ningún lado completo; cada arista tiene el color del lado opuesto', stage: 'pll-edges',
+    alg: "M2 U M2 U2 M2 U M2", setup: "M2 U' M2 U2 M2 U' M2", scdb: ['PLL', 'H'],
+    note: '`M2` gira 2 veces la capa del medio, entre `L` y `R`, así que da igual el sentido.' }),
+  kase({ slug: 'z', code: 'Z-perm', recognition: 'Ningún lado completo; la arista del frente tiene el color del centro de la izquierda, y la de la izquierda, el del centro del frente', stage: 'pll-edges',
     alg: "U M' U' M2 U' M2 U' M' U2 M2", setup: "M2 U2 M U M2 U M2 U M U'", scdb: ['PLL', 'Z'],
-    note: `${M_NOTE} La U inicial es el AUF: deja las esquinas alineadas como pide SpeedCubeDB.` }),
+    // the leading U is part of the algorithm, not an AUF: the case starts with the corners lined up, and the U turns of
+    // the rest add up to U', so skipping it leaves the cube unsolved
+    note: `${M_NOTE} Haz también la \`U\` del principio, aunque las esquinas ya estén alineadas: el resto del algoritmo las vuelve a alinear.` }),
 ];
 
 const F2L_QUIZ = es(
-  'Mezcla con amarillo arriba y verde al frente. Cruz y tres ranuras resueltas: identifica el caso del par verde-naranja (puede pedir un giro U antes).',
+  'Haz la mezcla con el amarillo arriba y el verde al frente. Quedan resueltas la cruz y 3 ranuras: reconoce el caso del par verde-naranja y resuélvelo. Puede hacer falta un giro U para verlo como en su figura.',
 );
 const OLL_QUIZ = es(
-  'Mezcla con amarillo arriba y verde al frente. Dos primeras capas resueltas: identifica el caso y gira la capa superior hasta la posición correcta.',
+  'Haz la mezcla con el amarillo arriba y el verde al frente. Quedan resueltas las dos primeras capas: reconoce el caso, gira la capa de arriba hasta verlo como en su figura y resuélvelo.',
 );
 const PLL_QUIZ = es(
-  'Mezcla con amarillo arriba y verde al frente. Cara amarilla completa: identifica el caso del paso correspondiente.',
+  'Haz la mezcla con el amarillo arriba y el verde al frente. La cara amarilla queda completa: reconoce el caso de este paso y resuélvelo.',
 );
 
 export const cfopReduced: Method = {
   id: 'cfop-reducido',
   next: 'cfop-completo',
   name: es('CFOP reducido'),
-  summary: es('Tu primer CFOP: F2L básico (19 casos) y OLL y PLL en 2 pasos (16 casos). 35 algoritmos en 6 semanas.'),
+  summary: es('Del método principiante al CFOP en el cubo de Rubik: 35 algoritmos (19 de F2L, 10 de OLL y 6 de PLL) y un plan de 6 semanas.'),
   description: es(
     [
-      'Tu primer CFOP: **cruz, F2L, OLL y PLL**, con OLL y PLL en 2 pasos. Son **35 algoritmos**: 19 de F2L, 10 de OLL y 6 de PLL.',
+      'El CFOP es el método de casi todos los speedcubers. Su nombre viene de sus 4 pasos: cruz, F2L, OLL y PLL.',
+      'Esta guía es tu primer CFOP, para cuando ya resuelves el cubo con el método principiante. La cruz es la misma, y los otros 3 pasos suman **35 algoritmos**, en vez de los 119 del CFOP completo.',
       '## Las 3 fases',
-      '1. **F2L:** cada esquina blanca con su arista, juntas en su ranura. 19 casos.',
-      '2. **OLL en 2 pasos:** la cruz amarilla (3 casos) y luego las esquinas (7).',
-      '3. **PLL en 2 pasos:** las esquinas (2 casos) y luego las aristas (4).',
+      '1. **F2L:** junta cada esquina blanca con su arista y mete el par en su ranura (19 casos).',
+      '2. **OLL en 2 pasos:** deja amarilla toda la cara de arriba, primero con la cruz (3 casos) y luego con las esquinas (7), el paso llamado OCLL.',
+      '3. **PLL en 2 pasos:** pon cada pieza de arriba en su sitio, primero las esquinas (2 casos) y luego las aristas (4).',
       '## Cada algoritmo, en 4 etapas',
-      'Pasa a la siguiente cuando cumplas su criterio:',
-      '1. **Aprender:** pártelo en gatillos y hazlo lento 5 veces mirando. Sigue cuando salga sin mirar.',
-      '2. **Taladrar:** mezcla y algoritmo, 20 veces. Sigue con 10 seguidas sin error.',
-      "3. **Reconocer:** mezcla y un giro `U` al azar. Sigue cuando lo reconozcas y lo hagas en menos de 3 s.",
-      '4. **Integrar:** úsalo en resoluciones cronometradas. Listo tras 5 veces bien.',
-      '## Sesión tipo: 30–40 min, 5 días por semana',
-      '1. **Calentamiento (5 min):** 3 repeticiones de cada algoritmo ya aprendido.',
-      '2. **Nuevos (15 min):** 2 o 3 algoritmos, etapas 1 a 3.',
-      '3. **Resoluciones (15 min):** 12 completas. Anota tu ao5 y tu ao12.',
-      'Repasa cada algoritmo nuevo al día siguiente, a los 3 días y a los 7. **Si uno te falla, no agregues otro esa sesión:** refuérzalo.',
+      '1. **Aprender:** pártelo en gatillos y hazlo despacio 5 veces, mirándolo. Sigue cuando te salga sin mirar.',
+      '2. **Repetir:** haz su preparación y el algoritmo 20 veces. Sigue cuando te salgan 10 seguidas sin error.',
+      '3. **Reconocer:** haz la preparación y un giro `U` al azar. Sigue cuando lo reconozcas y lo resuelvas en menos de 3 s.',
+      '4. **Integrar:** úsalo en resoluciones cronometradas. Está listo cuando te salga bien 5 veces.',
+      '## Sesión tipo: 30 a 40 min',
+      '1. **Calentamiento (5 min):** repite 3 veces cada algoritmo que ya sabes.',
+      '2. **Nuevos (15 min):** aprende 2 o 3 algoritmos y llévalos de la etapa 1 a la 3.',
+      '3. **Resoluciones (15 min):** haz 12 completas y anota tus medias de 5 y de 12 (ao5 y ao12).',
+      'Repasa cada algoritmo nuevo al día siguiente, a los 3 días y a los 7. Si uno te falla, refuérzalo y **no añadas otro** esa sesión.',
     ].join('\n'),
   ),
   orientation: es(
     [
-      '**Cruz blanca abajo, amarillo arriba y verde al frente**; el naranja queda a la derecha.',
-      'Los casos de F2L usan la ranura de **adelante a la derecha**: gira el cubo entero (`y`) para tener ahí la que vas a resolver.',
+      'Sostén el cubo con la **cruz blanca abajo**, el amarillo arriba y el verde al frente. El naranja queda a la derecha.',
+      "Los casos de F2L usan la ranura de **adelante a la derecha**: gira el cubo entero (con `y`, `y'` o `y2`) para tener ahí la que vas a resolver.",
     ].join('\n'),
   ),
   notation: es(
     [
-      '## Movimientos',
-      "- `R`, `L`, `U`, `D`, `F` y `B`: un cuarto de vuelta de esa cara, en sentido horario mirándola de frente. Con apóstrofo, al revés (`R'`); con 2, media vuelta (`R2`).",
-      '- `r` y `f`: la cara y la capa del medio juntas.',
-      '- `M`: la capa del medio entre `L` y `R`; gira como `L`.',
-      "- `y'`: gira el cubo entero como `U'`; el rojo queda al frente.",
+      '## Giros',
+      '- `r` y `f`: giros de dos capas, la cara y la capa del medio a la vez.',
+      '- `M`: la capa del medio, entre `L` y `R`. Gira en el mismo sentido que `L`.',
+      "- `y'`: gira el cubo entero en el sentido de `U'`. El rojo queda al frente.",
       "- **AUF:** el giro de `U` (`U`, `U'` o `U2`) antes o después de un algoritmo.",
       '## Gatillos',
-      "Los algoritmos repiten bloques cortos, como `R U R' U'` o `F R U R' U' F'`. Haz **cada bloque como un solo gesto**.",
+      "Los algoritmos repiten trozos cortos, los **gatillos**, como `R U R'` o `R U R' U'`. Haz cada gatillo como un solo gesto.",
       '## Plan B',
       'Algunos casos traen una segunda opción, más fácil al principio: solo `R`, `U` y `F`, o gatillos que ya conoces. Úsala mientras dominas la principal.',
       '## Figuras',
-      '- **F2L:** el cubo visto desde arriba, adelante y a la derecha. En gris, lo que no importa.',
-      '- **OLL y PLL:** la cara amarilla desde arriba, con el frente abajo. Las barritas son las pegatinas de los lados; en PLL, las flechas dicen a dónde va cada pieza.',
+      '- **F2L:** el cubo visto desde arriba, adelante y a la derecha. Lo que no importa sale en gris.',
+      '- **OLL y PLL:** la cara amarilla vista desde arriba. El frente es el borde inferior de la figura. Las barritas son las pegatinas de los lados, y en PLL las flechas dicen a dónde va cada pieza.',
     ].join('\n'),
   ),
   schedule: es(
     [
-      '5 sesiones de 30–40 min por semana: 6 semanas.',
-      'Si vas rápido, adelanta. Si no cumples el criterio, repite la semana.',
-      '- **Semana 1 (8 nuevos):** diagnóstico F2L + bloques A y B. Foco: cruz en 8 movimientos o menos, planeada en la inspección. Pasa con: ao12 de base anotado; A y B sin mirar la hoja.',
-      '- **Semana 2 (5 nuevos):** OLL cruz (Línea, L y Punto) + F2L bloque C (2). Foco: reconocer la forma amarilla antes de terminar el F2L. Pasa con: cruz amarilla en menos de 3 s.',
-      '- **Semana 3 (8 nuevos):** OLL esquinas (Sune, Antisune, H y Pi) + F2L bloque D (4). Foco: contar esquinas amarillas sin girar el cubo. Pasa con: los 4 casos reconocidos en menos de 2 s.',
-      '- **Semana 4 (8 nuevos):** OLL esquinas (U, L y T) + F2L bloque E (5). Foco: resoluciones con OLL en 2 pasos completo. Pasa con: ninguna resolución con OLL de principiante.',
-      '- **Semana 5 (4 nuevos):** PLL esquinas (T-perm y Y-perm) + aristas (Ua y Ub). Foco: buscar faros girando solo la capa superior. Pasa con: esquinas reconocidas en menos de 3 s.',
-      '- **Semana 6 (2 nuevos):** PLL aristas (H y Z). Foco: repaso general y 50 resoluciones en la semana. Pasa con: ao12 al menos 20 % mejor que el de la semana 1.',
+      'El plan dura 6 semanas, con 5 sesiones de 30 a 40 min por semana. Si vas rápido, adelántate. Si no llegas a la meta de una semana, repítela.',
+      '- **Semana 1 (8 casos nuevos):** los grupos A y B del F2L. Antes, prueba los 19 casos y apunta los que ya sabes. Planea la cruz en la inspección y hazla en 8 giros o menos. Pasa cuando hayas anotado tu media de 12 (ao12) inicial y te salgan A y B sin mirar los algoritmos.',
+      '- **Semana 2 (5 casos nuevos):** la cruz amarilla del OLL (Línea, L y Punto) y el grupo C del F2L. Mientras metes el último par, mira qué forma hacen las aristas con el amarillo arriba (Línea, L o Punto). Pasa cuando hagas la cruz amarilla en menos de 3 s.',
+      '- **Semana 3 (8 casos nuevos):** Sune, Antisune, H y Pi, de las esquinas del OLL, y el grupo D del F2L. Cuenta las esquinas con el amarillo arriba sin girar el cubo. Pasa cuando reconozcas esos 4 casos en menos de 2 s.',
+      '- **Semana 4 (8 casos nuevos):** los casos U, L y T de las esquinas del OLL, y el grupo E del F2L. Haz todas las resoluciones con el OLL en 2 pasos. Pasa cuando ya no uses el método principiante para la cara amarilla.',
+      '- **Semana 5 (4 casos nuevos):** la T-perm y la Y-perm, para las esquinas del PLL, y Ua y Ub, para las aristas. Busca los faros girando solo la capa de arriba. Pasa cuando reconozcas el caso de las esquinas en menos de 3 s.',
+      '- **Semana 6 (2 casos nuevos):** la H-perm y la Z-perm, para las aristas del PLL. Repasa todo y haz 50 resoluciones en la semana. Terminas cuando tu ao12 sea al menos un 20 % mejor que la de la semana 1.',
       '## Metas al terminar la semana 6',
-      'Metas: cruz en menos de 4 s, F2L en menos de 25 s, OLL en menos de 7 s y PLL en menos de 7 s.',
-      'Mídelas una vez por semana: 5 resoluciones lentas, cronometradas por partes.',
+      'Busca estos tiempos por paso: cruz en menos de 4 s, F2L en menos de 25 s, OLL en menos de 7 s y PLL en menos de 7 s.',
+      'Mídelos una vez por semana con 5 resoluciones a tu ritmo normal. En «Opciones», pon 4 en «Fases por resolución» y toca el cronómetro al terminar cada paso.',
     ].join('\n'),
   ),
   phases: [
@@ -254,46 +256,74 @@ export const cfopReduced: Method = {
       name: es('Fase 1: F2L'),
       goal: es(
         [
-          '**Meta:** las dos primeras capas: cada esquina blanca con su arista, juntas en su ranura.',
-          '**Casos:** 19, todos en la ranura de adelante a la derecha. Empieza por el bloque A.',
+          '**Meta:** las dos primeras capas resueltas: cada esquina blanca con su arista, juntas en su ranura.',
+          '**Casos:** 19, todos en la ranura de adelante a la derecha. Empieza por el grupo A.',
         ].join('\n'),
       ),
+      // In the lessons, group A's description follows this text, inside its last "## " section: that section has to
+      // lead into it (lessons.ts)
       description: es(
         [
           '## Cómo se hace',
-          '1. Busca una esquina blanca y su arista: la que tiene sus otros 2 colores.',
-          '2. Gira el cubo entero para tener su ranura adelante a la derecha.',
-          '3. Con `U`, pon la esquina arriba, encima de la ranura (si ya está en la ranura, déjala).',
+          '1. Busca una esquina blanca y su arista, que es la que tiene los otros 2 colores de la esquina.',
+          '2. Gira el cubo entero para tener su ranura adelante a la derecha. Es la que está entre los centros de los 2 colores de la arista.',
+          '3. Gira `U` para poner la esquina encima de la ranura. Si ya está en la ranura, déjala ahí.',
           '4. Busca entre los casos de esta fase el que se ve igual y haz su algoritmo.',
-          '## Los 4 pares',
-          'Repite con los 4 pares. El primer día, haz cada preparación y marca los casos que ya dominas: entrena solo los que falten.',
+          '5. Repite con los otros 3 pares hasta completar las dos primeras capas.',
+          '## Por dónde empezar',
+          'El primer día, haz la preparación de cada uno de los 19 casos e intenta meter el par a tu manera. Apunta los que ya te salen y entrena solo los demás.',
         ].join('\n'),
       ),
       tips: es(
         [
-          '- **Tu caso no está entre estos 19:** resuelve ese par como en el método principiante: primero la esquina, con el gatillo, y luego la arista. Es más lento, pero siempre funciona.',
-          '- **No se ve igual que ningún caso:** gira `U` antes; la arista puede estar a un giro.',
-          '- **El par sale separado:** la ranura no estaba adelante a la derecha, o la esquina no estaba encima de ella.',
-          '- **Te cuesta girar el cubo en B4, D2 o D4:** usa su Plan B, que hace lo mismo con `F`, sin rotar.',
+          "- **Tu caso no está entre estos 19:** resuelve ese par como en el método principiante: primero la esquina, repitiendo `R U R' U'`, y luego la arista. Es más lento, pero siempre funciona.",
+          '- **La esquina está en la ranura y no ves tu caso:** gira `U` para mover solo la arista. Puede estar a un giro de E1 o de E2.',
+          '- **El par sale separado:** la ranura no estaba adelante a la derecha o la esquina no estaba encima de ella. Vuelve a dejar la ranura adelante a la derecha y la esquina encima. Luego busca el caso que ves ahora y haz su algoritmo.',
+          '- **Te cuesta girar el cubo en B4, D2 o D4:** usa su Plan B, que hace lo mismo con `F`, sin girar el cubo.',
         ].join('\n'),
       ),
       diagram: 'iso',
       groups: [
-        { id: 'f2l-a', name: es('Bloque A — Inserciones básicas'), description: es('La base de todo lo demás.'), cases: f2lA },
-        { id: 'f2l-b', name: es('Bloque B — Piezas separadas, blanco al lado'), cases: f2lB },
-        { id: 'f2l-c', name: es('Bloque C — Blanco al lado, arista lejos y "mal" orientada'), cases: f2lC },
-        { id: 'f2l-d', name: es('Bloque D — Blanco mirando arriba'), cases: f2lD },
-        { id: 'f2l-e', name: es('Bloque E — Piezas atascadas en la ranura'), cases: f2lE },
+        {
+          id: 'f2l-a',
+          name: es('Grupo A — Inserciones básicas'),
+          description: es('El grupo A reúne las 4 inserciones más cortas, de 3 o 4 giros. Son la base de todos los demás casos.'),
+          cases: f2lA,
+        },
+        {
+          id: 'f2l-b',
+          name: es('Grupo B — Sin formar par, blanco de lado'),
+          description: es('La esquina tiene el blanco al frente o a la derecha, y la arista está arriba sin formar par con ella. Sus algoritmos primero juntan las dos piezas y luego meten el par.'),
+          cases: f2lB,
+        },
+        {
+          id: 'f2l-c',
+          name: es('Grupo C — Blanco de lado, arista lejos y al revés'),
+          description: es('La arista está arriba, lejos de la esquina, y al revés: su color de lado mira en sentido contrario al mismo color en la esquina. En C1, el naranja de la arista mira a la izquierda, y el de la esquina, a la derecha.'),
+          cases: f2lC,
+        },
+        {
+          id: 'f2l-d',
+          name: es('Grupo D — Blanco mirando arriba'),
+          description: es('La esquina tiene el blanco mirando arriba, y la arista también está en la capa de arriba.'),
+          cases: f2lD,
+        },
+        {
+          id: 'f2l-e',
+          name: es('Grupo E — Piezas atascadas en la ranura'),
+          description: es('La esquina, la arista o las dos ya están en la ranura, pero el par no está resuelto. Sus algoritmos primero sacan de la ranura lo que está atascado y luego meten el par.'),
+          cases: f2lE,
+        },
       ],
       progression: es(
         [
-          'Orden: **A → B → C → D → E**.',
+          'Orden: **A → B → C → D → E**. El grupo A tiene los casos más cortos, y el E, los más largos.',
           '## Espejo',
-          'Cuando domines un caso en adelante-derecha, practica su espejo en adelante-izquierda.',
+          'Cuando domines un caso en la ranura de adelante a la derecha, practica su espejo en la de adelante a la izquierda:',
           "- Cambia `R` por `L'`, `F` por `F'`, `U` por `U'`, `r` por `l'` e `y'` por `y`. `M` no cambia.",
           "- Ejemplo: `R U R'` pasa a `L' U' L`.",
           '## Anticipación',
-          '5 resoluciones lentas por sesión, buscando el siguiente par mientras insertas el actual.',
+          'Haz 5 resoluciones lentas por sesión. Mientras metes un par, busca con la vista el siguiente.',
         ].join('\n'),
       ),
       quizzes: [
@@ -304,7 +334,7 @@ export const cfopReduced: Method = {
           ["R2 U' R2 D2 B2 U' B2 D' R2 U R' U R2 D' R U2", 'a1'],
           ["R2 D2 U B2 D' U2 B2 F2 R2 U2 R U2 R F2 U' R2 D'", 'a3'],
         ]),
-        quiz('quiz-f2l-b', 'Quiz F2L-B (separados)', F2L_QUIZ, 'f2l', [
+        quiz('quiz-f2l-b', 'Quiz F2L-B (sin formar par)', F2L_QUIZ, 'f2l', [
           ["D2 B2 R2 D F2 D' F2 D F2 U2 L' D2 L' F2 U R' U", 'b1'],
           ["B2 U' B2 U' F2 L2 F2 D' B2 R2 B U R2 B' U B' D B' U", 'b4'],
           ["B2 D' F2 L2 B2 U R2 F2 R2 U2 F U' B2 F2 D' B2 F'", 'b2'],
@@ -339,40 +369,46 @@ export const cfopReduced: Method = {
       name: es('Fase 2: OLL en 2 pasos'),
       goal: es(
         [
-          '**Meta:** toda la cara de arriba amarilla. Los colores de los lados, todavía no.',
-          '**Casos:** 10, en 2 pasos: la cruz amarilla (3) y luego las esquinas (7). Empieza por Sune y Antisune.',
+          '**Meta:** toda la cara de arriba amarilla. Los colores de los lados aún no importan.',
+          '**Casos:** 10, en 2 pasos: la cruz amarilla (3) y luego las esquinas (7). Empieza por la cruz y, en las esquinas, por Sune y Antisune.',
         ].join('\n'),
       ),
       description: es(
         [
           '## Cómo se hace',
-          '1. **Cruz amarilla:** mira solo las aristas amarillas de arriba y haz su caso.',
+          '1. **Cruz amarilla:** cuenta las aristas con el amarillo arriba y haz su caso.',
           '2. **Esquinas:** cuenta las esquinas con el amarillo arriba y haz su caso.',
           'Antes de cada algoritmo, gira `U` hasta verlo como en su figura.',
         ].join('\n'),
       ),
       tips: es(
         [
-          '- **No encuentras tu caso:** gira `U`; cada caso se reconoce desde un ángulo. Mira también el amarillo de los lados, no solo el de arriba.',
-          '- **Ves 1 o 3 aristas amarillas, o 3 esquinas:** con el F2L hecho es imposible. Cuenta solo las piezas de arriba; si es así, una pieza quedó girada por dentro (el cubo se desarmó).',
-          '- **Se rompió el F2L:** el algoritmo salió mal, con un giro de menos o al revés. Rehaz el par roto y repítelo despacio, gatillo por gatillo.',
+          '- **No encuentras tu caso:** gira `U` y vuelve a mirar, porque cada figura muestra el caso desde un solo lado. Mira también el amarillo de los lados, no solo el de arriba.',
+          '- **Ves 1 o 3 aristas con el amarillo arriba, o 3 esquinas:** con el F2L hecho, eso no puede pasar. Vuelve a contar, sin mirar el amarillo de los lados. Si sigue igual, hay una arista volteada o una esquina girada, por ejemplo porque el cubo se desarmó. Ponla bien a mano.',
+          '- **Se rompió el F2L:** el algoritmo salió mal, con un giro de menos o al revés. Rehaz el par roto y repite el algoritmo despacio, gatillo por gatillo.',
         ].join('\n'),
       ),
       diagram: 'top',
       groups: [
-        { id: 'oll-cross', name: es('Paso 1 — Cruz amarilla'), description: es('Mira solo las aristas amarillas de arriba.'), cases: ollCross },
+        {
+          id: 'oll-cross',
+          name: es('Paso 1 — Cruz amarilla'),
+          // in the lessons it closes the phase's "Cómo se hace"
+          description: es('En la cruz amarilla, si hay 2 aristas con el amarillo arriba en línea, es la Línea. Si hay 2 que forman una L con el centro, es la L. Si no hay ninguna, es el Punto.'),
+          cases: ollCross,
+        },
         {
           id: 'oll-corners',
-          name: es('Paso 2 — Esquinas amarillas'),
-          description: es('Cuenta las esquinas con el amarillo arriba:\n- 0 → H o Pi\n- 1 → Sune o Antisune\n- 2 → U, T o L'),
+          name: es('Paso 2 — Esquinas amarillas (OCLL)'),
+          description: es('Cuenta las esquinas con el amarillo arriba:\n- **Ninguna:** H o Pi.\n- **Una:** Sune o Antisune.\n- **Dos:** el caso U, el T o el L.'),
           cases: ollCorners,
         },
       ],
       progression: es(
         [
-          '- **Cruz:** Línea y L el mismo día; Punto al siguiente.',
-          '- **Esquinas:** Sune y Antisune → H y Pi → U, L y T. Aprende U y L juntas: son inversas.',
-          'Empieza por **Sune y Antisune**: salen mucho y comparten gatillos con la H.',
+          '- **Cruz:** aprende la Línea y la L el mismo día, y el Punto al siguiente.',
+          '- **Esquinas:** Sune y Antisune → H y Pi → U, L y T. Aprende juntos los casos U y L: son inversos.',
+          'En las esquinas, empieza por **Sune y Antisune**: salen mucho y comparten gatillos con el caso H.',
         ].join('\n'),
       ),
       quizzes: [
@@ -407,16 +443,18 @@ export const cfopReduced: Method = {
       description: es(
         [
           '## Cómo se hace',
-          '1. **Esquinas:** busca **faros**, las 2 esquinas de un lado con el mismo color, y haz su caso.',
-          '2. **Aristas:** gira `U` hasta alinear las esquinas con sus centros, mira las aristas y haz su caso.',
-          '3. Gira `U` hasta alinear la capa.',
+          '1. **Esquinas:** busca **faros**, 2 esquinas de un lado con el mismo color y la arista del medio de otro color. Un lado completo cuenta como faros. Luego haz su caso.',
+          '2. **Aristas:** gira `U` hasta alinear las esquinas con sus centros y mira las aristas.',
+          '3. Si hay un lado completo, gira el cubo entero hasta dejarlo atrás.',
+          '4. Haz el caso de las aristas. Las esquinas siguen alineadas, así que el cubo queda resuelto.',
         ].join('\n'),
       ),
       tips: es(
         [
-          '- **No ves faros:** mira los 4 lados, girando `U`. Si ninguno los tiene, es la Y-perm.',
-          '- **Tras la T-perm no hay faros en los 4 lados:** los faros iban a la izquierda; desde otro lado, cambia otras esquinas.',
-          '- **Hiciste Ua en vez de Ub, o al revés:** no se rompe nada; el lado completo sigue atrás. Mira otra vez la arista del frente y haz el que toque.',
+          '- **No ves faros:** mira los 4 lados, girando `U`. Si ninguno tiene faros ni está completo, es la Y-perm.',
+          '- **Tras la T-perm, no puedes alinear las 4 esquinas:** seguramente no tenías los faros, o el lado completo, a la izquierda. Vuelve a mirar los 4 lados. Si uno tiene faros o está completo, ponlo a la izquierda y repite la T-perm. Si ninguno tiene faros ni está completo, haz la Y-perm.',
+          '- **Hiciste Ua en vez de Ub, o al revés:** no se rompe nada, y el lado completo sigue atrás. Mira otra vez la arista del frente y haz el que toque.',
+          '- **La arista del frente y la de la derecha están intercambiadas:** es la Z-perm, vista desde otro lado. Gira el cubo entero con `y` para verla como en su figura.',
         ].join('\n'),
       ),
       diagram: 'top',
@@ -424,15 +462,20 @@ export const cfopReduced: Method = {
         {
           id: 'pll-corners',
           name: es('Paso 1 — Esquinas'),
-          description: es('Faros en un solo lado: T-perm. En ninguno: Y-perm. En los 4: ya están.'),
+          description: es('Busca faros, o un lado completo, en los 4 lados. Si los hay en uno solo, es la T-perm. Si no los hay en ninguno, es la Y-perm. Si los hay en los 4, las esquinas ya están bien.'),
           cases: pllCorners,
         },
-        { id: 'pll-edges', name: es('Paso 2 — Aristas'), description: es('Un lado completo: Ua o Ub. Ninguno: H o Z.'), cases: pllEdges },
+        {
+          id: 'pll-edges',
+          name: es('Paso 2 — Aristas'),
+          description: es('Con las esquinas alineadas, busca un lado completo. Si lo hay, es Ua o Ub. Si no hay ninguno, es H o Z.'),
+          cases: pllEdges,
+        },
       ],
       progression: es(
         [
           'Orden: **T-perm → Y-perm → Ua y Ub juntos → H → Z**.',
-          'T-perm primero: sale en 2 de cada 3 resoluciones. Y-perm sale en 1 de cada 6; en el otro 1 de cada 6 las esquinas ya están.',
+          'Empieza por la T-perm, que es la que más sale. Aprende juntos Ua y Ub: son inversos.',
         ].join('\n'),
       ),
       quizzes: [
