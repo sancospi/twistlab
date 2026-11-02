@@ -15,7 +15,7 @@ export const TERMS: Term[] = [
   { key: 'auf', example: "U U' U2", forms: same('AUF') },
   { key: 'trigger', example: "R U R' U'", forms: { es: ['gatillo', 'gatillos'], en: ['trigger', 'triggers'], pt: ['gatilho', 'gatilhos'] } },
   { key: 'setup', forms: { es: [], en: [], pt: [] } }, // ponytail: "preparación"/"setup" are everyday words in every text: not marked
-  { key: 'planB', forms: same('Plan B') },
+  { key: 'planB', forms: { es: ['Plan B'], en: ['Plan B'], pt: ['Plano B'] } },
   { key: 'htm', forms: same('HTM') },
   { key: 'cross', forms: { es: ['cruz', 'cruces'], en: ['cross', 'crosses'], pt: ['cruz', 'cruzes'] } },
   { key: 'slot', forms: { es: ['ranura', 'ranuras'], en: ['slot', 'slots'], pt: ['slot', 'slots'] } },

@@ -216,7 +216,7 @@ function moveKind(token: string): { kind: 'face' | 'wide' | 'slice' | 'rotation'
   return { kind: 'rotation', ref: ({ x: 'R', y: 'U', z: 'F' } as const)[base as 'x' | 'y' | 'z'], base };
 }
 
-/** What turns and which way, in words: "Cara derecha · 1 capa" / "Horario, mirando la cara derecha de frente". */
+/** What turns and which way, in words: "Cara derecha · una capa" / "En sentido horario, mirando la cara derecha de frente". */
 export function explainMove(token: string): { what: string; how: string } {
   const { kind, ref, base } = moveKind(token);
   const face = t(`notation.faceName.${ref}`);

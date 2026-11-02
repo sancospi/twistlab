@@ -106,18 +106,18 @@ test('compact / turnCount: what a person did, without hiding undone turns', () =
 });
 
 test('explainMove: what turns and which way, for every kind of token', () => {
-  assert.deepEqual(explainMove('R'), { what: 'Cara derecha · 1 capa', how: 'Horario, mirando la cara derecha de frente' });
-  assert.deepEqual(explainMove("U'"), { what: 'Cara de arriba · 1 capa', how: 'Antihorario, mirando la cara de arriba de frente' });
+  assert.deepEqual(explainMove('R'), { what: 'Cara derecha · una capa', how: 'En sentido horario, mirando la cara derecha de frente' });
+  assert.deepEqual(explainMove("U'"), { what: 'Cara de arriba · una capa', how: 'En sentido antihorario, mirando la cara de arriba de frente' });
   assert.equal(explainMove('F2').how, 'Media vuelta (180°): el sentido da igual');
   assert.equal(explainMove("B2'").how, 'Media vuelta (180°): el sentido da igual');
   assert.equal(explainMove('r').what, 'Dos capas: la cara derecha y la del medio');
   assert.equal(explainMove("Rw'").what, explainMove("r'").what);
-  assert.equal(explainMove("r'").how, 'Antihorario, mirando la cara derecha de frente');
-  assert.equal(explainMove('M').what, 'Capa del medio, entre izquierda y derecha · gira como L');
-  assert.equal(explainMove("M'").how, 'Antihorario, mirando la cara izquierda de frente'); // M follows L
-  assert.equal(explainMove('E').how, 'Horario, mirando la cara de abajo de frente');
-  assert.equal(explainMove("y'").what, 'Todo el cubo · gira como U');
-  assert.equal(explainMove('x').how, 'Horario, mirando la cara derecha de frente');
+  assert.equal(explainMove("r'").how, 'En sentido antihorario, mirando la cara derecha de frente');
+  assert.equal(explainMove('M').what, 'Capa del medio, entre la cara izquierda y la derecha · gira como L');
+  assert.equal(explainMove("M'").how, 'En sentido antihorario, mirando la cara izquierda de frente'); // M follows L
+  assert.equal(explainMove('E').how, 'En sentido horario, mirando la cara de abajo de frente');
+  assert.equal(explainMove("y'").what, 'El cubo entero · gira como U');
+  assert.equal(explainMove('x').how, 'En sentido horario, mirando la cara derecha de frente');
   assert.throws(() => explainMove('Q'));
 });
 
