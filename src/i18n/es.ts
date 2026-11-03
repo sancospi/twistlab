@@ -624,6 +624,8 @@ export const es = {
   'case.trigger.sune': 'Sune',
   'case.trigger.antisune': 'Antisune',
   'case.triggerLeft': '{name} (zurdo)',
+  'case.triggerBack': '{name} (atrás)',
+  'case.triggerLeftBack': '{name} (zurdo, atrás)',
   'case.triggersHint': 'Lo subrayado son gatillos: trozos cortos de giros que se repiten en muchos algoritmos. Apréndelos como un solo gesto.',
   'case.recognition': 'Cómo reconocerlo',
   'case.inverseWhy': 'Por qué el Quiz mezcla al azar',

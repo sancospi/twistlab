@@ -163,7 +163,7 @@ test('mirrorTokens: the mirrored algorithm leaves the mirror image of the state'
 });
 
 test('triggerSegments: the well-known triggers, in both hands, and the moves in between', () => {
-  const seg = (alg: string) => triggerSegments(tokenize(alg)).map((s) => (s.trigger ? `[${s.trigger}${s.left ? '-L' : ''}: ${s.tokens.join(' ')}]` : s.tokens.join(' ')));
+  const seg = (alg: string) => triggerSegments(tokenize(alg)).map((s) => (s.trigger ? `[${s.trigger}${s.left ? '-L' : ''}${s.back ? '-B' : ''}: ${s.tokens.join(' ')}]` : s.tokens.join(' ')));
   assert.deepEqual(seg("F R U R' U' F'"), ['F', "[sexy: R U R' U']", "F'"]);
   assert.deepEqual(seg("R U R' U R U2 R'"), ["[sune: R U R' U R U2 R']"], 'a Sune, not a shorter trigger inside it');
   assert.deepEqual(seg("R U2 R' U' R U' R'"), ["[antisune: R U2 R' U' R U' R']"]);
@@ -172,6 +172,11 @@ test('triggerSegments: the well-known triggers, in both hands, and the moves in 
   assert.deepEqual(seg("y' L' U' L U U' L' U L L F' L' F F' L F L'"),
     ["y'", "[sexy-L: L' U' L U]", "[sexyInv-L: U' L' U L]", "[sledge-L: L F' L' F]", "[hedge-L: F' L F L']"]);
   assert.deepEqual(seg("L' U' L U' L' U2' L"), ["[sune-L: L' U' L U' L' U2' L]"], "U2' counts as U2");
+  // Sune and Antisune front to back, as the OLL, COLL and CMLL algorithms hide them
+  assert.deepEqual(seg("U' R' U' R U' R' U2 R"), ["U'", "[sune-B: R' U' R U' R' U2 R]"]);
+  assert.deepEqual(seg("y' R' U2 R U R' U R"), ["y'", "[antisune-B: R' U2 R U R' U R]"]);
+  assert.deepEqual(seg("U2 L U L' U L U2 L'"), ["U2", "[sune-L-B: L U L' U L U2 L']"]);
+  assert.deepEqual(seg("R U' R' U' R U2 R'"), ["R U' R' U' R U2 R'"], 'the rhythm with only some turns reversed is no Sune');
   assert.deepEqual(seg("M2 U M U2 M' U M2"), ["M2 U M U2 M' U M2"], 'no trigger: one run');
   assert.deepEqual(triggerSegments([]), []);
 });

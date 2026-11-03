@@ -135,7 +135,7 @@ export function movesView(tokens: string[]): HTMLElement {
     if (i) out.append(' '); // real spaces: readable when copied
     if (!s.trigger) return void out.append(algView(s.tokens));
     const name = t(`case.trigger.${s.trigger}`);
-    const label = s.left ? t('case.triggerLeft', { name }) : name;
+    const label = s.back ? t(s.left ? 'case.triggerLeftBack' : 'case.triggerBack', { name }) : s.left ? t('case.triggerLeft', { name }) : name;
     out.append(el('span', { className: 'trigger', role: 'group', ariaLabel: label },
       algView(s.tokens), el('span', { className: 'trigger-name', ariaHidden: 'true', textContent: label })));
   });

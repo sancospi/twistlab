@@ -236,17 +236,20 @@ export const CAMERA = { latitude: 30, longitude: 30 } as const;
 // --- Reading an algorithm: its well-known triggers and what kind of moves it uses ---
 
 export type Trigger = 'sune' | 'antisune' | 'sexy' | 'sexyInv' | 'sledge' | 'hedge';
-// Longest first, so a Sune isn't read as anything shorter; each also in its left-hand mirror (L' U' L U…).
+// Longest first, so a Sune isn't read as anything shorter; each also in its left-hand mirror (L' U' L U…). Sune and
+// Antisune also mirrored front to back (`back`: the same rhythm with every turn the other way, R' U' R U' R' U2 R),
+// which is how many OLL, COLL and CMLL algorithms hide them.
 const TRIGGERS = ([
   ['sune', "R U R' U R U2 R'"], ['antisune', "R U2 R' U' R U' R'"],
+  ['sune', "R' U' R U' R' U2 R", true], ['antisune', "R' U2 R U R' U R", true],
   ['sexy', "R U R' U'"], ['sexyInv', "U R U' R'"], ['sledge', "R' F R F'"], ['hedge', "F R' F' R"],
-] as const).flatMap(([name, alg]) => [
-  { name, left: false, tokens: alg.split(' ') },
-  { name, left: true, tokens: mirrorTokens(alg.split(' ')) },
+] satisfies [Trigger, string, true?][]).flatMap(([name, alg, back]) => [
+  { name, left: false, back, tokens: alg.split(' ') },
+  { name, left: true, back, tokens: mirrorTokens(alg.split(' ')) },
 ]);
 
 /** A run of an algorithm: a trigger, or the moves between triggers. */
-export type Segment = { tokens: string[]; trigger?: Trigger; left?: boolean };
+export type Segment = { tokens: string[]; trigger?: Trigger; left?: boolean; back?: boolean };
 
 /** The algorithm cut into its triggers (left to right, the first one that fits) and the moves in between. */
 export function triggerSegments(tokens: string[]): Segment[] {
@@ -255,7 +258,7 @@ export function triggerSegments(tokens: string[]): Segment[] {
   for (let i = 0; i < tokens.length;) {
     const tr = TRIGGERS.find((x) => x.tokens.every((tok, j) => same[i + j] === tok));
     if (tr) {
-      out.push({ tokens: tokens.slice(i, i + tr.tokens.length), trigger: tr.name, ...(tr.left ? { left: true } : {}) });
+      out.push({ tokens: tokens.slice(i, i + tr.tokens.length), trigger: tr.name, ...(tr.left ? { left: true } : {}), ...(tr.back ? { back: true } : {}) });
       i += tr.tokens.length;
       continue;
     }

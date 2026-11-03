@@ -621,6 +621,8 @@ export const en: Record<MessageKey, string> = {
   'case.trigger.sune': 'Sune',
   'case.trigger.antisune': 'Antisune',
   'case.triggerLeft': '{name} (left)',
+  'case.triggerBack': '{name} (back)',
+  'case.triggerLeftBack': '{name} (left, back)',
   'case.triggersHint': 'The underlined parts are triggers: short chunks of moves that show up in many algorithms. Learn each one as a single motion.',
   'case.recognition': 'How to recognize it',
   'case.inverseWhy': 'Why the Quiz scrambles at random',

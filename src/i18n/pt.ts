@@ -625,6 +625,8 @@ export const pt: Record<MessageKey, string> = {
   'case.trigger.sune': 'Sune',
   'case.trigger.antisune': 'Antisune',
   'case.triggerLeft': '{name} (canhoto)',
+  'case.triggerBack': '{name} (de trás)',
+  'case.triggerLeftBack': '{name} (canhoto, de trás)',
   'case.triggersHint': 'O sublinhado são gatilhos: trechos curtos de movimentos que se repetem em muitos algoritmos. Aprenda cada um como um gesto só.',
   'case.recognition': 'Como reconhecer',
   'case.inverseWhy': 'Por que o Quiz embaralha aleatoriamente',
