@@ -620,6 +620,8 @@ export const en: Record<MessageKey, string> = {
   'case.trigger.hedge': 'Hedgeslammer',
   'case.trigger.sune': 'Sune',
   'case.trigger.antisune': 'Antisune',
+  'case.trigger.fSexy': 'F sexy F′',
+  'case.trigger.fWideSexy': 'f sexy f′',
   'case.triggerLeft': '{name} (left)',
   'case.triggerBack': '{name} (back)',
   'case.triggerLeftBack': '{name} (left, back)',

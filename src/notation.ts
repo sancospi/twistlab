@@ -188,13 +188,14 @@ export type AlgPart =
   | { kind: 'repeat'; parts: AlgPart[]; times: number };
 
 /** Repetitions first ((block)×n), then the common triggers ((R U R' U')). A trigger that is the whole sequence (Sune,
- *  or a repeated block) gets no parentheses of its own: they would add nothing. */
-export function algParts(tokens: string[]): AlgPart[] {
+ *  or a repeated block) gets no parentheses of its own, they would add nothing: the shorter ones inside it show instead
+ *  (F sexy F′ alone reads F (R U R' U') F'). `below`: as in triggerSegments. */
+export function algParts(tokens: string[], below = Infinity): AlgPart[] {
   const parts = repeats(tokens).flatMap((run): AlgPart[] => {
     if (run.times > 1) return [{ kind: 'repeat', parts: algParts(run.tokens), times: run.times }];
-    return triggerSegments(run.tokens).map((s): AlgPart => ({ kind: s.trigger ? 'trigger' : 'moves', tokens: s.tokens }));
+    return triggerSegments(run.tokens, below).map((s): AlgPart => ({ kind: s.trigger ? 'trigger' : 'moves', tokens: s.tokens }));
   });
-  return parts.length === 1 && parts[0].kind === 'trigger' ? [{ kind: 'moves', tokens }] : parts;
+  return parts.length === 1 && parts[0].kind === 'trigger' ? algParts(tokens, tokens.length) : parts;
 }
 
 /** The algorithm as text with its repetitions and triggers grouped. */
@@ -235,13 +236,15 @@ export const CAMERA = { latitude: 30, longitude: 30 } as const;
 
 // --- Reading an algorithm: its well-known triggers and what kind of moves it uses ---
 
-export type Trigger = 'sune' | 'antisune' | 'sexy' | 'sexyInv' | 'sledge' | 'hedge';
-// Longest first, so a Sune isn't read as anything shorter; each also in its left-hand mirror (L' U' L U…). Sune and
+export type Trigger = 'sune' | 'antisune' | 'fSexy' | 'fWideSexy' | 'sexy' | 'sexyInv' | 'sledge' | 'hedge';
+// The short algorithms that others are built from (Sune, Antisune, F sexy F′), then the triggers; each also in its
+// left-hand mirror (L' U' L U…). Sune and
 // Antisune also mirrored front to back (`back`: the same rhythm with every turn the other way, R' U' R U' R' U2 R),
 // which is how many OLL, COLL and CMLL algorithms hide them.
 const TRIGGERS = ([
   ['sune', "R U R' U R U2 R'"], ['antisune', "R U2 R' U' R U' R'"],
   ['sune', "R' U' R U' R' U2 R", true], ['antisune', "R' U2 R U R' U R", true],
+  ['fSexy', "F R U R' U' F'"], ['fWideSexy', "f R U R' U' f'"],
   ['sexy', "R U R' U'"], ['sexyInv', "U R U' R'"], ['sledge', "R' F R F'"], ['hedge', "F R' F' R"],
 ] satisfies [Trigger, string, true?][]).flatMap(([name, alg, back]) => [
   { name, left: false, back, tokens: alg.split(' ') },
@@ -251,12 +254,23 @@ const TRIGGERS = ([
 /** A run of an algorithm: a trigger, or the moves between triggers. */
 export type Segment = { tokens: string[]; trigger?: Trigger; left?: boolean; back?: boolean };
 
-/** The algorithm cut into its triggers (left to right, the first one that fits) and the moves in between. */
-export function triggerSegments(tokens: string[]): Segment[] {
+/** The algorithm cut into its triggers and the moves in between, one mark per move: where two overlap the longer one
+ *  wins (a Sune or an F sexy F′ over the sexy move it shares moves with), between equals the one further left.
+ *  `below`: only triggers shorter than that many moves (the ones inside a trigger). */
+export function triggerSegments(tokens: string[], below = Infinity): Segment[] {
   const same = tokens.map((tok) => tok.replace("2'", '2')); // R2' is R2
+  const found = tokens.flatMap((_, i) => TRIGGERS.filter((x) => x.tokens.length < below && x.tokens.every((tok, j) => same[i + j] === tok)).map((tr) => ({ i, tr })))
+    .sort((a, b) => b.tr.tokens.length - a.tr.tokens.length || a.i - b.i);
+  const starts: (typeof TRIGGERS)[number][] = []; // the chosen trigger starting on each move
+  const taken: boolean[] = [];
+  for (const { i, tr } of found) {
+    if (tr.tokens.some((_, j) => taken[i + j])) continue;
+    tr.tokens.forEach((_, j) => (taken[i + j] = true));
+    starts[i] = tr;
+  }
   const out: Segment[] = [];
   for (let i = 0; i < tokens.length;) {
-    const tr = TRIGGERS.find((x) => x.tokens.every((tok, j) => same[i + j] === tok));
+    const tr = starts[i];
     if (tr) {
       out.push({ tokens: tokens.slice(i, i + tr.tokens.length), trigger: tr.name, ...(tr.left ? { left: true } : {}), ...(tr.back ? { back: true } : {}) });
       i += tr.tokens.length;

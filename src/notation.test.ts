@@ -164,7 +164,10 @@ test('mirrorTokens: the mirrored algorithm leaves the mirror image of the state'
 
 test('triggerSegments: the well-known triggers, in both hands, and the moves in between', () => {
   const seg = (alg: string) => triggerSegments(tokenize(alg)).map((s) => (s.trigger ? `[${s.trigger}${s.left ? '-L' : ''}${s.back ? '-B' : ''}: ${s.tokens.join(' ')}]` : s.tokens.join(' ')));
-  assert.deepEqual(seg("F R U R' U' F'"), ['F', "[sexy: R U R' U']", "F'"]);
+  assert.deepEqual(seg("F R U R' U' F'"), ["[fSexy: F R U R' U' F']"], 'an algorithm, not the trigger inside it');
+  assert.deepEqual(seg("R U R' U R U2 R' F R U R' U' F'"), ["[sune: R U R' U R U2 R']", "[fSexy: F R U R' U' F']"]);
+  assert.deepEqual(seg("y R U R' U' R U' R' U2 R U' R' U2 R U R'"), ['y R U', "[sune-B: R' U' R U' R' U2 R]", "U' R' U2 R U R'"],
+    'overlapping, the longer one wins even if it starts later');
   assert.deepEqual(seg("R U R' U R U2 R'"), ["[sune: R U R' U R U2 R']"], 'a Sune, not a shorter trigger inside it');
   assert.deepEqual(seg("R U2 R' U' R U' R'"), ["[antisune: R U2 R' U' R U' R']"]);
   assert.deepEqual(seg("R U R' U' R' F R F'"), ["[sexy: R U R' U']", "[sledge: R' F R F']"]);
@@ -197,7 +200,8 @@ test('algTags: what stands out in an algorithm', () => {
 test('formatAlg: common triggers in parentheses, never doubled', () => {
   const f = (alg: string) => formatAlg(tokenize(alg));
   assert.equal(f("R U R' U' R' F R F'"), "(R U R' U') (R' F R F')");
-  assert.equal(f("F R U R' U' F'"), "F (R U R' U') F'");
+  assert.equal(f("F R U R' U' F'"), "F (R U R' U') F'", 'the whole algorithm is F sexy F′: the trigger inside it shows');
+  assert.equal(f("R U R' U R U2 R' F R U R' U' F'"), "(R U R' U R U2 R') (F R U R' U' F')");
   assert.equal(f("F R U R' U' R U R' U' F'"), "F (R U R' U')×2 F'", 'a repeated trigger: one pair of parentheses');
   assert.equal(f("R U R' U R U2 R'"), "R U R' U R U2 R'", 'the whole algorithm is the trigger (Sune): no parentheses');
   assert.equal(f("R U R' U'"), "R U R' U'");

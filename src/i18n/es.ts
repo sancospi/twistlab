@@ -623,6 +623,8 @@ export const es = {
   'case.trigger.hedge': 'Hedgeslammer',
   'case.trigger.sune': 'Sune',
   'case.trigger.antisune': 'Antisune',
+  'case.trigger.fSexy': 'F sexy F′',
+  'case.trigger.fWideSexy': 'f sexy f′',
   'case.triggerLeft': '{name} (zurdo)',
   'case.triggerBack': '{name} (atrás)',
   'case.triggerLeftBack': '{name} (zurdo, atrás)',

@@ -624,6 +624,8 @@ export const pt: Record<MessageKey, string> = {
   'case.trigger.hedge': 'Hedgeslammer',
   'case.trigger.sune': 'Sune',
   'case.trigger.antisune': 'Antisune',
+  'case.trigger.fSexy': 'F sexy F′',
+  'case.trigger.fWideSexy': 'f sexy f′',
   'case.triggerLeft': '{name} (canhoto)',
   'case.triggerBack': '{name} (de trás)',
   'case.triggerLeftBack': '{name} (canhoto, de trás)',
