@@ -1,7 +1,7 @@
 // Reusable notation: an algorithm as tappable moves. Each move opens a tooltip with a small 3D cube doing that
 // move in a loop (camera on the turning layer) and a short caption: what turns and which way.
 import type { TwistyPlayer } from 'cubing/twisty';
-import { CAMERA, algParts, explainMove, tokenize, type AlgPart, type Face } from './notation.ts';
+import { CAMERA, algParts, explainMove, partSize, shownRepetition, tokenize, type AlgPart, type Face } from './notation.ts';
 import { showTip } from './tooltip.ts';
 import { t } from './i18n.ts';
 
@@ -10,11 +10,10 @@ export type NotationFrame = 'yellow-up' | 'white-up';
 
 export interface AlgViewOptions {
   frame?: NotationFrame;
-  mark?: (i: number) => string; // a class per move, e.g. 'done' / 'current'
+  mark?: (i: number) => string; // a class per move of the whole algorithm, e.g. 'done' / 'current'
+  flat?: boolean; // every turn on view, a repeated block's too: a turn-by-turn comparison can't share a block
 }
 
-/** The algorithm as a row of move buttons; text that isn't valid notation is shown as is. Repeated blocks show as
- *  (block)×n, except with `mark`: following move by move needs every turn. */
 /** The line under a scramble: from solved, which colors go up and in front (faces as the colors of the user frame). */
 export function scrambleNote(up: Face = 'U', front: Face = 'F'): HTMLElement {
   const out = document.createElement('p');
@@ -23,6 +22,8 @@ export function scrambleNote(up: Face = 'U', front: Face = 'F'): HTMLElement {
   return out;
 }
 
+/** The algorithm as a row of move buttons, triggers in parentheses and repeated blocks as (block)×n, the same everywhere
+ *  so it's memorized one way; text that isn't valid notation is shown as is. */
 export function algView(alg: string | string[], opts: AlgViewOptions = {}): HTMLElement {
   const out = document.createElement('span');
   out.className = 'alg';
@@ -48,8 +49,8 @@ export function algView(alg: string | string[], opts: AlgViewOptions = {}): HTML
     return b;
   };
   // real spaces between moves (readable when copied), none at the end: inline in a sentence it would sit before the punctuation
-  if (opts.mark) tokens.forEach((token, i) => out.append(...(i ? [' '] : []), button(token, i)));
-  else out.append(...grouped(tokens, (token) => button(token, 0)));
+  if (opts.flat) tokens.forEach((token, i) => out.append(...(i ? [' '] : []), button(token, i)));
+  else out.append(...grouped(tokens, button, opts.mark ?? (() => '')));
   return out;
 }
 
@@ -58,26 +59,31 @@ const SHORT_TRIGGER = 4; // moves: a trigger this long keeps to one line
 /** Moves with common triggers in parentheses and repeated blocks as (block)×n, nested: ((R' D' R D)×2 U)×2. Each
  *  parenthesis stays on the line of the move next to it (`pre` / `post`: the ones opening before the first move and
  *  closing after the last), never alone at the start or end of a line; a short trigger (R U R' U') stays whole (a Sune
- *  may not fit a narrow line in big text). */
-function grouped(tokens: string[], button: (token: string) => HTMLElement): (Node | string)[] {
-  const moves = (tokens: string[], pre: string, post: string) => tokens.flatMap((token, j) => {
-    const b = button(token);
+ *  may not fit a narrow line in big text). `at`: where the parts start in the whole algorithm, for `mark`; a block shows
+ *  the marks of the repetition being followed. */
+function grouped(tokens: string[], button: (token: string, i: number) => HTMLElement, mark: (i: number) => string): (Node | string)[] {
+  const moves = (tokens: string[], at: number, pre: string, post: string) => tokens.flatMap((token, j) => {
+    const b = button(token, at + j);
     const open = j === 0 ? pre : '', close = j === tokens.length - 1 ? post : '';
     const node = open || close ? Object.assign(document.createElement('span'), { className: 'nowrap' }) : b;
     if (node !== b) node.append(open, b, close);
     return j ? [' ', node] : [node];
   });
-  const render = (parts: AlgPart[], pre = '', post = ''): (Node | string)[] => parts.flatMap((p, i) => {
+  const render = (parts: AlgPart[], from: number, pre = '', post = ''): (Node | string)[] => parts.flatMap((p, i) => {
     const sep = i ? [' '] : [];
     const open = i === 0 ? pre : '', close = i === parts.length - 1 ? post : '';
-    if (p.kind === 'moves') return [...sep, ...moves(p.tokens, open, close)];
+    const at = from + parts.slice(0, i).reduce((n, x) => n + partSize(x), 0);
+    if (p.kind === 'moves') return [...sep, ...moves(p.tokens, at, open, close)];
     const group = Object.assign(document.createElement('span'), { className: p.kind === 'trigger' ? 'alg-trigger' : 'repeat' }); // not .trigger: case pages use it
     if (p.kind === 'trigger' && p.tokens.length <= SHORT_TRIGGER) group.classList.add('nowrap');
-    if (p.kind === 'trigger') group.append(...moves(p.tokens, `${open}(`, `)${close}`));
-    else group.append(...render(p.parts, `${open}(`, `)×${p.times}${close}`));
+    if (p.kind === 'trigger') group.append(...moves(p.tokens, at, `${open}(`, `)${close}`));
+    else {
+      const len = partSize(p) / p.times;
+      group.append(...render(p.parts, at + shownRepetition(at, len, p.times, mark) * len, `${open}(`, `)×${p.times}${close}`));
+    }
     return [...sep, group];
   });
-  return render(algParts(tokens));
+  return render(algParts(tokens), 0);
 }
 
 // One looping player and one caption for every tooltip, built once and never re-attached (see tooltip.ts):

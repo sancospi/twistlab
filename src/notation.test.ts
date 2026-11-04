@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { Alg } from 'cubing/alg';
-import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertMove, invertTokens, mapMove, merge, tokenize, unmapMove, compact, turnCount, explainMove, repeats, formatAlg, mirrorTokens, triggerSegments, algTags } from './notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertMove, invertTokens, mapMove, merge, tokenize, unmapMove, compact, turnCount, explainMove, repeats, formatAlg, mirrorTokens, triggerSegments, namedSegments, shownRepetition, algTags } from './notation.ts';
 
 const ALGS = [
   "r U R' U' r' F R F'", "M2 U M U2 M' U M2", "U M' U' M2 U' M2 U' M' U2 M2", "y' U R U' R' U' R",
@@ -182,6 +182,29 @@ test('triggerSegments: the well-known triggers, in both hands, and the moves in 
   assert.deepEqual(seg("R U' R' U' R U2 R'"), ["R U' R' U' R U2 R'"], 'the rhythm with only some turns reversed is no Sune');
   assert.deepEqual(seg("M2 U M U2 M' U M2"), ["M2 U M U2 M' U M2"], 'no trigger: one run');
   assert.deepEqual(triggerSegments([]), []);
+});
+
+test('namedSegments: repetitions as the guide groups them, a repeated trigger keeps its name', () => {
+  const seg = (alg: string) => namedSegments(tokenize(alg)).map((s) => `${s.trigger ?? '-'}: ${s.tokens.join(' ')}`);
+  assert.deepEqual(seg("R U2 R2 U' R2 U' R2 U2 R"), ['-: R U2', "-: R2 U' R2 U'", '-: R2 U2 R']);
+  assert.deepEqual(seg("R U R' U R U' R' U R U' R' U R U2 R'"), ["-: R U R'", "sexyInv: U R U' R' U R U' R'", '-: U R U2 R\'']);
+  assert.deepEqual(seg("F R U R' U' R U R' U' F'"), ['-: F', "sexy: R U R' U' R U R' U'", "-: F'"]);
+  assert.deepEqual(seg("R U R' U R U2 R' F R U R' U' F'"), ["sune: R U R' U R U2 R'", "fSexy: F R U R' U' F'"], 'nothing repeated: as triggerSegments');
+  assert.deepEqual(seg("U2 R U R' U R U2 R' U2 R U R' U R U2 R'"), ["sune: U2 R U R' U R U2 R' U2 R U R' U R U2 R'"], 'the one trigger in its block');
+  assert.deepEqual(seg("R U R' U' R' F R F' R U R' U' R' F R F'"), ["-: R U R' U' R' F R F' R U R' U' R' F R F'"], 'two: no single name');
+  assert.deepEqual(seg("U' R U R' U R' F R F'"), ["-: U' R U R' U", "sledge: R' F R F'"], 'a trigger stays whole against a repetition of its size');
+});
+
+test('shownRepetition: a block follows the pass being done', () => {
+  // (a b)×2 from move 2: i is the current move of a followed list
+  const at = (i: number) => (j: number) => (j < i ? 'done' : j === i ? 'current' : '');
+  assert.equal(shownRepetition(2, 2, 2, at(0)), 0, 'not reached yet');
+  assert.equal(shownRepetition(2, 2, 2, at(3)), 0, 'first pass');
+  assert.equal(shownRepetition(2, 2, 2, at(4)), 1, 'second pass, from its first move');
+  assert.equal(shownRepetition(2, 2, 2, at(5)), 1);
+  assert.equal(shownRepetition(2, 2, 2, at(9)), 1, 'past it: all done');
+  const noCurrent = (j: number) => (j < 4 ? 'setup done' : '');
+  assert.equal(shownRepetition(2, 2, 2, noCurrent), 1, 'no current move: the first pass left');
 });
 
 test('algTags: what stands out in an algorithm', () => {

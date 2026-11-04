@@ -1139,7 +1139,7 @@ const reviewed = () => logs
 function reviewSection(issues: ReturnType<typeof reviewed>): Node[] {
   const title = el('h3', { textContent: t('quiz.review') });
   if (!issues.length) return [title, p(t('quiz.reviewClean'), 'ok')];
-  const turns = (item: Item, moves: string[], mark: (i: number) => boolean, cls: string) => algView(moves.map((m) => item.hold === IDENTITY ? cube.label(m) : unmapMove(m, onCube(item))), { mark: (i) => (mark(i) ? cls : '') });
+  const turns = (item: Item, moves: string[], mark: (i: number) => boolean, cls: string) => algView(moves.map((m) => item.hold === IDENTITY ? cube.label(m) : unmapMove(m, onCube(item))), { flat: true, mark: (i) => (mark(i) ? cls : '') });
   return [title, p(tp('quiz.reviewCount', issues.length, { total: logs.length }), 'hint'), ...issues.map(({ l, r }) =>
     el('div', { className: 'review' },
       el('p', {}, el('strong', { textContent: `${l.n}. ${caseLabel(l.item.c)}` }), ' · ',

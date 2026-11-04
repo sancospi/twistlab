@@ -156,21 +156,35 @@ export const htm = (moves: string[]): number => merge(moves).length;
 export type Run = { tokens: string[]; times: number };
 
 /** Groups blocks (2+ moves) repeated in a row, for display only: R' D' R D R' D' R D U → (R' D' R D)×2 U.
- *  At each point the repetition covering the most moves wins; on a tie, the shorter block. A block may hold
- *  repetitions itself: callers apply repeats() to it again. */
+ *  At each point the repetition covering the most moves wins; on a tie, the one whose block is a trigger, then the
+ *  shorter block. It waits for one starting inside it that covers as much with a trigger as its block (R U R'
+ *  (U R U' R')×2, not R U (R' U R U')×2 R'), and gives way to a trigger of its size or longer (U R U R' F R F' keeps its
+ *  sledgehammer, no (U R')×2). A block may hold repetitions itself: callers apply repeats() to it again. */
 export function repeats(tokens: string[]): Run[] {
-  const out: Run[] = [];
   const same = (a: number, b: number, len: number) => tokens.slice(a, a + len).join(' ') === tokens.slice(b, b + len).join(' ');
-  for (let i = 0; i < tokens.length;) {
-    let best = { len: 0, times: 1 };
+  let at = 0;
+  const triggers = triggerSegments(tokens).flatMap((s) => {
+    const from = at;
+    at += s.tokens.length;
+    return s.trigger ? [{ from, to: at }] : [];
+  });
+  const found: { i: number; len: number; times: number; moves: number; named: boolean }[] = [];
+  for (let i = 0; i < tokens.length; i++) {
     for (let len = 2; i + 2 * len <= tokens.length; len++) {
       let times = 1;
       while (i + (times + 1) * len <= tokens.length && same(i, i + times * len, len)) times++;
-      if (times > 1 && len * times > best.len * best.times) best = { len, times };
+      const moves = len * times;
+      if (times === 1 || triggers.some((x) => x.from < i + moves && i < x.to && x.to - x.from >= moves)) continue;
+      const block = triggerSegments(tokens.slice(i, i + len));
+      found.push({ i, len, times, moves, named: block.length === 1 && !!block[0].trigger });
     }
-    if (best.times > 1) {
+  }
+  const out: Run[] = [];
+  for (let i = 0; i < tokens.length;) {
+    const best = found.filter((f) => f.i === i).sort((a, b) => b.moves - a.moves || +b.named - +a.named || a.len - b.len)[0];
+    if (best && !found.some((f) => f.named && !best.named && f.i > i && f.i < i + best.moves && f.moves >= best.moves)) {
       out.push({ tokens: tokens.slice(i, i + best.len), times: best.times });
-      i += best.len * best.times;
+      i += best.moves;
     } else {
       const last = out.at(-1);
       if (last?.times === 1) last.tokens.push(tokens[i]);
@@ -196,6 +210,21 @@ export function algParts(tokens: string[], below = Infinity): AlgPart[] {
     return triggerSegments(run.tokens, below).map((s): AlgPart => ({ kind: s.trigger ? 'trigger' : 'moves', tokens: s.tokens }));
   });
   return parts.length === 1 && parts[0].kind === 'trigger' ? algParts(tokens, tokens.length) : parts;
+}
+
+/** How many moves a part stands for, its repetitions included. */
+export const partSize = (p: AlgPart): number =>
+  p.kind === 'repeat' ? p.times * p.parts.reduce((n, x) => n + partSize(x), 0) : p.tokens.length;
+
+/** Which repetition of a block a followed list shows: a block is written once, so its moves go from done back to to-do
+ *  on each pass. The one holding the current move, else the first not done yet. `mark`: the class of each move of the
+ *  whole algorithm; the block's repetitions take `len` moves each from `start`. */
+export function shownRepetition(start: number, len: number, times: number, mark: (i: number) => string): number {
+  const passes = Array.from({ length: times }, (_, r) => Array.from({ length: len }, (_, j) => mark(start + r * len + j)));
+  const current = passes.findIndex((p) => p.some((c) => c.includes('current')));
+  if (current >= 0) return current;
+  const left = passes.findIndex((p) => p.some((c) => !c.includes('done')));
+  return left >= 0 ? left : times - 1;
 }
 
 /** The algorithm as text with its repetitions and triggers grouped. */
@@ -282,6 +311,18 @@ export function triggerSegments(tokens: string[], below = Infinity): Segment[] {
     i++;
   }
   return out;
+}
+
+/** The runs a case's card names, grouped as algParts does: repetitions first, each written whole ((block)×n when shown)
+ *  and keeping the name of the one trigger in its block, if that's all it holds, then the triggers of the rest. */
+export function namedSegments(tokens: string[]): Segment[] {
+  return repeats(tokens).flatMap((run) => {
+    const segments = triggerSegments(run.tokens);
+    if (run.times === 1) return segments;
+    const named = segments.filter((s) => s.trigger);
+    const all = Array.from({ length: run.times }, () => run.tokens).flat();
+    return [named.length === 1 ? { ...named[0], tokens: all } : { tokens: all }];
+  });
 }
 
 export type AlgTag = 'ru' | 'rotation' | 'wide' | 'slice' | 'left';
