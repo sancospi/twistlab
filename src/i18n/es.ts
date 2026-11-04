@@ -238,6 +238,7 @@ export const es = {
   'notation.ccw': 'En sentido antihorario, mirando la cara {face} de frente',
   'notation.half': 'Media vuelta (180°): el sentido da igual',
   'notation.tip': 'Giro {move}: {what}. {how}.',
+  'notation.pass': 'Repetición {n} de {times}',
   'guide.move': 'Cara {face}, {turn}',
   'guide.face.U': 'arriba',
   'guide.face.D': 'abajo',

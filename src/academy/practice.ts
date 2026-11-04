@@ -890,7 +890,7 @@ function renderSolve(shown: boolean) {
     fingerNow.textContent = t('fingers.now', { hint: [markText(hints[i]), hints[i].label].filter(Boolean).join(' · ') });
   }
   show('practice-list', true);
-  $('practice-list').replaceChildren(algView(tokens, { mark: (j) => (j < i ? 'done' : j === i ? 'current' : '') }));
+  $('practice-list').replaceChildren(algView(tokens, { at: i })); // its repetitions grouped, as the algorithm picker writes it
 }
 
 function renderResult() {

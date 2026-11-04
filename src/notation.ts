@@ -198,6 +198,15 @@ export function algParts(tokens: string[], below = Infinity): AlgPart[] {
   return parts.length === 1 && parts[0].kind === 'trigger' ? algParts(tokens, tokens.length) : parts;
 }
 
+/** How many moves of the algorithm a part stands for, every pass of a repeated block counted. */
+export const partSize = (p: AlgPart): number =>
+  p.kind === 'repeat' ? p.times * p.parts.reduce((n, q) => n + partSize(q), 0) : p.tokens.length;
+
+/** Following an algorithm with its repeated blocks grouped: the pass (from 0) whose moves the block shows when move `at`
+ *  is next. The one under way; before the block the first, past it the last (all done). `start`: the block's first move. */
+export const passAt = (p: Extract<AlgPart, { kind: 'repeat' }>, start: number, at: number): number =>
+  Math.min(Math.max(Math.floor((at - start) / (partSize(p) / p.times)), 0), p.times - 1);
+
 /** The algorithm as text with its repetitions and triggers grouped. */
 export const formatAlg = (tokens: string[]): string =>
   algParts(tokens).map((p) => (p.kind === 'repeat' ? `(${p.parts.map(partText).join(' ')})×${p.times}` : partText(p))).join(' ');

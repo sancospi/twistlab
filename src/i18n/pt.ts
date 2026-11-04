@@ -240,6 +240,7 @@ export const pt: Record<MessageKey, string> = {
   'notation.ccw': 'No sentido anti-horário, olhando de frente para a face {face}',
   'notation.half': 'Meia-volta (180°): o sentido tanto faz',
   'notation.tip': 'Movimento {move}: {what}. {how}.',
+  'notation.pass': 'Repetição {n} de {times}',
   'guide.move': 'Face {face}, {turn}',
   'guide.face.U': 'em cima',
   'guide.face.D': 'embaixo',

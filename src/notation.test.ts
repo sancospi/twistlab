@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { Alg } from 'cubing/alg';
-import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertMove, invertTokens, mapMove, merge, tokenize, unmapMove, compact, turnCount, explainMove, repeats, formatAlg, mirrorTokens, triggerSegments, algTags } from './notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertMove, invertTokens, mapMove, merge, tokenize, unmapMove, compact, turnCount, explainMove, repeats, formatAlg, algParts, partSize, passAt, mirrorTokens, triggerSegments, algTags } from './notation.ts';
 
 const ALGS = [
   "r U R' U' r' F R F'", "M2 U M U2 M' U M2", "U M' U' M2 U' M2 U' M' U2 M2", "y' U R U' R' U' R",
@@ -132,6 +132,20 @@ test('repeats: blocks repeated in a row are grouped for display, the rest stays 
   assert.equal(f("R' D' R D R' D' R D R' D' R D R' D' R D U R' D' R D R' D' R D R' D' R D R' D' R D U"), "((R' D' R D)×4 U)×2", 'nested');
   assert.deepEqual(repeats([]), []);
   assert.deepEqual(repeats(tokenize("F R U R' U' R U R' U' F'")).map((r) => r.times), [1, 2, 1]);
+});
+
+test('passAt: a repeated block followed move by move shows the pass under way', () => {
+  // r' U2 (R2 U)×2 r: the block's moves are 2-3 on the first pass, 4-5 on the second
+  const [, repeat] = algParts(tokenize("r' U2 R2 U R2 U r"));
+  assert.ok(repeat.kind === 'repeat');
+  assert.equal(partSize(repeat), 4);
+  assert.deepEqual([0, 2, 3, 4, 5, 6, 7].map((at) => passAt(repeat, 2, at)), [0, 0, 0, 1, 1, 1, 1], 'before it the first, past it the last');
+  // ((R' D' R D)×2 U)×2: the inner block counts from where the outer pass under way starts
+  const [outer] = algParts(tokenize("R' D' R D R' D' R D U R' D' R D R' D' R D U"));
+  assert.ok(outer.kind === 'repeat' && outer.parts[0].kind === 'repeat');
+  assert.equal(partSize(outer), 18);
+  assert.equal(passAt(outer, 0, 13), 1);
+  assert.equal(passAt(outer.parts[0], 9, 13), 1, "move 13 is the second R' D' R D of the second pass");
 });
 
 test('mirrorTokens: R <-> L, every turn the other way except M and x', () => {

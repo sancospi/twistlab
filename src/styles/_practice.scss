@@ -90,6 +90,6 @@ code { font-family: var(--mono); }
 .next { font: 700 3.1429rem/1 var(--mono); color: var(--accent); }
 .practice-card.undo :is(#practice-next, #practice-desc) { color: $bad; } /* a correction, not the algorithm's next turn */
 .tokens { font-family: var(--mono); color: var(--muted); word-break: break-word; }
-.tokens span { margin-right: .6ch; }
+.tokens > span { margin-right: .6ch; } /* the Quiz's moves, not the groups inside an algorithm's */
 .tokens .done { opacity: .5; }
 .tokens .current { color: var(--fg); font-weight: 700; text-decoration: underline; }

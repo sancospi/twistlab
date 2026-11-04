@@ -238,6 +238,7 @@ export const en: Record<MessageKey, string> = {
   'notation.ccw': 'Counterclockwise, looking straight at the {face} face',
   'notation.half': 'Half turn (180°): direction doesn’t matter',
   'notation.tip': 'Move {move}: {what}. {how}.',
+  'notation.pass': 'Repetition {n} of {times}',
   'guide.move': '{face} face, {turn}',
   'guide.face.U': 'Up',
   'guide.face.D': 'Down',
