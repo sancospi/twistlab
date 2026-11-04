@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cube3x3x3 } from 'cubing/puzzles';
 import { Alg } from 'cubing/alg';
-import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertMove, invertTokens, mapMove, merge, tokenize, unmapMove, compact, turnCount, explainMove, repeats, formatAlg, algParts, partSize, passAt, mirrorTokens, triggerSegments, algTags } from './notation.ts';
+import { IDENTITY, YELLOW_UP, centerMoves, expand, htm, invertMove, invertTokens, mapMove, merge, tokenize, unmapMove, compact, turnCount, explainMove, repeats, formatAlg, algParts, partSize, passAt, mirrorTokens, triggerSegments, triggerRuns, algTags } from './notation.ts';
 
 const ALGS = [
   "r U R' U' r' F R F'", "M2 U M U2 M' U M2", "U M' U' M2 U' M2 U' M' U2 M2", "y' U R U' R' U' R",
@@ -146,6 +146,16 @@ test('passAt: a repeated block followed move by move shows the pass under way', 
   assert.equal(partSize(outer), 18);
   assert.equal(passAt(outer, 0, 13), 1);
   assert.equal(passAt(outer.parts[0], 9, 13), 1, "move 13 is the second R' D' R D of the second pass");
+});
+
+test('triggerRuns: a trigger repeated in a row is one segment, the rest as triggerSegments', () => {
+  const runs = (alg: string) => triggerRuns(tokenize(alg)).map((s) => (s.trigger ? `[${s.trigger}${s.left ? '-L' : ''}×${s.times}: ${s.tokens.join(' ')}]` : s.tokens.join(' ')));
+  assert.deepEqual(runs("R U R' U' R U R' U' R U R' U'"), ["[sexy×3: R U R' U' R U R' U' R U R' U']"]);
+  assert.deepEqual(runs("F R U R' U' R U R' U' F'"), ['F', "[sexy×2: R U R' U' R U R' U']", "F'"]);
+  assert.deepEqual(runs("U R U' R' U R U' R' F R' F' R"), ["[sexyInv×2: U R U' R' U R U' R']", "[hedge×1: F R' F' R]"], 'different triggers stay apart');
+  assert.deepEqual(runs("L' U' L U L' U' L U"), ["[sexy-L×2: L' U' L U L' U' L U]"]);
+  assert.deepEqual(runs("U' R U R' U R' F R F'"), ["U' R U R' U", "[sledge×1: R' F R F']"], 'a repetition through a trigger: the trigger wins');
+  assert.deepEqual(triggerRuns([]), []);
 });
 
 test('mirrorTokens: R <-> L, every turn the other way except M and x', () => {

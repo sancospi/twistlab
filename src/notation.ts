@@ -293,6 +293,19 @@ export function triggerSegments(tokens: string[], below = Infinity): Segment[] {
   return out;
 }
 
+/** triggerSegments with a trigger repeated in a row as one segment (the moves of every pass, `times` of them), shown as
+ *  (R U R' U')×3 under one name. A repetition that cuts through a trigger isn't merged: the trigger wins. */
+export const triggerRuns = (tokens: string[]): (Segment & { times: number })[] =>
+  triggerSegments(tokens).reduce<(Segment & { times: number })[]>((out, s) => {
+    const last = out.at(-1);
+    const again = s.trigger && last?.trigger && last.tokens.slice(0, s.tokens.length).join(' ') === s.tokens.join(' ');
+    if (again) {
+      last.tokens.push(...s.tokens);
+      last.times++;
+    } else out.push({ ...s, tokens: [...s.tokens], times: 1 });
+    return out;
+  }, []);
+
 export type AlgTag = 'ru' | 'rotation' | 'wide' | 'slice' | 'left';
 
 /** What stands out in how an algorithm is done: only R and U, rotations, wide turns, slices, mostly the left hand. */

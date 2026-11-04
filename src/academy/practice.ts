@@ -18,7 +18,7 @@ import { cube3x3x3 } from 'cubing/puzzles';
 import type { KPattern, KPuzzle } from 'cubing/kpuzzle';
 import { patternToFacelets } from '../facelets.ts';
 import { describe, nextStep, PathGuide } from '../guide.ts';
-import { CAMERA, IDENTITY, YELLOW_UP, caseSetup, centerMoves, expand, formatAlg, htm, mapMove, tokenize, triggerSegments, turnCount, unmapMove, type Frame } from '../notation.ts';
+import { CAMERA, IDENTITY, YELLOW_UP, caseSetup, centerMoves, expand, formatAlg, htm, mapMove, tokenize, triggerRuns, turnCount, unmapMove, type Frame } from '../notation.ts';
 import { formatTime } from '../timer.ts';
 import { algView, scrambleNote } from '../notation-view.ts';
 import { inlineText, richText } from '../rich-text-view.ts';
@@ -128,10 +128,11 @@ export function caseSVG(c: Case, user: KPattern, opts: DiagramOpts = {}): string
   return caseDiagram(phaseOf(c.id)?.diagram ?? 'top', c.stage, patternToFacelets(user), opts);
 }
 
-/** The algorithm with its triggers as labelled groups; every move stays tappable. */
+/** The algorithm with its triggers as labelled groups, one repeated in a row as one: (R U R' U')×3, as the algorithm
+ *  picker writes it. Every move stays tappable. */
 export function movesView(tokens: string[]): HTMLElement {
   const out = el('div', { className: 'case-moves' });
-  triggerSegments(tokens).forEach((s, i) => {
+  triggerRuns(tokens).forEach((s, i) => {
     if (i) out.append(' '); // real spaces: readable when copied
     if (!s.trigger) return void out.append(algView(s.tokens));
     const name = t(`case.trigger.${s.trigger}`);
