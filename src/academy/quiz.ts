@@ -4,13 +4,15 @@
 // item:
 // - With a synced cube: 1) Mezcla, guided to a random state of the case; 2) Resuelve, on the clock from the first
 //   turn, without being asked its name. Graded by itself (time, turns, efficiency).
-// - Without one: first "¿Qué caso es?", the figure and a few cases to tap, only when cubers learn their names (PLL,
-//   OLL…; lessons.ts caseQuestion): telling an algorithm from its text by eye (F2L) isn't what a solve needs, so
-//   the others go straight to the scramble; optional (Pasar al caso); a wrong one: the answer, graded as failed. Then the clock card, as in
-//   Practicar: the figure (no arrows) and the random-state scramble, big; the user solves it on their cube and says
-//   how it went, Lo resolví (Siguiente) or Fallé (the answer, graded as failed). The quiz is about knowing the case,
-//   so the clock is optional: a tap (or Space) hides the scramble and starts it, the next stops it, then Limpio or
-//   Fallé.
+// - Without one: first "¿Qué caso es?", the scramble and a few cases to tap, read off the user's own cube, only when
+//   cubers learn their names (PLL, OLL…; lessons.ts caseQuestion): telling an algorithm from its text by eye (F2L)
+//   isn't what a solve needs, so the others go straight to the scramble; optional (Pasar al caso); a wrong one: the
+//   answer, graded as failed. Then the clock card, as in Practicar: the random-state scramble, big; the user solves it
+//   on their cube and says how it went, Lo resolví (Siguiente) or Fallé (the answer, graded as failed). The quiz is
+//   about knowing the case, so the clock is optional: a tap (or Space) hides the scramble and starts it, the next stops
+//   it, then Limpio or Fallé.
+// Until the item is over its case isn't on screen, or the quiz would recognise it for the user: Ver caso shows the
+// figure for a few seconds, and the first look fails the item.
 // Solved: the time, turns and grade with the case's best and average, then Otra mezcla (the same case, another state)
 // or Siguiente. A wrong answer or Fallé: the explanation (figure, algorithm with its triggers, recognition, fingers,
 // animation on demand), then Reintentar or Siguiente. With the cube, "Me atasqué" (or too many turns, too long) leaves
@@ -70,6 +72,7 @@ const PER_CASE = [3, 5, 10, 20];
 // set up by hand, and a method is 119 cases. 21 so one round of a full PLL fits, every case asked once; bigger sets
 // (F2L 41, OLL 57) stay capped. A setting if longer sessions are ever wanted.
 const SESSION_MAX = 21;
+const PEEK_MS = 3000; // Ver caso: long enough to read the figure, too short to solve from it
 const SELECTIONS: Selection[] = ['one', 'pick', 'due', 'learning', 'known', 'slow', 'all'];
 const ORDERS: Order[] = ['uniform', 'probability', 'spaced'];
 const HISTORY_KEY = 'academy-quiz-history';
@@ -136,6 +139,8 @@ let assisted = false;
 let clockAt = 0; // without a cube: > 0 while the solve clock runs
 let clockMs: number | null = null; // ...its time, once stopped
 let why: Why = 'stuck';
+let peeking = false; // Ver caso: the figure is up, until peekTimer
+let peekTimer: ReturnType<typeof setTimeout> | undefined;
 let showNet = setting('quiz-net', false); // the scramble's 2D net, to check the cube by eye (kept across items)
 let neutral = setting('quiz-neutral', false); // color neutral: each item held a random way (another color on top)
 let selection: Selection = 'all'; // which cases (setup), see openQuiz
@@ -316,6 +321,8 @@ function startItem(back?: string[]) {
   firstMoveAt = 0;
   clockAt = 0;
   clockMs = null;
+  peeking = false;
+  clearTimeout(peekTimer);
   anim.set(false);
   prefetch(index);
   prefetch(index + 1);
@@ -436,6 +443,29 @@ function stuck(w: Why = 'stuck') {
   retried = true;
   // undoing a few turns is the human way back; more, and the solver's is shorter ([] never leads there)
   startItem(done.length <= UNDO_MAX ? merge(done.map(invertMove).reverse()) : []);
+}
+
+/** Ver caso: the figure for PEEK_MS. The first look fails the item, as Me atasqué does, and from there it's a retry:
+ *  the answer was seen, so what follows neither grades nor scores. Patched back in place when the time is up:
+ *  re-rendering the question would drop a tap in progress on an answer. */
+function peek() {
+  const item = items[index];
+  if (!retried) {
+    gradeItem(item, 'fail');
+    if (mode === 'execution') {
+      assisted = true;
+      attempts.push({ caseId: item.c.id, correct: false, recognitionMs: 0 });
+      logs.push({ item, n: index + 1, done, skipped: false, assisted });
+    } else attempts.at(-1)!.correct = false;
+    retried = true;
+  }
+  peeking = true;
+  clearTimeout(peekTimer);
+  peekTimer = setTimeout(() => {
+    peeking = false;
+    body.querySelector('[data-peek]')?.replaceWith(caseFigure());
+  }, PEEK_MS);
+  render();
 }
 
 function explain(w: Why) {
@@ -616,10 +646,10 @@ function render() {
 /** The "?" of each screen: what the screen itself keeps to a line. */
 function helpText(): string {
   switch (screen) {
-    case 'setup': return [t(executionNext() ? 'quiz.howCube' : 'quiz.howNoCube'), `${t('neutral.option')}: ${t('neutral.optionHint')}`].join(' ');
-    case 'clock': return [t(clockMs !== null ? 'quiz.helpClockDone' : 'quiz.helpClock'), items[index]?.random ? t('quiz.randomState') : ''].join(' ').trim();
-    case 'scramble': return t(guided ? 'quiz.helpGuided' : 'quiz.helpScramble');
-    case 'solve': return t(guided ? 'quiz.helpGuided' : 'quiz.helpSolve');
+    case 'setup': return [t(executionNext() ? 'quiz.howCube' : 'quiz.howNoCube'), t('quiz.helpPeek'), `${t('neutral.option')}: ${t('neutral.optionHint')}`].join(' ');
+    case 'clock': return [...(clockMs !== null ? [t('quiz.helpClockDone')] : [t('quiz.helpClock'), t('quiz.helpPeek')]), items[index]?.random ? t('quiz.randomState') : ''].join(' ').trim();
+    case 'scramble': return guided ? t('quiz.helpGuided') : `${t('quiz.helpScramble')} ${t('quiz.helpPeek')}`;
+    case 'solve': return guided ? t('quiz.helpGuided') : `${t('quiz.helpSolve')} ${t('quiz.helpPeek')}`;
     case 'done': return t(feedback?.grade === 'fail' ? 'quiz.helpDoneFail' : 'quiz.helpDone');
     case 'explain': return t('quiz.helpExplain');
     default: return '';
@@ -818,6 +848,17 @@ function diagram(item: Item, size = 180, arrows = false): HTMLElement {
   return box;
 }
 
+/** The case while it's being asked: Ver caso, or the figure (and the 2D net, which gives it away as much) while it's
+ *  looked at; led back after Me atasqué it stays, with the lesson under it. */
+function caseFigure(): HTMLElement {
+  const shown = peeking || guided;
+  const out = shown ? el('div', { className: 'card-scramble' }, diagram(items[index], 96), ...netToggle())
+    : action('peek', t(retried ? 'quiz.peek' : 'quiz.peekFail'), peek);
+  if (!shown) out.className = 'small';
+  out.dataset.peek = '';
+  return out;
+}
+
 /** Step indicator: 1 Reconoce (no cube) or Mezcla (cube) · 2 Resuelve. */
 const steps = (current: 1 | 2) => el('ol', { className: 'steps', ariaLabel: t('practice.steps') },
   ...[t('practice.stepScramble'), t('practice.stepSolve')].map((text, i) =>
@@ -826,11 +867,10 @@ const steps = (current: 1 | 2) => el('ol', { className: 'steps', ariaLabel: t('p
 /** "Me atasqué" (or "Ver respuesta" on the clock card): the explanation. */
 const stuckButton = (label: MessageKey = 'quiz.stuck', w: Why = 'stuck') => action('stuck', t(label), () => stuck(w));
 
-/** Without a cube, first "¿Qué caso es?": the figure and the choices, Pasar al caso, Ver respuesta and Saltar under
- *  them. Then the
- *  clock card: listo, the figure (no arrows) and the scramble, big, with Lo resolví, Fallé and Saltar under it; a tap
- *  or Space hides them and starts the optional clock; parado, the time against the case's record, Limpio (solved:
- *  Siguiente) or Fallé (the answer). */
+/** Without a cube, first "¿Qué caso es?": the scramble and the choices, Pasar al caso, Ver respuesta and Saltar under
+ *  them. Then the clock card: listo, the scramble, big, with Lo resolví, Fallé and Saltar under it; a tap or Space
+ *  hides it and starts the optional clock; parado, the time against the case's record, Limpio (solved: Siguiente) or
+ *  Fallé (the answer). */
 function renderClock(): Node[] {
   const item = items[index];
   if (choices.length) {
@@ -838,7 +878,7 @@ function renderClock(): Node[] {
     const buttons = choices.map(({ c, label }, i) => el('button', { type: 'button', ariaLabel: caseLabel(c), onclick: () => pickCase(c) },
       el('kbd', { textContent: String(i + 1) }), label));
     buttons[0].dataset.focus = '';
-    return [progress(), diagram(item, 140), p(q),
+    return [progress(), card('question', itemScramble()), p(q),
       el('div', { className: 'lesson-choices', role: 'group', ariaLabel: q }, ...buttons),
       actions(action('skip-name', t('quiz.skipName'), skipName), stuckButton('quiz.showAnswer', 'shown'), action('skip', t('quiz.skip'), skip))];
   }
@@ -964,8 +1004,7 @@ function reviewButton(item: Item): HTMLElement[] {
   return [b];
 }
 
-/** Without a smart cube the user sets each item up by hand: the plan's scramble, or a random-state one, big on the card
- *  next to the state's figure. */
+/** Without a smart cube the user sets each item up by hand: the plan's scramble, or a random-state one, big on the card. */
 function itemScramble(): Node[] {
   if (mode !== 'recognition') return [];
   const { scramble: s, random } = items[index];
@@ -973,8 +1012,7 @@ function itemScramble(): Node[] {
   code.dataset.scramble = ''; // filled in place when the solver answers (prefetch)
   const hint = el('p', { className: 'hint', textContent: t('quiz.randomStateShort'), hidden: !random }); // not true of the fallback
   hint.dataset.random = '';
-  return [el('div', { className: 'card-scramble' }, diagram(items[index], 96),
-    el('div', {}, code, scrambleNote(items[index].hold.U, items[index].hold.F), hint)), ...netToggle()];
+  return [el('div', { className: 'card-scramble' }, code, scrambleNote(items[index].hold.U, items[index].hold.F), hint), caseFigure()];
 }
 
 /** "Ver en 2D": the whole state the scramble leads to as a net, to check the cube by eye (kept across items). */
@@ -1045,8 +1083,7 @@ function renderScramble(): Node[] {
       el('div', { textContent: scrambleDesc() }),
       ...holdHint(items[index], 'neutral.holdAfter'),
       el('div', { className: 'tokens' }, ...(g?.steps ?? []).flatMap((m, i) => [el('span', { textContent: cube.label(m), className: i === 0 ? 'current' : '' }), ' '])),
-      diagram(items[index], 96), // where the scramble leads
-      ...netToggle(),
+      caseFigure(),
     ]),
     ...(guided ? guidedLesson('quiz.guidedScramble') : [actions(action('skip', t('quiz.skip'), skip))]),
   ];
@@ -1061,7 +1098,7 @@ function renderSolve(): Node[] {
       ...holdHint(item, 'neutral.holdSolve'),
       el('div', { id: 'quiz-clock', className: `practice-clock${firstMoveAt ? ' running' : ''}`, role: 'timer', textContent: formatTime(firstMoveAt ? performance.now() - firstMoveAt : 0) }),
       p(tp('quiz.turns', turnCount(done)), 'hint'), // as the review counts them
-      diagram(item, 96),
+      caseFigure(),
     ]),
     ...(guided ? guidedLesson('quiz.guidedSolve') : [actions(action('skip', t('quiz.skip'), skip), stuckButton())]),
   ];

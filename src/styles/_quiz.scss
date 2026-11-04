@@ -9,13 +9,14 @@
 .quiz-bar { flex: 1; height: 6px; border-radius: 3px; background: $raised; overflow: hidden; }
 .quiz-bar span { display: block; height: 100%; background: var(--accent); }
 .quiz-card { min-height: min(48dvh, 420px); }
+.quiz-card[data-state="question"] { min-height: 0; } /* the answers come right under it */
 .quiz-card .card-moves { font-size: clamp(1.25rem, 5.2vw, 1.6rem); }
 .quiz-card .quiz-diagram svg { width: min(96px, 26vw); }
 .quiz-card .tokens { text-align: center; }
 .quiz-card .grade { flex-wrap: wrap; } /* its labels are longer than Limpio / Fallé ("Ver resultados", "Tentar de novo") */
 .quiz-card .grade button { flex: 1 1 auto; }
 .practice-actions.start { justify-content: flex-start; } /* the explanation's, under its left-aligned text */
-.quiz-card [data-action="net"] { min-height: 44px; padding-inline: 14px; } /* a near miss would start the clock */
+.quiz-card :is([data-action="net"], [data-action="peek"]) { min-height: 44px; padding-inline: 14px; } /* a near miss would start the clock */
 .chips-field { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
 .chips-field legend { margin-bottom: 6px; padding: 0; color: var(--muted); }
 .chip-set { display: flex; flex-wrap: wrap; gap: 6px; }
